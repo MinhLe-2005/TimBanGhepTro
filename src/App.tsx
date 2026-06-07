@@ -56,14 +56,29 @@ export default function App() {
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
+        const user = session.user;
         setCurrentUser({
-          id: session.user.id,
-          email: session.user.email,
-          name: session.user.user_metadata?.full_name || "Thành viên Roomie",
-          avatar: session.user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop",
+          id: user.id,
+          email: user.email,
+          name: user.user_metadata?.full_name || "Thành viên Roomie",
+          avatar: user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop",
         });
+        // Also try to restore profile on session restore (e.g. page reload)
+        const savedProfile = localStorage.getItem("roomiematch_user_profile");
+        if (savedProfile) {
+          try { setCurrentUserProfile(JSON.parse(savedProfile)); } catch(e) {}
+        } else {
+          // Try loading from Supabase by user_id or postedBy
+          try {
+            const { data: profileData } = await supabase.from('roommates').select('*').eq('user_id', user.id).maybeSingle();
+            if (profileData) {
+              setCurrentUserProfile(profileData);
+              localStorage.setItem("roomiematch_user_profile", JSON.stringify(profileData));
+            }
+          } catch(e) {}
+        }
       } else {
         setCurrentUser(null);
       }
@@ -687,14 +702,32 @@ export default function App() {
     
     let hasProfile = false;
     if (user && user.id) {
-      // 1. Try Supabase
-      const { data } = await supabase.from('roommates').select('*').eq('postedBy', user.id).maybeSingle();
-      if (data) {
-        hasProfile = true;
-        setCurrentUserProfile(data);
-        localStorage.setItem("roomiematch_user_profile", JSON.stringify(data));
-      } else {
-        // 2. Try Local Fallback
+      // 1. Try Supabase by user_id column
+      try {
+        const { data: byUserId } = await supabase.from('roommates').select('*').eq('user_id', user.id).maybeSingle();
+        if (byUserId) {
+          hasProfile = true;
+          setCurrentUserProfile(byUserId);
+          localStorage.setItem("roomiematch_user_profile", JSON.stringify(byUserId));
+        }
+      } catch(e) {}
+
+      // 2. Try Supabase by postedBy column (legacy)
+      if (!hasProfile) {
+        try {
+          const { data: byPostedBy } = await supabase.from('roommates').select('*').eq('postedBy', user.id).maybeSingle();
+          if (byPostedBy) {
+            hasProfile = true;
+            setCurrentUserProfile(byPostedBy);
+            localStorage.setItem("roomiematch_user_profile", JSON.stringify(byPostedBy));
+            // Migrate: update user_id in Supabase if possible
+            await supabase.from('roommates').update({ user_id: user.id }).eq('id', byPostedBy.id).then(() => {});
+          }
+        } catch(e) {}
+      }
+
+      // 3. Try Local Fallback (profiles_map keyed by auth UUID)
+      if (!hasProfile) {
         try {
           const mapStr = localStorage.getItem("roomiematch_profiles_map") || "{}";
           const map = JSON.parse(mapStr);
@@ -702,6 +735,22 @@ export default function App() {
             hasProfile = true;
             setCurrentUserProfile(map[user.id]);
             localStorage.setItem("roomiematch_user_profile", JSON.stringify(map[user.id]));
+            // Migrate: save user_id to Supabase for this profile
+            await supabase.from('roommates').update({ user_id: user.id }).eq('id', map[user.id].id).then(() => {});
+          }
+        } catch(e) {}
+      }
+
+      // 4. Try cached profile from localStorage (roomiematch_user_profile)
+      if (!hasProfile) {
+        try {
+          const cachedProfileStr = localStorage.getItem("roomiematch_user_profile");
+          if (cachedProfileStr) {
+            const cachedProfile = JSON.parse(cachedProfileStr);
+            hasProfile = true;
+            setCurrentUserProfile(cachedProfile);
+            // Migrate: save user_id to Supabase for this profile
+            await supabase.from('roommates').update({ user_id: user.id }).eq('id', cachedProfile.id).then(() => {});
           }
         } catch(e) {}
       }
