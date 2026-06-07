@@ -30,13 +30,6 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
 
   const handleProviderSelect = async (provider: "google" | "facebook") => {
     try {
-      if (!supabase.auth.signInWithOAuth) {
-        // Chế độ Mock cục bộ: Hiển thị màn hình chọn tài khoản ảo
-        setMockProvider(provider);
-        setAuthStep("mock_oauth");
-        return;
-      }
-
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -84,15 +77,6 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
           return;
         }
 
-        if (!supabase.auth.signUp) {
-          // Chế độ Mock
-          setTimeout(() => {
-            setAuthStep("check_email");
-            setIsLoading(false);
-          }, 1000);
-          return;
-        }
-
         const { data, error } = await supabase.auth.signUp({
           email: emailInput,
           password: passwordInput,
@@ -113,15 +97,6 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
         }
       } else {
         // Xử lý đăng nhập
-        if (!supabase.auth.signInWithPassword) {
-          // Chế độ Mock
-          setTimeout(() => {
-            setAuthStep("success");
-            setIsLoading(false);
-          }, 1000);
-          return;
-        }
-
         const { data, error } = await supabase.auth.signInWithPassword({
           email: emailInput,
           password: passwordInput,
@@ -147,10 +122,6 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
 
   const handleCompleteAuth = async () => {
     try {
-      if (!supabase.auth.getSession) {
-        onClose();
-        return;
-      }
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         onLoginSuccess({
@@ -161,7 +132,7 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
         });
       }
     } catch (e) {
-      console.log("Mock session fallback");
+      console.log("Session retrieval error");
     }
     onClose();
   };
@@ -179,7 +150,6 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
 
         {authStep === "form" && (
           <div className="flex flex-col h-full">
-            {/* Header Tabs */}
             <div className="flex border-b-2 border-slate-100">
               <button
                 onClick={() => { setActiveTab("login"); setErrorMessage(""); }}

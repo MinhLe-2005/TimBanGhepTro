@@ -145,8 +145,15 @@ export default function App() {
 
   const [editingListingData, setEditingListingData] = useState<any>(null);
 
-  const handleOpenPostModal = (tab: "roommate" | "room") => {
-    if (!currentUser) {
+  const handleOpenPostModal = async (tab: "roommate" | "room") => {
+    let user = currentUser;
+    if (!user) {
+      const { data } = await supabase.auth.getSession();
+      user = data.session?.user;
+      if (user) setCurrentUser(user);
+    }
+    
+    if (!user) {
       setIsLoginModalOpen(true);
       return;
     }
@@ -322,8 +329,15 @@ export default function App() {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  const requireAuth = () => {
-    if (!currentUser) {
+  const requireAuth = async () => {
+    let user = currentUser;
+    if (!user) {
+      const { data } = await supabase.auth.getSession();
+      user = data.session?.user;
+      if (user) setCurrentUser(user);
+    }
+
+    if (!user) {
       setIsLoginModalOpen(true);
       return false;
     }
@@ -578,22 +592,25 @@ export default function App() {
     localStorage.removeItem("roomiematch_user_profile");
   };
 
-  const startChatConversation = (roommateId: string) => {
-    if (!requireAuth()) return;
+  const startChatConversation = async (roommateId: string) => {
+    const isAuth = await requireAuth();
+    if (!isAuth) return;
     if (window.history.state?.modal) { window.history.back(); } else { setSelectedRoommate(null); setSelectedRoom(null); }
     setActiveChatRoommateId(roommateId);
     setTimeout(() => setActiveTab("chat"), 50);
   };
 
-  const startAgreementForm = (roommateId: string) => {
-    if (!requireAuth()) return;
+  const startAgreementForm = async (roommateId: string) => {
+    const isAuth = await requireAuth();
+    if (!isAuth) return;
     if (window.history.state?.modal) { window.history.back(); } else { setSelectedRoommate(null); setSelectedRoom(null); }
     setActiveChatRoommateId(roommateId);
     setTimeout(() => setActiveTab("agreement"), 50);
   };
 
-  const handleRoomInquiry = (hostName: string) => {
-    if (!requireAuth()) return;
+  const handleRoomInquiry = async (hostName: string) => {
+    const isAuth = await requireAuth();
+    if (!isAuth) return;
     if (window.history.state?.modal) { window.history.back(); } else { setSelectedRoommate(null); setSelectedRoom(null); }
     
     // Find matching roommate profile, or fallback to first roommate
@@ -603,7 +620,8 @@ export default function App() {
   };
 
   const handleAddReview = async (roommateId: string, review: { reviewerName: string; rating: number; comment: string; imageUrl?: string }) => {
-    if (!requireAuth()) return false;
+    const isAuth = await requireAuth();
+    if (!isAuth) return false;
 
     const newDbReview = {
       roommate_id: roommateId,
@@ -657,8 +675,9 @@ export default function App() {
     return true;
   };
 
-  const handleAddRoomReview = (roomId: string, review: { reviewerName: string; rating: number; comment: string; images: string[] }) => {
-    if (!requireAuth()) return false;
+  const handleAddRoomReview = async (roomId: string, review: { reviewerName: string; rating: number; comment: string; images: string[] }) => {
+    const isAuth = await requireAuth();
+    if (!isAuth) return false;
 
     setRooms((prev) =>
       prev.map((r) => {
