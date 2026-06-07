@@ -22,7 +22,9 @@ interface AgreementViewProps {
   roommates: Roommate[];
   currentUserProfile: any;
   preSelectedRoommateId?: string | null;
+  currentUser?: any;
   onRequireAuth?: () => void;
+  onRequireProfile?: () => void;
 }
 
 export const QUIET_OPTIONS = [
@@ -396,7 +398,7 @@ export default function AgreementView({
     role: (matchedRoommate && roommateName) ? matchedRoommate.role : "Bạn cùng phòng",
   };
 
-  if (!currentUserProfile) {
+  if (!currentUser) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-4 min-h-[60vh] animate-fade-in">
         <div className="bg-white p-10 rounded-[32px] shadow-[0_10px_40px_rgba(15,23,42,0.06)] border border-slate-100 max-w-md text-center">
@@ -404,12 +406,32 @@ export default function AgreementView({
              <Lock className="h-10 w-10" />
           </div>
           <h3 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">Yêu cầu đăng nhập</h3>
-          <p className="text-slate-500 mb-8 leading-relaxed">Bạn cần có hồ sơ RoomieMatch để xem và lập bản cam kết sống chung điện tử với các bạn cùng phòng.</p>
+          <p className="text-slate-500 mb-8 leading-relaxed">Bạn cần đăng nhập để xem và lập bản cam kết sống chung điện tử với các bạn cùng phòng.</p>
           <button 
             onClick={() => onRequireAuth && onRequireAuth()} 
             className="w-full py-4 bg-[#006590] hover:bg-[#005176] text-white font-bold rounded-2xl shadow-lg shadow-[#006590]/20 transition-all duration-200 cursor-pointer text-base"
           >
-            Đăng nhập / Đăng ký ngay
+            Đăng nhập ngay
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentUserProfile) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-4 min-h-[60vh] animate-fade-in">
+        <div className="bg-white p-10 rounded-[32px] shadow-[0_10px_40px_rgba(15,23,42,0.06)] border border-slate-100 max-w-md text-center">
+          <div className="w-20 h-20 bg-sky-50 text-sky-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+             <BadgeCheck className="h-10 w-10" />
+          </div>
+          <h3 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">Cần tạo hồ sơ</h3>
+          <p className="text-slate-500 mb-8 leading-relaxed">Bạn cần thiết lập hồ sơ cá nhân của mình trước khi có thể lập thỏa thuận sống chung.</p>
+          <button 
+            onClick={() => onRequireProfile && onRequireProfile()} 
+            className="w-full py-4 bg-[#006590] hover:bg-[#005176] text-white font-bold rounded-2xl shadow-lg shadow-[#006590]/20 transition-all duration-200 cursor-pointer text-base"
+          >
+            Tạo hồ sơ ngay
           </button>
         </div>
       </div>

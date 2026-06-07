@@ -3,7 +3,7 @@ import { FileText, Check, Clock, X, BadgeCheck, AlertCircle } from "lucide-react
 import { supabase } from "../lib/supabase";
 import { Roommate } from "../types";
 
-export default function HistoryView({ currentUserProfile, roommates }: { currentUserProfile: any, roommates: Roommate[] }) {
+export default function HistoryView({ currentUserProfile, currentUser, roommates, onRequireAuth, onRequireProfile }: { currentUserProfile: any, currentUser?: any, roommates: Roommate[], onRequireAuth?: () => void, onRequireProfile?: () => void }) {
   const [agreements, setAgreements] = useState<any[]>([]);
 
   useEffect(() => {
@@ -24,12 +24,35 @@ export default function HistoryView({ currentUserProfile, roommates }: { current
     return () => { supabase.removeChannel(sub); };
   }, [currentUserProfile]);
 
-  if (!currentUserProfile) {
+  if (!currentUser) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-4 min-h-[60vh]">
         <div className="bg-white p-10 rounded-[32px] border border-slate-100 max-w-md text-center shadow-sm">
           <AlertCircle className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-400 font-bold">Vui lòng đăng nhập để xem lịch sử.</p>
+          <p className="text-slate-400 font-bold mb-6">Vui lòng đăng nhập để xem lịch sử hợp đồng.</p>
+          <button 
+            onClick={() => onRequireAuth && onRequireAuth()} 
+            className="w-full py-3 bg-[#006590] hover:bg-[#005176] text-white font-bold rounded-xl transition-all duration-200"
+          >
+            Đăng nhập ngay
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentUserProfile) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-4 min-h-[60vh]">
+        <div className="bg-white p-10 rounded-[32px] border border-slate-100 max-w-md text-center shadow-sm">
+          <BadgeCheck className="h-10 w-10 text-sky-500 mx-auto mb-3" />
+          <p className="text-slate-600 font-bold mb-6">Bạn cần thiết lập hồ sơ cá nhân để xem lịch sử hợp đồng.</p>
+          <button 
+            onClick={() => onRequireProfile && onRequireProfile()} 
+            className="w-full py-3 bg-[#006590] hover:bg-[#005176] text-white font-bold rounded-xl transition-all duration-200"
+          >
+            Tạo hồ sơ ngay
+          </button>
         </div>
       </div>
     );

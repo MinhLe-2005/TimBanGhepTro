@@ -788,7 +788,9 @@ export default function App() {
             activeRoommateId={activeChatRoommateId}
             setActiveRoommateId={setActiveChatRoommateId}
             currentUserProfile={currentUserProfile}
+            currentUser={currentUser}
             onRequireAuth={() => setIsLoginModalOpen(true)}
+            onRequireProfile={() => setIsProfileModalOpen(true)}
             onNavigateToTab={setActiveTab}
           />
         )}
@@ -797,15 +799,20 @@ export default function App() {
           <AgreementView
             roommates={roommates}
             currentUserProfile={currentUserProfile}
+            currentUser={currentUser}
             preSelectedRoommateId={activeChatRoommateId}
             onRequireAuth={() => setIsLoginModalOpen(true)}
+            onRequireProfile={() => setIsProfileModalOpen(true)}
           />
         )}
 
         {activeTab === "history" && (
           <HistoryView
             currentUserProfile={currentUserProfile}
+            currentUser={currentUser}
             roommates={roommates}
+            onRequireAuth={() => setIsLoginModalOpen(true)}
+            onRequireProfile={() => setIsProfileModalOpen(true)}
           />
         )}
 
