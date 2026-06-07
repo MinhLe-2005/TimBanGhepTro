@@ -145,26 +145,32 @@ export default function App() {
   }, [currentUser, currentUserProfile, supabaseRoommates]);
 
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
-
-  // Listen for unread messages
-  useEffect(() => {
-    if (!currentUserProfile || activeTab === 'chat') return;
-    const sub = supabase.channel('header_messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        const newMessage = payload.new;
-        if (newMessage.sender_id !== currentUserProfile.id && newMessage.chat_id.includes(currentUserProfile.id)) {
-          setHasUnreadMessages(true);
-        }
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(sub); };
-  }, [currentUserProfile, activeTab]);
+  const activeTabRef = useRef(activeTab);
 
   useEffect(() => {
+    activeTabRef.current = activeTab;
     if (activeTab === 'chat') {
       setHasUnreadMessages(false);
     }
   }, [activeTab]);
+
+  // Listen for unread messages
+  useEffect(() => {
+    const myChatId = currentUser?.id || currentUserProfile?.id;
+    if (!myChatId) return;
+    
+    const sub = supabase.channel('header_messages')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        const newMessage = payload.new;
+        if (newMessage.sender_id !== myChatId && newMessage.chat_id.includes(myChatId)) {
+          if (activeTabRef.current !== 'chat') {
+            setHasUnreadMessages(true);
+          }
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(sub); };
+  }, [currentUser, currentUserProfile]);
 
   // State lists
   const [roommates, setRoommates] = useState<Roommate[]>(() => {

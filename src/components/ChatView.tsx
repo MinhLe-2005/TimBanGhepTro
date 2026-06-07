@@ -109,9 +109,8 @@ export default function ChatView({
     : conversations[0]?.partner;
   const activeMessages = activeRoommate ? (chats[activeRoommate.id] || []) : [];
   
-  const chatId = currentUserProfile && activeRoommateId 
-    ? [currentUserProfile.id, activeRoommateId].sort().join("_")
-    : null;
+  const myChatId = currentUser?.id || currentUserProfile?.id;
+  const chatId = myChatId && activeRoommateId ? [myChatId, activeRoommateId].sort().join("_") : null;
 
   // Supabase Real-time Fetch & Subscribe
   useEffect(() => {
@@ -182,16 +181,16 @@ export default function ChatView({
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .or(`chat_id.ilike.%${currentUserProfile.id}%,sender_id.eq.${currentUserProfile.id}`)
+        .or(`chat_id.ilike.%${myChatId}%,sender_id.eq.${myChatId}`)
         .order('timestamp', { ascending: false });
 
       if (!error && data) {
          const conversationMap = new Map();
          data.forEach(msg => {
              const ids = msg.chat_id.split('_');
-             const partnerId = ids[0] === currentUserProfile.id ? ids[1] : ids[0];
+             const partnerId = ids[0] === myChatId ? ids[1] : ids[0];
              
-             if (partnerId === currentUserProfile.id) return; // Ignore self chats
+             if (partnerId === myChatId) return; // Ignore self chats
 
              if (!conversationMap.has(partnerId)) {
                 const partner = roommates.find(r => r.id === partnerId) || {
@@ -219,7 +218,7 @@ export default function ChatView({
                   partner,
                   lastMessage: "Bắt đầu cuộc trò chuyện...",
                   timestamp: new Date().toISOString(),
-                  chatId: [currentUserProfile.id, activeRoommateId].sort().join("_")
+                  chatId: [myChatId, activeRoommateId].sort().join("_")
                });
             }
          }
@@ -233,7 +232,7 @@ export default function ChatView({
       .channel('inbox_updates')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         const msg = payload.new;
-        if (msg.chat_id.includes(currentUserProfile.id)) {
+        if (msg.chat_id.includes(myChatId)) {
            fetchInbox();
         }
       })
@@ -255,7 +254,7 @@ export default function ChatView({
     const newMsg: Message = {
       id: newMsgId,
       chatId: activeRoommateId,
-      senderId: currentUserProfile.id,
+      senderId: myChatId,
       text: userMessageText,
       imageUrl: sentImage || undefined,
       timestamp: new Date().toISOString(),
@@ -273,7 +272,7 @@ export default function ChatView({
       const { error } = await supabase.from('messages').insert({
         id: newMsg.id,
         chat_id: chatId,
-        sender_id: currentUserProfile.id,
+        sender_id: myChatId,
         text: userMessageText,
         image_url: sentImage || undefined,
       });
@@ -451,7 +450,7 @@ export default function ChatView({
                 </div>
               ) : (
                 activeMessages.map((msg, index) => {
-                  const isMe = msg.senderId === "me" || msg.senderId === currentUserProfile.id;
+                  const isMe = msg.senderId === "me" || msg.senderId === myChatId;
                   const isLast = index === activeMessages.length - 1;
                   const timeElapsed = Date.now() - new Date(msg.timestamp).getTime();
                   const statusText = timeElapsed < 5000 ? "Đã gửi" : (timeElapsed < 15000 ? "Đã nhận" : "Đã xem");
