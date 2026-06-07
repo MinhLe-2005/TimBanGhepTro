@@ -674,11 +674,18 @@ export default function App() {
 
 
 
-  const startAgreementForm = async (roommateId: string) => {
+  const [pendingAgreementPayload, setPendingAgreementPayload] = useState<any>(null);
+
+  const startAgreementForm = async (roommateId: string, payload?: any) => {
     const isAuth = await requireAuth();
     if (!isAuth) return;
     if (window.history.state?.modal) { window.history.back(); } else { setSelectedRoommate(null); setSelectedRoom(null); }
     setActiveChatRoommateId(roommateId);
+    if (payload) {
+      setPendingAgreementPayload(payload);
+    } else {
+      setPendingAgreementPayload(null);
+    }
     setTimeout(() => setActiveTab("agreement"), 50);
   };
 
@@ -903,6 +910,7 @@ export default function App() {
             preSelectedRoommateId={activeChatRoommateId}
             onRequireAuth={requireAuth}
             onRequireProfile={() => setIsProfileModalOpen(true)}
+            pendingAgreementPayload={pendingAgreementPayload}
           />
         )}
 

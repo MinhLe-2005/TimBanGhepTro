@@ -455,16 +455,37 @@ export default function ChatView({
                   const isLast = index === activeMessages.length - 1;
                   const timeElapsed = Date.now() - new Date(msg.timestamp).getTime();
                   const statusText = timeElapsed < 5000 ? "Đã gửi" : (timeElapsed < 15000 ? "Đã nhận" : "Đã xem");
+                  
+                  let isAgreementDraft = false;
+                  let isAgreementSigned = false;
+                  let isAgreementCancelled = false;
+                  let agreementPayload: any = null;
+                  
+                  if (msg.text?.startsWith('[AGREEMENT_DRAFT]')) {
+                    isAgreementDraft = true;
+                    try { agreementPayload = { ...JSON.parse(msg.text.replace('[AGREEMENT_DRAFT]', '').trim()), sender_id: msg.senderId }; } catch(e) {}
+                  } else if (msg.text?.startsWith('[AGREEMENT_SIGNED]')) {
+                    isAgreementSigned = true;
+                    try { agreementPayload = { ...JSON.parse(msg.text.replace('[AGREEMENT_SIGNED]', '').trim()), sender_id: msg.senderId }; } catch(e) {}
+                  } else if (msg.text?.startsWith('[AGREEMENT_CANCELLED]')) {
+                    isAgreementCancelled = true;
+                    try { agreementPayload = { ...JSON.parse(msg.text.replace('[AGREEMENT_CANCELLED]', '').trim()), sender_id: msg.senderId }; } catch(e) {}
+                  }
+                  
+                  const isSpecialMessage = isAgreementDraft || isAgreementSigned || isAgreementCancelled;
+
                   return (
                     <div
                       key={msg.id}
                       className={`flex ${isMe ? "justify-end" : "justify-start"} animate-fade-in`}
                     >
                       <div
-                        className={`max-w-[70%] px-4 py-3 rounded-2xl text-[14.5px] leading-relaxed shadow-[0_2px_4px_rgba(15,23,42,0.01)] ${
-                          isMe
-                            ? "bg-[#006590] text-white rounded-br-none font-medium"
-                            : "bg-white text-slate-800 border border-slate-100 rounded-bl-none font-medium"
+                        className={`max-w-[85%] px-4 py-3 rounded-2xl text-[14.5px] leading-relaxed shadow-[0_2px_4px_rgba(15,23,42,0.01)] ${
+                          isSpecialMessage 
+                            ? (isAgreementSigned ? "bg-emerald-50 text-emerald-900 border border-emerald-200" : isAgreementCancelled ? "bg-red-50 text-red-900 border border-red-200" : "bg-sky-50 text-sky-900 border border-sky-200")
+                            : (isMe
+                                ? "bg-[#006590] text-white rounded-br-none font-medium"
+                                : "bg-white text-slate-800 border border-slate-100 rounded-bl-none font-medium")
                         }`}
                       >
                         {msg.imageUrl && (
@@ -472,17 +493,43 @@ export default function ChatView({
                             <img src={msg.imageUrl} alt="Đính kèm" className="max-h-60 object-cover w-full rounded-lg" referrerPolicy="no-referrer" />
                           </div>
                         )}
-                        {msg.text && <p>{msg.text}</p>}
+                        {isSpecialMessage && agreementPayload ? (
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2 font-bold mb-1">
+                              {isAgreementSigned ? <BadgeCheck className="w-5 h-5 text-emerald-600" /> : isAgreementCancelled ? <X className="w-5 h-5 text-red-600" /> : <FileText className="w-5 h-5 text-sky-600" />}
+                              <span>
+                                {isAgreementSigned ? "Bản cam kết đã được ký" : isAgreementCancelled ? "Thỏa thuận đã bị từ chối" : isMe ? "Bạn đã gửi bản thỏa thuận" : "Đối tác đã gửi thỏa thuận"}
+                              </span>
+                            </div>
+                            <div className={`p-3 rounded-xl text-sm font-medium ${isAgreementSigned ? "bg-emerald-100/50" : isAgreementCancelled ? "bg-red-100/50" : "bg-white/60"}`}>
+                              {isAgreementSigned ? "Hợp đồng sống chung đã có hiệu lực. Bạn có thể xem lại chi tiết trong phần Thỏa Thuận." : isAgreementCancelled ? "Thỏa thuận này đã bị vô hiệu hóa." : "Hãy xem qua các điều khoản và ký xác nhận nếu bạn đồng ý."}
+                            </div>
+                            {!isAgreementCancelled && (
+                              <button
+                                onClick={() => onStartAgreement ? onStartAgreement(activeRoommate.id, agreementPayload) : undefined}
+                                className={`mt-2 py-2.5 px-4 w-full rounded-xl text-sm font-bold flex justify-center items-center gap-2 transition-all ${
+                                  isAgreementSigned 
+                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
+                                    : "bg-sky-600 hover:bg-sky-700 text-white shadow-md"
+                                }`}
+                              >
+                                {isAgreementSigned ? "Xem bản ký kết" : "Xem & Ký Thỏa Thuận"}
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          msg.text && <p>{msg.text}</p>
+                        )}
                         <span
-                          className={`flex items-center justify-end gap-1 text-[9.5px] mt-1 text-right  ${
-                            isMe ? "text-sky-200" : "text-slate-400"
+                          className={`flex items-center justify-end gap-1 text-[9.5px] mt-2 text-right  ${
+                            isSpecialMessage ? (isAgreementSigned ? "text-emerald-700/60" : isAgreementCancelled ? "text-red-700/60" : "text-sky-700/60") : (isMe ? "text-sky-200" : "text-slate-400")
                           }`}
                         >
                           {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           {isMe && isLast && (
                             <span className="font-semibold ml-0.5 tracking-tight flex items-center gap-0.5">
                               {statusText === "Đã xem" ? (
-                                <CheckCircle2 className="w-3 h-3 fill-sky-500/20 text-sky-200" />
+                                <CheckCircle2 className={`w-3 h-3 ${isSpecialMessage ? "opacity-50" : "fill-sky-500/20"}`} />
                               ) : (
                                 <CheckCircle2 className="w-3 h-3 opacity-50" />
                               )}

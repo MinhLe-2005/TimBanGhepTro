@@ -25,6 +25,7 @@ interface AgreementViewProps {
   currentUser?: any;
   onRequireAuth?: () => void;
   onRequireProfile?: () => void;
+  pendingAgreementPayload?: any;
 }
 
 export const QUIET_OPTIONS = [
@@ -68,7 +69,8 @@ export default function AgreementView({
   roommates,
   currentUserProfile,
   preSelectedRoommateId = null,
-  onRequireAuth
+  onRequireAuth,
+  pendingAgreementPayload
 }: AgreementViewProps) {
   const [roommateName, setRoommateName] = useState("");
   const [quietHours, setQuietHours] = useState("");
@@ -148,25 +150,21 @@ export default function AgreementView({
   const [signedDate, setSignedDate] = useState<string>("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // Supabase Agreements
-  const [agreements, setAgreements] = useState<any[]>([]);
-
+  // Load pending agreement payload
   useEffect(() => {
-    if (!currentUserProfile) return;
-    const fetchAgreements = async () => {
-      const { data } = await supabase
-        .from('agreements')
-        .select('*')
-        .or(`creator_id.eq.${currentUserProfile.id},partner_id.eq.${currentUserProfile.id}`);
-      if (data) setAgreements(data);
-    };
-    fetchAgreements();
-
-    const sub = supabase.channel('agreements_channel')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'agreements' }, fetchAgreements)
-      .subscribe();
-    return () => { supabase.removeChannel(sub); };
-  }, [currentUserProfile]);
+    if (pendingAgreementPayload) {
+      applyLoadedFields(pendingAgreementPayload.rules);
+      setOtherNotesText(pendingAgreementPayload.rules.otherNotes || "");
+      if (pendingAgreementPayload.status === 'signed' || pendingAgreementPayload.sender_id !== currentUserProfile?.id) {
+         setIsSigned(true); // Lock form if signed or if received from partner
+      }
+      if (pendingAgreementPayload.status === 'signed') {
+         setSignedDate(new Date(pendingAgreementPayload.timestamp).toLocaleDateString("vi-VN", {
+            year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
+         }));
+      }
+    }
+  }, [pendingAgreementPayload, currentUserProfile]);
 
   // Dynamic templates matching each roommate's lifestyle or the default requested requirements
   const getRoommateAgreementFields = (roommate: Roommate) => {
@@ -251,9 +249,8 @@ export default function AgreementView({
     }
   };
 
-  const matchedRoommate = roommates.find((r) => r.name.toLowerCase() === roommateName.toLowerCase()) || 
-                          roommates.find((r) => r.name.toLowerCase().includes(roommateName.toLowerCase() || "__NOMATCH__")) ||
-                          (roommates.length > 0 ? roommates[0] : null);
+  const matchedRoommate = roommateName ? (roommates.find((r) => r.name.toLowerCase() === roommateName.toLowerCase()) || 
+                          roommates.find((r) => r.name.toLowerCase().includes(roommateName.toLowerCase()))) : null;
 
   const activeAgreement = agreements.find(
     a => (a.creator_id === currentUserProfile?.id && a.partner_id === matchedRoommate?.id) ||
@@ -263,12 +260,8 @@ export default function AgreementView({
   // Pre-load default or pre-selected roommate and their active agreement
   useEffect(() => {
     let idealId = preSelectedRoommateId;
-    if (!idealId && roommates.length > 0) {
-      idealId = roommates[0].id;
-    }
     
     let targetRoommate = roommates.find((r) => r.id === idealId);
-    if (!targetRoommate && roommates.length > 0) targetRoommate = roommates[0];
 
     if (targetRoommate) {
       setRoommateName(targetRoommate.name);
@@ -300,14 +293,16 @@ export default function AgreementView({
         const fields = getRoommateAgreementFields(matchedRoommate);
         applyLoadedFields(fields);
       }
-      setIsSigned(false);
-      setSignedDate("");
+      if (!pendingAgreementPayload) {
+        setIsSigned(false);
+        setSignedDate("");
+      }
     }
-  }, [activeAgreement, matchedRoommate]);
+  }, [matchedRoommate]);
 
   // Save draft to sessionStorage
   useEffect(() => {
-    if (!matchedRoommate || (activeAgreement && activeAgreement.status !== 'cancelled')) return;
+    if (!matchedRoommate || pendingAgreementPayload) return;
     const draft = {
       quietOption, quietOther,
       cleaningOption, cleaningOther,
@@ -316,7 +311,7 @@ export default function AgreementView({
       petsOption, petsOther
     };
     sessionStorage.setItem(`agreement_draft_${matchedRoommate.id}`, JSON.stringify(draft));
-  }, [quietOption, quietOther, cleaningOption, cleaningOther, visitorsOption, visitorsOther, billsOption, billsOther, petsOption, petsOther, matchedRoommate, activeAgreement]);
+  }, [quietOption, quietOther, cleaningOption, cleaningOther, visitorsOption, visitorsOther, billsOption, billsOther, petsOption, petsOther, matchedRoommate, pendingAgreementPayload]);
 
   const handleRoommateNameChange = (val: string) => {
     setRoommateName(val);
@@ -336,52 +331,74 @@ export default function AgreementView({
     if (!fullName.trim()) return alert("Vui lòng nhập họ và tên đầy đủ để tiến hành ký kết!");
     if (!matchedRoommate) return;
 
-    const rules = {
-      quiet: quietOption === 'khac' ? quietOther : QUIET_OPTIONS.find(o => o.id === quietOption)?.label,
-      cleaning: cleaningOption === 'khac' ? cleaningOther : CLEANING_OPTIONS.find(o => o.id === cleaningOption)?.label,
-      visitors: visitorsOption === 'khac' ? visitorsOther : VISITORS_OPTIONS.find(o => o.id === visitorsOption)?.label,
-      bills: billsOption === 'khac' ? billsOther : BILL_OPTIONS.find(o => o.id === billsOption)?.label,
-      pets: petsOption === 'khac' ? petsOther : PET_OPTIONS.find(o => o.id === petsOption)?.label,
-      otherNotes: otherNotesText
-    };
+    let payload: any;
+    let messagePrefix = "";
 
-    const { error } = await supabase.from('agreements').insert({
-      creator_id: currentUserProfile.id,
-      partner_id: matchedRoommate.id,
-      status: 'pending',
-      rules
+    if (pendingAgreementPayload && pendingAgreementPayload.status === 'pending') {
+      // Xác nhận hợp đồng nhận được
+      payload = {
+        ...pendingAgreementPayload,
+        status: 'signed',
+        signedBy: currentUserProfile.id,
+        timestamp: new Date().toISOString()
+      };
+      messagePrefix = "[AGREEMENT_SIGNED]";
+    } else {
+      // Tạo hợp đồng mới
+      const rules = {
+        quiet: quietOption === 'khac' ? quietOther : QUIET_OPTIONS.find(o => o.id === quietOption)?.label,
+        cleaning: cleaningOption === 'khac' ? cleaningOther : CLEANING_OPTIONS.find(o => o.id === cleaningOption)?.label,
+        visitors: visitorsOption === 'khac' ? visitorsOther : VISITORS_OPTIONS.find(o => o.id === visitorsOption)?.label,
+        bills: billsOption === 'khac' ? billsOther : BILL_OPTIONS.find(o => o.id === billsOption)?.label,
+        pets: petsOption === 'khac' ? petsOther : PET_OPTIONS.find(o => o.id === petsOption)?.label,
+        otherNotes: otherNotesText
+      };
+      payload = {
+        id: crypto.randomUUID(),
+        status: 'pending',
+        rules,
+        timestamp: new Date().toISOString()
+      };
+      messagePrefix = "[AGREEMENT_DRAFT]";
+    }
+
+    const chatId = [currentUserProfile.id, matchedRoommate.id].sort().join('_');
+    const { error } = await supabase.from('messages').insert({
+      chat_id: chatId,
+      sender_id: currentUserProfile.id,
+      text: `${messagePrefix} ${JSON.stringify(payload)}`
     });
 
     if (!error) {
-       const chatId = [currentUserProfile.id, matchedRoommate.id].sort().join('_');
-       await supabase.from('messages').insert({
-         chat_id: chatId,
-         sender_id: currentUserProfile.id,
-         text: "📄 Tôi vừa gửi một Bản Cam Kết Sống Chung. Hãy vào tab Thỏa Thuận để xem và ký nhé!"
-       });
-       alert("Đã gửi thỏa thuận cho đối tác!");
+       setShowSuccessModal(true);
+       setSignedDate(new Date().toLocaleDateString("vi-VN", {
+         year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
+       }));
     } else {
-       alert("Lỗi khi gửi thỏa thuận!");
+       alert("Lỗi khi xử lý thỏa thuận!");
        console.error(error);
     }
   };
 
-  const handleAcceptAgreement = async () => {
-    if (!activeAgreement) return;
-    await supabase.from('agreements').update({ status: 'signed', updated_at: new Date().toISOString() }).eq('id', activeAgreement.id);
-    alert("Đã ký thỏa thuận thành công!");
-  };
-
   const handleCancelAgreement = async () => {
-    if (!activeAgreement) return;
-    if (confirm("Bạn có chắc chắn muốn Hủy / Chấm dứt hợp đồng này?")) {
-      await supabase.from('agreements').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', activeAgreement.id);
-      alert("Đã hủy thỏa thuận!");
+    if (confirm("Bạn có chắc chắn muốn Hủy / Từ chối hợp đồng này?")) {
+      // Gửi tin nhắn hủy
+      if (pendingAgreementPayload && matchedRoommate) {
+        const payload = { ...pendingAgreementPayload, status: 'cancelled', timestamp: new Date().toISOString() };
+        const chatId = [currentUserProfile.id, matchedRoommate.id].sort().join('_');
+        await supabase.from('messages').insert({
+          chat_id: chatId,
+          sender_id: currentUserProfile.id,
+          text: `[AGREEMENT_CANCELLED] ${JSON.stringify(payload)}`
+        });
+      }
+      alert("Đã từ chối thỏa thuận!");
+      handleReset();
     }
   };
 
   const handleReset = () => {
-    if (activeAgreement) {
+    if (pendingAgreementPayload && pendingAgreementPayload.status === 'signed') {
       alert("Hợp đồng này đã được lưu. Vui lòng bấm Hủy Hợp Đồng trước khi tạo mới.");
       return;
     }
@@ -437,6 +454,22 @@ export default function AgreementView({
       </div>
     );
   }
+
+  if (!matchedRoommate) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-4 min-h-[60vh] animate-fade-in">
+        <div className="bg-white p-10 rounded-[32px] shadow-[0_10px_40px_rgba(15,23,42,0.06)] border border-slate-100 max-w-md text-center">
+          <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+             <FileText className="h-10 w-10" />
+          </div>
+          <h3 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">Chưa chọn bạn cùng phòng</h3>
+          <p className="text-slate-500 mb-8 leading-relaxed">Bạn cần chọn một người bạn từ mục Tin nhắn hoặc Tìm bạn để bắt đầu lập thỏa thuận sống chung.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isReceivingDraft = pendingAgreementPayload && pendingAgreementPayload.status === 'pending' && pendingAgreementPayload.sender_id !== currentUserProfile.id;
 
   return (
     <div className="space-y-8 animate-fade-in pb-16 relative">
@@ -986,12 +1019,11 @@ export default function AgreementView({
               </div>
             </div>
 
-            {/* Action Buttons for RIGHT COLUMN */}
-            {activeAgreement?.status === 'pending' && activeAgreement.partner_id === currentUserProfile.id && (
+            {pendingAgreementPayload?.status === 'pending' && pendingAgreementPayload.sender_id !== currentUserProfile.id && (
               <div className="mt-4 space-y-3">
                 <button
                   type="button"
-                  onClick={handleAcceptAgreement}
+                  onClick={handleSignAgreement}
                   className="w-full py-3.5 bg-[#82ecea] hover:bg-[#68d8d6] text-[#003B55] font-black rounded-xl text-[14px] transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#82ecea]/10"
                 >
                   <Check className="w-5 h-5" /> Ký Chấp Nhận
