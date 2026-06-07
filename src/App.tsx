@@ -99,6 +99,7 @@ export default function App() {
   }, []);
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isRequireProfileAlertOpen, setIsRequireProfileAlertOpen] = useState(false);
 
   // Persistence for user profile
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(() => {
@@ -158,7 +159,7 @@ export default function App() {
       return;
     }
     if (!currentUserProfile) {
-      setIsProfileModalOpen(true);
+      setIsRequireProfileAlertOpen(true);
       return;
     }
     setEditingListingData(null);
@@ -346,7 +347,7 @@ export default function App() {
       return false;
     }
     if (!currentUserProfile) {
-      setIsProfileModalOpen(true);
+      setIsRequireProfileAlertOpen(true);
       return false;
     }
     return true;
@@ -374,6 +375,7 @@ export default function App() {
         setSelectedRoom(null);
         setIsPostModalOpen(false);
         setIsProfileModalOpen(false);
+        setIsRequireProfileAlertOpen(false);
         setIsLoginModalOpen(false);
         wasModalOpen.current = false;
       }
@@ -405,17 +407,21 @@ export default function App() {
 
   // Push state when ANY modal opens
   useEffect(() => {
-    const isAnyModalOpen = !!(selectedRoommate || selectedRoom || isPostModalOpen || isProfileModalOpen || isLoginModalOpen);
+    const isAnyModalOpen = !!(selectedRoommate || selectedRoom || isPostModalOpen || isProfileModalOpen || isLoginModalOpen || isRequireProfileAlertOpen);
     if (isAnyModalOpen && !wasModalOpen.current) {
       window.history.pushState({ modal: true, tab: activeTab }, "", window.location.pathname);
       wasModalOpen.current = true;
     } else if (!isAnyModalOpen && wasModalOpen.current) {
       wasModalOpen.current = false;
     }
-  }, [selectedRoommate, selectedRoom, isPostModalOpen, isProfileModalOpen, isLoginModalOpen, activeTab]);
+  }, [selectedRoommate, selectedRoom, isPostModalOpen, isProfileModalOpen, isLoginModalOpen, isRequireProfileAlertOpen, activeTab]);
 
   const handleCloseModal = () => {
     // If multiple modals are open, close the top-most one and return
+    if (isRequireProfileAlertOpen) {
+      setIsRequireProfileAlertOpen(false);
+      return;
+    }
     if (isLoginModalOpen) {
       setIsLoginModalOpen(false);
       return;
@@ -895,6 +901,38 @@ export default function App() {
           onSave={handleSaveProfile}
           currentProfile={currentUserProfile}
         />
+      )}
+
+      {isRequireProfileAlertOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsRequireProfileAlertOpen(false)}></div>
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full relative z-10 shadow-2xl animate-fade-in text-center">
+            <div className="w-16 h-16 bg-sky-100 text-[#006590] rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <h3 className="text-xl font-extrabold text-[#004e70] mb-2">Cập nhật Hồ sơ</h3>
+            <p className="text-slate-500 mb-6 text-[15px]">
+              Bạn cần cập nhật hồ sơ cá nhân (thói quen, tính cách...) trước khi thực hiện chức năng này để hệ thống tính toán độ tương thích.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsRequireProfileAlertOpen(false)}
+                className="flex-1 py-3 rounded-2xl text-slate-500 font-bold hover:bg-slate-100 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => {
+                  setIsRequireProfileAlertOpen(false);
+                  setTimeout(() => setIsProfileModalOpen(true), 150);
+                }}
+                className="flex-1 bg-[#004e70] hover:bg-[#003852] text-white py-3 rounded-2xl font-bold transition-colors shadow-md"
+              >
+                Cập nhật
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {isLoginModalOpen && (
