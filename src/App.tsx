@@ -596,6 +596,7 @@ export default function App() {
 
         return {
           ...r,
+          budget: r.budget || 0,
           matchScore: isOwner ? 100 : normalized,
           reviews: [...dbReviews, ...(r.reviews || [])],
           avatar: isOwner ? currentUserProfile.avatar : r.avatar,
@@ -620,6 +621,7 @@ export default function App() {
           }));
         return {
           ...r,
+          budget: r.budget || 0,
           reviews: [...dbReviews, ...(r.reviews || [])],
         };
       });
@@ -650,6 +652,7 @@ export default function App() {
         const isOwner = (currentUser && r.postedBy === currentUser.id) || r.hostName === currentUserProfile.name;
         return {
           ...r,
+          price: r.price || 0,
           hostAvatar: isOwner ? currentUserProfile.avatar : r.hostAvatar,
           hostName: isOwner ? currentUserProfile.name : r.hostName,
         };
