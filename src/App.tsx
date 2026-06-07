@@ -231,6 +231,9 @@ export default function App() {
         localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(parsed.map((r: any) => r.id === editingListingData.id ? updatedRoom : r)));
       }
 
+      // Supabase State Update (optimistic for Supabase override)
+      setSupabaseRooms((prev) => prev.map(r => r.id === editingListingData.id ? updatedRoom : r));
+
       // Supabase Update
       if (import.meta.env.VITE_SUPABASE_URL) {
         const { reviews, ...dbRoom } = updatedRoom;
@@ -283,6 +286,9 @@ export default function App() {
         localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(parsed.map((r: any) => r.id === editingListingData.id ? updatedRoommate : r)));
       }
 
+      // Supabase State Update (optimistic for Supabase override)
+      setSupabaseRoommates((prev) => prev.map(r => r.id === editingListingData.id ? updatedRoommate : r));
+
       // Supabase Update
       if (import.meta.env.VITE_SUPABASE_URL) {
         const { reviews, ...dbRoommate } = updatedRoommate;
@@ -321,38 +327,38 @@ export default function App() {
   };
 
   const handleDeleteRoom = async (id: string) => {
-    // Optimistic UI Update
-    setRooms((prev) => prev.filter((r) => r.id !== id));
+    // 1. Remove from local fallback
+    const saved = localStorage.getItem("roomiematch_posted_rooms");
+    if (saved) {
+      const parsed = JSON.parse(saved).filter((r: any) => r.id !== id);
+      localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(parsed));
+    }
+
+    // 2. Remove from Supabase state optimistically
+    setSupabaseRooms((prev) => prev.filter((r) => r.id !== id));
     
-    // Supabase Delete
+    // 3. Supabase Delete
     if (import.meta.env.VITE_SUPABASE_URL) {
       const { error } = await supabase.from('rooms').delete().eq('id', id);
       if (error) console.error("Error deleting room from Supabase:", error);
-    } else {
-      // Local fallback
-      const saved = localStorage.getItem("roomiematch_posted_rooms");
-      if (saved) {
-        const parsed = JSON.parse(saved).filter((r: any) => r.id !== id);
-        localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(parsed));
-      }
     }
   };
 
   const handleDeleteRoommate = async (id: string) => {
-    // Optimistic UI Update
-    setRoommates((prev) => prev.filter((r) => r.id !== id));
+    // 1. Remove from local fallback
+    const saved = localStorage.getItem("roomiematch_posted_roommates");
+    if (saved) {
+      const parsed = JSON.parse(saved).filter((r: any) => r.id !== id);
+      localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(parsed));
+    }
 
-    // Supabase Delete
+    // 2. Remove from Supabase state optimistically
+    setSupabaseRoommates((prev) => prev.filter((r) => r.id !== id));
+
+    // 3. Supabase Delete
     if (import.meta.env.VITE_SUPABASE_URL) {
       const { error } = await supabase.from('roommates').delete().eq('id', id);
       if (error) console.error("Error deleting roommate from Supabase:", error);
-    } else {
-      // Local fallback
-      const saved = localStorage.getItem("roomiematch_posted_roommates");
-      if (saved) {
-        const parsed = JSON.parse(saved).filter((r: any) => r.id !== id);
-        localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(parsed));
-      }
     }
   };
 
