@@ -157,6 +157,10 @@ export default function App() {
       setIsLoginModalOpen(true);
       return;
     }
+    if (!currentUserProfile) {
+      setIsProfileModalOpen(true);
+      return;
+    }
     setEditingListingData(null);
     setPostModalInitialTab(tab);
     setIsPostModalOpen(true);
@@ -768,7 +772,7 @@ export default function App() {
             }}
             onStartChat={startChatConversation}
             currentUserProfile={currentUserProfile}
-            onRequireAuth={() => setIsLoginModalOpen(true)}
+            onRequireAuth={requireAuth}
             onOpenCreateProfile={() => setIsProfileModalOpen(true)}
           />
         )}
@@ -782,7 +786,7 @@ export default function App() {
             currentUserProfile={currentUserProfile}
             onStartChat={startChatConversation}
             onOpenPostModal={() => handleOpenPostModal("roommate")}
-            onRequireAuth={() => setIsLoginModalOpen(true)}
+            onRequireAuth={requireAuth}
             onDeleteRoommate={handleDeleteRoommate}
             onEditRoommate={handleEditRoommate}
             currentUserId={currentUser?.id}
@@ -798,7 +802,7 @@ export default function App() {
             onViewRoom={setSelectedRoom}
             onOpenPostModal={() => handleOpenPostModal("room")}
             currentUserProfile={currentUserProfile}
-            onRequireAuth={() => setIsLoginModalOpen(true)}
+            onRequireAuth={requireAuth}
             onDeleteRoom={handleDeleteRoom}
             onEditRoom={handleEditRoom}
             currentUserId={currentUser?.id}
@@ -813,7 +817,7 @@ export default function App() {
             setActiveRoommateId={setActiveChatRoommateId}
             currentUserProfile={currentUserProfile}
             currentUser={currentUser}
-            onRequireAuth={() => setIsLoginModalOpen(true)}
+            onRequireAuth={requireAuth}
             onRequireProfile={() => setIsProfileModalOpen(true)}
             onNavigateToTab={setActiveTab}
           />
@@ -825,7 +829,7 @@ export default function App() {
             currentUserProfile={currentUserProfile}
             currentUser={currentUser}
             preSelectedRoommateId={activeChatRoommateId}
-            onRequireAuth={() => setIsLoginModalOpen(true)}
+            onRequireAuth={requireAuth}
             onRequireProfile={() => setIsProfileModalOpen(true)}
           />
         )}
@@ -835,7 +839,7 @@ export default function App() {
             currentUserProfile={currentUserProfile}
             currentUser={currentUser}
             roommates={roommates}
-            onRequireAuth={() => setIsLoginModalOpen(true)}
+            onRequireAuth={requireAuth}
             onRequireProfile={() => setIsProfileModalOpen(true)}
           />
         )}

@@ -153,7 +153,7 @@ export default function RoomsView({
           </div>
           
           <button
-            onClick={() => { if (!currentUserProfile) { onRequireAuth && onRequireAuth(); } else { onOpenPostModal && onOpenPostModal(); } }}
+            onClick={() => { onOpenPostModal && onOpenPostModal(); }}
             className="group flex items-center justify-center gap-2.5 px-8 py-4 bg-white hover:bg-sky-50 text-[#004e70] font-black text-[15px] rounded-2xl cursor-pointer duration-300 shadow-[0_10px_25px_rgba(0,0,0,0.15)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.2)] hover:-translate-y-1 active:scale-95 shrink-0 w-full md:w-auto"
           >
             <Sparkles className="h-5 w-5 text-[#006590] group-hover:scale-110 transition-transform duration-300" />
