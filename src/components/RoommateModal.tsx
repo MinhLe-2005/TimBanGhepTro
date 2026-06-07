@@ -13,6 +13,7 @@ interface RoommateModalProps {
     smokeMatch: boolean;
     cookMatch: boolean;
     neatMatch: boolean;
+  };
   onAddReview: (roommateId: string, review: { reviewerName: string; rating: number; comment: string; imageUrl?: string }) => void | boolean | Promise<boolean>;
   isOwnProfile?: boolean;
 }
