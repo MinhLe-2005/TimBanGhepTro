@@ -200,7 +200,8 @@ export default function App() {
 
       // Supabase Update
       if (import.meta.env.VITE_SUPABASE_URL) {
-        const { error } = await supabase.from('rooms').update(updatedRoom).eq('id', editingListingData.id);
+        const { reviews, postedBy, ...dbRoom } = updatedRoom;
+        const { error } = await supabase.from('rooms').update(dbRoom).eq('id', editingListingData.id);
         if (error) console.error("Error updating room to Supabase:", error);
       }
       setEditingListingData(null);
@@ -220,7 +221,8 @@ export default function App() {
 
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
-      const { error } = await supabase.from('rooms').insert(roomWithOwner);
+      const { reviews, postedBy, ...dbRoom } = roomWithOwner;
+      const { error } = await supabase.from('rooms').insert(dbRoom);
       if (error) console.error("Error inserting room to Supabase:", error);
     }
   };
@@ -242,7 +244,8 @@ export default function App() {
 
       // Supabase Update
       if (import.meta.env.VITE_SUPABASE_URL) {
-        const { error } = await supabase.from('roommates').update(updatedRoommate).eq('id', editingListingData.id);
+        const { reviews, postedBy, ...dbRoommate } = updatedRoommate;
+        const { error } = await supabase.from('roommates').update(dbRoommate).eq('id', editingListingData.id);
         if (error) console.error("Error updating roommate to Supabase:", error);
       }
       setEditingListingData(null);
@@ -262,7 +265,8 @@ export default function App() {
 
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
-      const { error } = await supabase.from('roommates').insert(roommateWithOwner);
+      const { reviews, postedBy, ...dbRoommate } = roommateWithOwner;
+      const { error } = await supabase.from('roommates').insert(dbRoommate);
       if (error) console.error("Error inserting roommate to Supabase:", error);
     }
   };
