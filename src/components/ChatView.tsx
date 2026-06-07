@@ -109,7 +109,12 @@ export default function ChatView({
     : conversations[0]?.partner;
   const activeMessages = activeRoommate ? (chats[activeRoommate.id] || []) : [];
   
-  const myChatId = currentUser?.id || currentUserProfile?.id;
+  // The user's auth UUID (used when sending messages as sender)
+  const myAuthId = currentUser?.id;
+  // The user's roommate profile ID (used in chat_id when others message this user)
+  const myProfileId = currentUserProfile?.id;
+  // When building a chat_id for sending, use auth UUID if available, else profile ID
+  const myChatId = myAuthId || myProfileId;
   const chatId = myChatId && activeRoommateId ? [myChatId, activeRoommateId].sort().join("_") : null;
 
   // Supabase Real-time Fetch & Subscribe
@@ -175,22 +180,39 @@ export default function ChatView({
 
   // Fetch Inbox Conversations
   useEffect(() => {
-    if (!currentUserProfile || !import.meta.env.VITE_SUPABASE_URL) return;
+    if (!import.meta.env.VITE_SUPABASE_URL) return;
+    // Need at least one ID to search with
+    if (!myAuthId && !myProfileId) return;
 
     const fetchInbox = async () => {
+      // Build OR filter: check both auth UUID and profile ID in chat_id
+      // This handles: messages sent BY this user (sender_id = authId)
+      // AND messages sent TO this user (chat_id contains profileId)
+      const filterParts: string[] = [];
+      if (myAuthId) {
+        filterParts.push(`chat_id.ilike.%${myAuthId}%`);
+        filterParts.push(`sender_id.eq.${myAuthId}`);
+      }
+      if (myProfileId && myProfileId !== myAuthId) {
+        filterParts.push(`chat_id.ilike.%${myProfileId}%`);
+      }
+      const orFilter = filterParts.join(',');
+
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .or(`chat_id.ilike.%${myChatId}%,sender_id.eq.${myChatId}`)
+        .or(orFilter)
         .order('timestamp', { ascending: false });
 
       if (!error && data) {
          const conversationMap = new Map();
          data.forEach(msg => {
              const ids = msg.chat_id.split('_');
-             const partnerId = ids[0] === myChatId ? ids[1] : ids[0];
+             // Determine which side of the chat_id is the partner
+             const isMyId = (id: string) => id === myAuthId || id === myProfileId;
+             const partnerId = isMyId(ids[0]) ? ids[1] : ids[0];
              
-             if (partnerId === myChatId) return; // Ignore self chats
+             if (isMyId(partnerId)) return; // Ignore self chats
 
              if (!conversationMap.has(partnerId)) {
                 const partner = roommates.find(r => r.id === partnerId) || {
@@ -231,15 +253,16 @@ export default function ChatView({
     const inboxChannel = supabase
       .channel('inbox_updates')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        const msg = payload.new;
-        if (msg.chat_id.includes(myChatId)) {
+        const msg = payload.new as any;
+        const chatIdStr = msg.chat_id || '';
+        if ((myAuthId && chatIdStr.includes(myAuthId)) || (myProfileId && chatIdStr.includes(myProfileId))) {
            fetchInbox();
         }
       })
       .subscribe();
 
     return () => { supabase.removeChannel(inboxChannel); };
-  }, [currentUserProfile, roommates, activeRoommateId]);
+  }, [myAuthId, myProfileId, roommates, activeRoommateId]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
