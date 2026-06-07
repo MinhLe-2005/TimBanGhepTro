@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --color-primary: #006590;
+  --color-primary-hover: #005176;
+  --color-secondary: #006684;
+  --color-accent: #dff6ff;
+  --color-background-app: #f6fafe;
+  --color-text-dark: #0f172a;
+}
+
+/* Base style overrides */
+body {
+  font-family: var(--font-sans);
+  background-color: #f6fafe;
+  color: #0f172a;
+}
+
+/* Custom fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Smooth custom drawing pad styling */
+.signature-canvas {
+  touch-action: none;
+  cursor: crosshair;
+}

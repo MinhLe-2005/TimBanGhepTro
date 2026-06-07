@@ -1,0 +1,6 @@
+{
+  "name": "RoomieMatch",
+  "description": "Nền tảng tìm kiếm roommate và thảo thuận ở chung thông minh dành cho giới trẻ Gen Z",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
