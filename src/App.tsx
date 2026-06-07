@@ -136,6 +136,11 @@ export default function App() {
         setCurrentUserProfile(myProfile);
         localStorage.setItem("roomiematch_user_profile", JSON.stringify(myProfile));
       }
+    } else if (currentUser && currentUserProfile && currentUserProfile.id === "me") {
+      // Migrate "me" ID to actual Supabase UUID to prevent shared chats
+      const updatedProfile = { ...currentUserProfile, id: currentUser.id };
+      setCurrentUserProfile(updatedProfile);
+      localStorage.setItem("roomiematch_user_profile", JSON.stringify(updatedProfile));
     }
   }, [currentUser, currentUserProfile, supabaseRoommates]);
 
@@ -1025,6 +1030,7 @@ export default function App() {
           onClose={handleCloseModal}
           onSave={handleSaveProfile}
           currentProfile={currentUserProfile}
+          currentUser={currentUser}
         />
       )}
 

@@ -5,12 +5,14 @@ interface CreateProfileModalProps {
   onClose: () => void;
   onSave: (profile: any) => void;
   currentProfile: any;
+  currentUser?: any;
 }
 
 export default function CreateProfileModal({
   onClose,
   onSave,
   currentProfile,
+  currentUser,
 }: CreateProfileModalProps) {
   const [name, setName] = useState(currentProfile?.name || "");
   const [age, setAge] = useState(currentProfile?.age || 21);
@@ -82,7 +84,7 @@ export default function CreateProfileModal({
     // Giả lập thời gian lưu để có UX tốt hơn
     setTimeout(() => {
       const updatedProfile = {
-        id: "me",
+        id: currentUser?.id || currentProfile?.id || "me",
         name,
         age: Number(age),
         role,
