@@ -82,22 +82,13 @@ export default function App() {
             ...rm,
             reviews: reviewsData?.filter((rev: any) => rev.roommateId === rm.id) || []
           }));
-          
-          setRoommates(prev => {
-            const saved = localStorage.getItem("roomiematch_posted_roommates");
-            const parsed = saved ? JSON.parse(saved) : [];
-            return [...parsed, ...enhancedRoommates];
-          });
+          setSupabaseRoommates(enhancedRoommates);
         }
 
         // Fetch Rooms
         const { data: roomsData } = await supabase.from('rooms').select('*');
         if (roomsData && roomsData.length > 0) {
-          setRooms(prev => {
-            const saved = localStorage.getItem("roomiematch_posted_rooms");
-            const parsed = saved ? JSON.parse(saved) : [];
-            return [...parsed, ...roomsData];
-          });
+          setSupabaseRooms(roomsData);
         }
       } catch (err) {
         console.error("Error fetching from Supabase:", err);
@@ -430,6 +421,10 @@ export default function App() {
   // Chat coordination
   const [activeChatRoommateId, setActiveChatRoommateId] = useState<string | null>(null);
 
+  // States to hold Supabase fetched lists
+  const [supabaseRoommates, setSupabaseRoommates] = useState<any[]>([]);
+  const [supabaseRooms, setSupabaseRooms] = useState<any[]>([]);
+
   // Calculate matching scores dynamically if user profile changes
   const [supabaseReviews, setSupabaseReviews] = useState<any[]>([]);
 
@@ -446,7 +441,12 @@ export default function App() {
   useEffect(() => {
     const saved = localStorage.getItem("roomiematch_posted_roommates");
     const customOnes = saved ? JSON.parse(saved) : [];
-    const allCandidates = [...customOnes, ...INITIAL_ROOMMATES];
+    
+    // Deduplicate: INITIAL_ROOMMATES override older Supabase entries
+    const initialIds = INITIAL_ROOMMATES.map(r => r.id);
+    const filteredSupabase = supabaseRoommates.filter(r => !initialIds.includes(r.id));
+    
+    const allCandidates = [...customOnes, ...filteredSupabase, ...INITIAL_ROOMMATES];
 
     if (currentUserProfile) {
       const updated = allCandidates.map((r) => {
@@ -533,13 +533,18 @@ export default function App() {
       });
       setRoommates(updated);
     }
-  }, [currentUserProfile, supabaseReviews, currentUser]);
+  }, [currentUserProfile, supabaseReviews, currentUser, supabaseRoommates]);
 
   // Sync rooms with updated profile
   useEffect(() => {
     const saved = localStorage.getItem("roomiematch_posted_rooms");
     const parsed = saved ? JSON.parse(saved) : [];
-    let allRooms = [...parsed, ...INITIAL_ROOMS];
+    
+    // Deduplicate: INITIAL_ROOMS override older Supabase entries
+    const initialRoomIds = INITIAL_ROOMS.map(r => r.id);
+    const filteredSupabaseRooms = supabaseRooms.filter(r => !initialRoomIds.includes(r.id));
+    
+    let allRooms = [...parsed, ...filteredSupabaseRooms, ...INITIAL_ROOMS];
 
     if (currentUserProfile) {
       allRooms = allRooms.map(r => {
@@ -552,7 +557,7 @@ export default function App() {
       });
     }
     setRooms(allRooms);
-  }, [currentUserProfile, currentUser]);
+  }, [currentUserProfile, currentUser, supabaseRooms]);
 
   const handleSaveProfile = (profile: any) => {
     setCurrentUserProfile(profile);
