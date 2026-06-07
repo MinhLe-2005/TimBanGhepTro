@@ -111,6 +111,10 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
+  // States to hold Supabase fetched lists
+  const [supabaseRoommates, setSupabaseRoommates] = useState<any[]>([]);
+  const [supabaseRooms, setSupabaseRooms] = useState<any[]>([]);
+
   // Auto-sync profile when logging in or refreshing
   useEffect(() => {
     if (currentUser && !currentUserProfile && supabaseRoommates.length > 0) {
@@ -464,9 +468,7 @@ export default function App() {
   // Chat coordination
   const [activeChatRoommateId, setActiveChatRoommateId] = useState<string | null>(null);
 
-  // States to hold Supabase fetched lists
-  const [supabaseRoommates, setSupabaseRoommates] = useState<any[]>([]);
-  const [supabaseRooms, setSupabaseRooms] = useState<any[]>([]);
+  // States to hold Supabase fetched lists (moved to top to prevent ReferenceError)
 
   // Calculate matching scores dynamically if user profile changes
   const [supabaseReviews, setSupabaseReviews] = useState<any[]>([]);
