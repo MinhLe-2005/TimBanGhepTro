@@ -596,7 +596,7 @@ export default function App() {
 
         return {
           ...r,
-          matchScore: r.id === "me" ? 100 : normalized,
+          matchScore: isOwner ? 100 : normalized,
           reviews: [...dbReviews, ...(r.reviews || [])],
           avatar: isOwner ? currentUserProfile.avatar : r.avatar,
           name: isOwner ? currentUserProfile.name : r.name,
