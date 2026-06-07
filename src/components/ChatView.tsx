@@ -109,12 +109,12 @@ export default function ChatView({
     : conversations[0]?.partner;
   const activeMessages = activeRoommate ? (chats[activeRoommate.id] || []) : [];
   
-  // The user's auth UUID (used when sending messages as sender)
+  // The user's auth UUID
   const myAuthId = currentUser?.id;
-  // The user's roommate profile ID (used in chat_id when others message this user)
+  // The user's roommate profile ID (rm-...) - prefer this for chat_id so inbox always findable by profile ID
   const myProfileId = currentUserProfile?.id;
-  // When building a chat_id for sending, use auth UUID if available, else profile ID
-  const myChatId = myAuthId || myProfileId;
+  // ALWAYS prefer profile ID for chat_id construction → inbox query by profile ID works reliably
+  const myChatId = myProfileId || myAuthId;
   const chatId = myChatId && activeRoommateId ? [myChatId, activeRoommateId].sort().join("_") : null;
 
   // Supabase Real-time Fetch & Subscribe

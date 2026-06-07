@@ -536,7 +536,7 @@ export default function App() {
 
   useEffect(() => {
     const fetchReviews = async () => {
-      const { data, error } = await supabase.from('reviews').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('reviews').select('*').order('"createdAt"', { ascending: false });
       if (!error && data) {
         setSupabaseReviews(data);
       }
