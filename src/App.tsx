@@ -111,6 +111,17 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
+  // Auto-sync profile when logging in or refreshing
+  useEffect(() => {
+    if (currentUser && !currentUserProfile && supabaseRoommates.length > 0) {
+      const myProfile = supabaseRoommates.find((r: any) => r.postedBy === currentUser.id);
+      if (myProfile) {
+        setCurrentUserProfile(myProfile);
+        localStorage.setItem("roomiematch_user_profile", JSON.stringify(myProfile));
+      }
+    }
+  }, [currentUser, currentUserProfile, supabaseRoommates]);
+
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
 
   // Listen for unread messages
@@ -596,9 +607,20 @@ export default function App() {
     localStorage.setItem("roomiematch_user_profile", JSON.stringify(profile));
   };
 
-  const handleLoginSuccess = (user: any) => {
+  const handleLoginSuccess = async (user: any) => {
     if (window.history.state?.modal) { window.history.back(); } else { setIsLoginModalOpen(false); }
-    if (!currentUserProfile) {
+    
+    let hasProfile = false;
+    if (user && user.id) {
+      const { data } = await supabase.from('roommates').select('*').eq('postedBy', user.id).maybeSingle();
+      if (data) {
+        hasProfile = true;
+        setCurrentUserProfile(data);
+        localStorage.setItem("roomiematch_user_profile", JSON.stringify(data));
+      }
+    }
+
+    if (!hasProfile && !currentUserProfile) {
       setTimeout(() => setIsProfileModalOpen(true), 100);
     }
   };
