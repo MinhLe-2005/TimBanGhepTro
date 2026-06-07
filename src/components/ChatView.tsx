@@ -35,6 +35,8 @@ export default function ChatView({
     return records;
   });
 
+  const [conversations, setConversations] = useState<any[]>([]);
+
   const [inputText, setInputText] = useState("");
   const [friendSearchQuery, setFriendSearchQuery] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -81,12 +83,12 @@ export default function ChatView({
     }
   };
 
-  // Set first roommate active by default if none selected
+  // Set first conversation active by default if none selected
   useEffect(() => {
-    if (!activeRoommateId && roommates.length > 0) {
-      setActiveRoommateId(roommates[0].id);
+    if (!activeRoommateId && conversations.length > 0) {
+      setActiveRoommateId(conversations[0].partner.id);
     }
-  }, [activeRoommateId, roommates, setActiveRoommateId]);
+  }, [activeRoommateId, conversations, setActiveRoommateId]);
 
   // Scroll to bottom on updates
   useEffect(() => {
@@ -98,7 +100,7 @@ export default function ChatView({
     }
   }, [chats, activeRoommateId, isTyping]);
 
-  const activeRoommate = roommates.find((r) => r.id === activeRoommateId) || roommates[0];
+  const activeRoommate = roommates.find((r) => r.id === activeRoommateId) || conversations.find(c => c.partner.id === activeRoommateId)?.partner || conversations[0]?.partner || roommates[0];
   const activeMessages = activeRoommateId ? chats[activeRoommateId] || [] : [];
   
   const chatId = currentUserProfile && activeRoommateId 
@@ -165,6 +167,72 @@ export default function ChatView({
       supabase.removeChannel(channel);
     };
   }, [chatId, activeRoommateId]);
+
+  // Fetch Inbox Conversations
+  useEffect(() => {
+    if (!currentUserProfile || !import.meta.env.VITE_SUPABASE_URL) return;
+
+    const fetchInbox = async () => {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .or(`chat_id.ilike.%${currentUserProfile.id}%,sender_id.eq.${currentUserProfile.id}`)
+        .order('timestamp', { ascending: false });
+
+      if (!error && data) {
+         const conversationMap = new Map();
+         data.forEach(msg => {
+             const ids = msg.chat_id.split('_');
+             const partnerId = ids[0] === currentUserProfile.id ? ids[1] : ids[0];
+             
+             if (!conversationMap.has(partnerId)) {
+                const partner = roommates.find(r => r.id === partnerId) || {
+                   id: partnerId,
+                   name: "Người dùng ẩn danh",
+                   avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop",
+                   role: "Thành viên",
+                   isVerified: false,
+                   matchScore: 0
+                };
+                conversationMap.set(partnerId, {
+                   partner,
+                   lastMessage: msg.text || "Đã gửi đính kèm",
+                   timestamp: msg.timestamp,
+                   chatId: msg.chat_id
+                });
+             }
+         });
+
+         // Ensure the explicitly selected activeRoommateId is in the list
+         if (activeRoommateId && !conversationMap.has(activeRoommateId)) {
+            const partner = roommates.find(r => r.id === activeRoommateId);
+            if (partner) {
+               conversationMap.set(activeRoommateId, {
+                  partner,
+                  lastMessage: "Bắt đầu cuộc trò chuyện...",
+                  timestamp: new Date().toISOString(),
+                  chatId: [currentUserProfile.id, activeRoommateId].sort().join("_")
+               });
+            }
+         }
+
+         setConversations(Array.from(conversationMap.values()).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+      }
+    };
+    fetchInbox();
+
+    const inboxChannel = supabase
+      .channel('inbox_updates')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        const msg = payload.new;
+        if (msg.chat_id.includes(currentUserProfile.id)) {
+           fetchInbox();
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(inboxChannel); };
+  }, [currentUserProfile, roommates, activeRoommateId]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -264,43 +332,51 @@ export default function ChatView({
           </div>
         </div>
 
-        {/* Roommates chat list wrapper */}
+        {/* Inbox chat list wrapper */}
         <div className="flex-grow overflow-y-auto p-3 space-y-1.5 scrollbar-thin">
-          {roommates
-            .filter(r => r.name.toLowerCase().includes(friendSearchQuery.toLowerCase()))
-            .map((r) => {
-            const isActive = r.id === activeRoommateId;
-            const history = chats[r.id] || [];
-            const lastMsg = history[history.length - 1]?.text || "Chưa có tin nhắn hội thoại";
-            return (
-              <div
-                key={r.id}
-                onClick={() => setActiveRoommateId(r.id)}
-                className={`flex gap-3 p-3.5 rounded-2xl cursor-pointer duration-150 items-center ${
-                  isActive
-                    ? "bg-[#dff6ff] border border-sky-100 shadow-sm"
-                    : "hover:bg-slate-100/60 border border-transparent"
-                }`}
-              >
-                <div className="w-12 h-12 rounded-full overflow-hidden border border-slate-200 shadow-inner shrink-0 relative">
-                  <img src={r.avatar} alt={r.name} className="w-full h-full object-cover" />
-                  <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-green-400 ring-2 ring-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-baseline mb-0.5">
-                    <h4 className="text-sm font-bold text-slate-800 leading-tight tracking-tight truncate flex items-center gap-1">
-                      {r.name}
-                      {r.isVerified && <CheckCircle2 className="h-3.5 w-3.5 text-sky-500 fill-sky-50 shrink-0" />}
-                    </h4>
-                    <span className="text-[10px] font-bold text-sky-700 bg-white border border-sky-100 px-1.5 py-0.5 rounded-full">
-                      {r.matchScore}%
-                    </span>
+          {conversations.length === 0 ? (
+            <div className="text-center py-8 text-slate-400 font-medium text-sm">
+              Chưa có cuộc trò chuyện nào.
+            </div>
+          ) : (
+            conversations
+              .filter(conv => conv.partner.name.toLowerCase().includes(friendSearchQuery.toLowerCase()))
+              .map((conv) => {
+              const r = conv.partner;
+              const isActive = r.id === activeRoommateId;
+              const lastMsg = conv.lastMessage;
+              return (
+                <div
+                  key={r.id}
+                  onClick={() => setActiveRoommateId(r.id)}
+                  className={`flex gap-3 p-3.5 rounded-2xl cursor-pointer duration-150 items-center ${
+                    isActive
+                      ? "bg-[#dff6ff] border border-sky-100 shadow-sm"
+                      : "hover:bg-slate-100/60 border border-transparent"
+                  }`}
+                >
+                  <div className="w-12 h-12 rounded-full overflow-hidden border border-slate-200 shadow-inner shrink-0 relative">
+                    <img src={r.avatar} alt={r.name} className="w-full h-full object-cover" />
+                    <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-green-400 ring-2 ring-white" />
                   </div>
-                  <p className="text-xs text-slate-400 truncate leading-snug font-medium select-none">{lastMsg}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-baseline mb-0.5">
+                      <h4 className="text-sm font-bold text-slate-800 leading-tight tracking-tight truncate flex items-center gap-1">
+                        {r.name}
+                        {r.isVerified && <CheckCircle2 className="h-3.5 w-3.5 text-sky-500 fill-sky-50 shrink-0" />}
+                      </h4>
+                      {r.matchScore > 0 && (
+                        <span className="text-[10px] font-bold text-sky-700 bg-white border border-sky-100 px-1.5 py-0.5 rounded-full">
+                          {r.matchScore}%
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400 truncate leading-snug font-medium select-none">{lastMsg}</p>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
 
