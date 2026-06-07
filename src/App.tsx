@@ -20,6 +20,10 @@ import PostListingModal from "./components/PostListingModal";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>(() => {
+    const path = window.location.pathname.replace(/^\/+/, "");
+    if (path && ["home", "roommates", "rooms", "chat", "agreement", "info"].includes(path)) {
+      return path;
+    }
     const hash = window.location.hash.replace("#", "").split("?")[0];
     return hash && ["home", "roommates", "rooms", "chat", "agreement", "info"].includes(hash) ? hash : "home";
   });
