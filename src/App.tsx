@@ -134,7 +134,7 @@ export default function App() {
     const sub = supabase.channel('header_messages')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         const newMessage = payload.new;
-        if (newMessage.sender_id !== currentUserProfile.id) {
+        if (newMessage.sender_id !== currentUserProfile.id && newMessage.chat_id.includes(currentUserProfile.id)) {
           setHasUnreadMessages(true);
         }
       })

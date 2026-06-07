@@ -104,8 +104,10 @@ export default function ChatView({
     }
   }, [chats, activeRoommateId, isTyping]);
 
-  const activeRoommate = roommates.find((r) => r.id === activeRoommateId) || conversations.find(c => c.partner.id === activeRoommateId)?.partner || conversations[0]?.partner || roommates[0];
-  const activeMessages = activeRoommateId ? chats[activeRoommateId] || [] : [];
+  const activeRoommate = activeRoommateId 
+    ? (roommates.find((r) => r.id === activeRoommateId) || conversations.find(c => c.partner.id === activeRoommateId)?.partner)
+    : conversations[0]?.partner;
+  const activeMessages = activeRoommate ? (chats[activeRoommate.id] || []) : [];
   
   const chatId = currentUserProfile && activeRoommateId 
     ? [currentUserProfile.id, activeRoommateId].sort().join("_")
@@ -448,8 +450,11 @@ export default function ChatView({
                   </p>
                 </div>
               ) : (
-                activeMessages.map((msg) => {
+                activeMessages.map((msg, index) => {
                   const isMe = msg.senderId === "me" || msg.senderId === currentUserProfile.id;
+                  const isLast = index === activeMessages.length - 1;
+                  const timeElapsed = Date.now() - new Date(msg.timestamp).getTime();
+                  const statusText = timeElapsed < 5000 ? "Đã gửi" : (timeElapsed < 15000 ? "Đã nhận" : "Đã xem");
                   return (
                     <div
                       key={msg.id}
@@ -469,11 +474,21 @@ export default function ChatView({
                         )}
                         {msg.text && <p>{msg.text}</p>}
                         <span
-                          className={`block text-[9.5px] mt-1 text-right  ${
+                          className={`flex items-center justify-end gap-1 text-[9.5px] mt-1 text-right  ${
                             isMe ? "text-sky-200" : "text-slate-400"
                           }`}
                         >
                           {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {isMe && isLast && (
+                            <span className="font-semibold ml-0.5 tracking-tight flex items-center gap-0.5">
+                              {statusText === "Đã xem" ? (
+                                <CheckCircle2 className="w-3 h-3 fill-sky-500/20 text-sky-200" />
+                              ) : (
+                                <CheckCircle2 className="w-3 h-3 opacity-50" />
+                              )}
+                              {statusText}
+                            </span>
+                          )}
                         </span>
                       </div>
                     </div>
