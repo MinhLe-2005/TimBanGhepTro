@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { X, Sparkles, Smile, Bed, Clock, Award, Shield, User, Heart } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { X, Sparkles, Camera, CheckCircle2 } from "lucide-react";
 
 interface CreateProfileModalProps {
   onClose: () => void;
@@ -57,329 +57,284 @@ export default function CreateProfileModal({
   const [status, setStatus] = useState<"chưa tìm được bạn" | "đã tìm được bạn">(
     currentProfile?.status || "chưa tìm được bạn"
   );
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedAvatar(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const updatedProfile = {
-      id: "me",
-      name,
-      age: Number(age),
-      role,
-      avatar: selectedAvatar,
-      location,
-      district,
-      type,
-      budget: Number(budget),
-      bio,
-      gender,
-      isVerified: false,
-      status,
-      matchScore: 100, // Self is 100% matched
-      tags: [sleep, neatness, smoke],
-      lifestyle: {
-        sleep,
-        pets,
-        smoke,
-        cook,
-        interaction,
-        neatness,
-      },
-    };
-    onSave(updatedProfile);
+    setIsSaving(true);
+
+    // Giả lập thời gian lưu để có UX tốt hơn
+    setTimeout(() => {
+      const updatedProfile = {
+        id: "me",
+        name,
+        age: Number(age),
+        role,
+        avatar: selectedAvatar,
+        location,
+        district,
+        type,
+        budget: Number(budget),
+        bio,
+        gender,
+        isVerified: false,
+        status,
+        matchScore: 100, // Self is 100% matched
+        tags: [sleep, neatness, smoke],
+        lifestyle: {
+          sleep,
+          pets,
+          smoke,
+          cook,
+          interaction,
+          neatness,
+        },
+      };
+      
+      onSave(updatedProfile);
+      setIsSaving(false);
+      setSaveSuccess(true);
+      
+      // Đóng modal sau khi hiện thông báo thành công 2s
+      setTimeout(() => {
+        onClose();
+      }, 2000);
+    }, 600);
   };
+
+  if (saveSuccess) {
+    return (
+      <div className="fixed top-6 right-6 z-[100] bg-emerald-50 text-emerald-800 px-5 py-4 rounded-2xl shadow-xl shadow-slate-200/50 border border-emerald-100 flex items-center gap-3 animate-fade-in">
+        <div className="bg-emerald-500 rounded-full p-1 text-white">
+          <CheckCircle2 className="w-5 h-5" />
+        </div>
+        <span className="text-[14px] font-bold">Cập nhật hồ sơ thành công!</span>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-55 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={onClose} />
 
-      {/* Modal Container */}
-      <div className="relative bg-white rounded-[32px] shadow-2xl border border-gray-100 w-full max-w-2xl max-h-[90vh] overflow-y-auto z-10 animate-fade-in p-6 sm:p-8">
-        {/* Header */}
-        <div className="flex justify-between items-center pb-4 border-b border-slate-100 mb-6">
-          <div className="flex items-center gap-2">
-            <span className="p-2 bg-sky-50 rounded-xl text-[#006590]">
-              <Sparkles className="h-5 w-5" />
-            </span>
-            <div>
-              <h3 className="text-xl font-extrabold text-[#0f172a] tracking-tight">Cài đặt Hồ Sơ Cá Nhân</h3>
-              <p className="text-xs text-slate-500">Cập nhật thông tin và thói quen để thuật toán ghép đôi hoạt động chính xác.</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800 duration-200 cursor-pointer"
-          >
-            <X className="h-4.5 w-4.5" />
-          </button>
+      {/* Global Saving Overlay */}
+      {isSaving && (
+        <div className="absolute inset-0 z-[60] flex items-center justify-center bg-white/40 backdrop-blur-sm">
+           <div className="bg-white p-5 rounded-2xl shadow-2xl flex flex-col items-center gap-3 animate-fade-in border border-slate-100">
+             <div className="w-8 h-8 border-4 border-[#006590]/20 border-t-[#006590] rounded-full animate-spin"></div>
+             <span className="text-[13px] font-bold text-[#006590]">Đang lưu dữ liệu...</span>
+           </div>
         </div>
+      )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Avatar Selection */}
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-3">Chọn ảnh đại diện của bạn</label>
-            <div className="flex flex-wrap gap-4 items-center">
-              <div className="w-16 h-16 rounded-full border-2 border-[#006590]/60 overflow-hidden shadow-sm">
-                <img src={selectedAvatar} alt="Current selected" className="w-full h-full object-cover" />
+      {/* Modal Container */}
+      <div className="relative bg-white rounded-[32px] shadow-2xl border border-gray-100 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col z-10 animate-fade-in">
+        {/* Header */}
+        <div className="flex justify-between items-center px-6 sm:px-8 py-6 border-b border-slate-100 shrink-0 bg-white z-20">
+          <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-sky-50 flex items-center justify-center text-[#006590]">
+                  <Sparkles className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Hồ Sơ Cá Nhân</h3>
+                  <p className="text-sm font-medium text-slate-500 mt-0.5">Cập nhật thông tin để thuật toán ghép đôi hiệu quả hơn.</p>
+                </div>
               </div>
-              <div className="flex gap-2">
-                {avatars.map((url, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setSelectedAvatar(url)}
-                    className={`w-11 h-11 rounded-full overflow-hidden border-2 duration-200 hover:scale-105 ${
-                      selectedAvatar === url ? "border-[#006590] scale-105 shadow-md" : "border-slate-200"
-                    }`}
-                  >
-                    <img src={url} alt={`Preset ${idx}`} className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800 duration-200 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
-          </div>
-
-          {/* Basic Info input grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">Họ và Tên</label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Nhập tên của bạn..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-[#006590] focus:ring-1 focus:ring-[#006590] outline-none"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1.5">Tuổi</label>
-                <input
-                  type="number"
-                  required
-                  min="16"
-                  max="40"
-                  value={age}
-                  onChange={(e) => setAge(Number(e.target.value))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-[#006590] focus:ring-1 focus:ring-[#006590] outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1.5">Giới tính</label>
-                <select
-                  value={gender}
-                  onChange={(e: any) => setGender(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-[#006590] focus:ring-1 focus:ring-[#006590] outline-none"
+        {/* Scrollable Form */}
+        <div className="overflow-y-auto flex-1 scrollbar-thin">
+          <form id="profile-form" onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-5 relative">
+          
+          {/* Avatar Section */}
+          <div className="rounded-2xl border border-slate-150 bg-slate-50/50 p-5">
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Ảnh đại diện</p>
+            <div className="flex items-center gap-5">
+              <div className="relative shrink-0">
+                <div className="w-20 h-20 rounded-full border-3 border-white overflow-hidden shadow-md ring-2 ring-[#006590]/20">
+                  <img src={selectedAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 bg-[#006590] text-white p-1.5 rounded-full border-2 border-white hover:bg-[#005176] duration-150 shadow cursor-pointer"
                 >
-                  <option value="Nữ">Nữ</option>
-                  <option value="Nam">Nam</option>
-                  <option value="LGBT">LGBT</option>
-                  <option value="Khác">Khác</option>
-                </select>
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">Vai trò / Nghề nghiệp</label>
-              <input
-                type="text"
-                required
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                placeholder="Ví dụ: Sinh viên, Designer, IT..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-[#006590] focus:ring-1 focus:ring-[#006590] outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">📍 Quận / Huyện (Đà Nẵng)</label>
-              <select
-                value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-[#006590] focus:ring-1 focus:ring-[#006590] outline-none"
-              >
-                <option value="Hải Châu">Hải Châu</option>
-                <option value="Thanh Khê">Thanh Khê</option>
-                <option value="Liên Chiểu">Liên Chiểu</option>
-                <option value="Sơn Trà">Sơn Trà</option>
-                <option value="Ngũ Hành Sơn">Ngũ Hành Sơn</option>
-                <option value="Cẩm Lệ">Cẩm Lệ</option>
-                <option value="Hòa Vang">Hòa Vang</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">🏠 Loại hình phòng muốn ở</label>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-[#006590] focus:ring-1 focus:ring-[#006590] outline-none"
-              >
-                <option value="Phòng trọ">Phòng trọ</option>
-                <option value="Ký túc xá">Ký túc xá</option>
-                <option value="Căn hộ">Căn hộ</option>
-                <option value="Chung cư">Chung cư</option>
-                <option value="Homestay">Homestay</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">📝 Địa chỉ chi tiết / Mô tả nơi ở</label>
-              <input
-                type="text"
-                required
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Ví dụ: 120 Hùng Vương, Hải Châu hoặc FPT City..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-[#006590] focus:ring-1 focus:ring-[#006590] outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">Ngân sách tối đa (VND / tháng)</label>
-              <input
-                type="number"
-                required
-                step="500000"
-                min="1000000"
-                value={budget}
-                onChange={(e) => setBudget(Number(e.target.value))}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-[#006590] focus:ring-1 focus:ring-[#006590] outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">Lời nhắn / Bio bản thân</label>
-              <textarea
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                rows={2}
-                placeholder="Nói ngắn gọn về sở thích và mong muốn tìm roommate..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:border-[#006590] focus:ring-1 focus:ring-[#006590] outline-none resize-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">🔍 Trạng thái ghép đôi</label>
-              <select
-                value={status}
-                onChange={(e: any) => setStatus(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-[#006590] focus:ring-1 focus:ring-[#006590] outline-none"
-              >
-                <option value="chưa tìm được bạn">🔍 Chưa tìm được bạn</option>
-                <option value="đã tìm được bạn">🔒 Đã tìm được bạn</option>
-              </select>
+              <div>
+                <p className="text-[13px] font-semibold text-slate-700 mb-1">Chọn hoặc tải ảnh lên</p>
+                <p className="text-[12px] text-slate-400 mb-3">Chọn nhanh ảnh mẫu bên dưới:</p>
+                <div className="flex gap-2">
+                  {avatars.map((url, idx) => (
+                    <button key={idx} type="button" onClick={() => setSelectedAvatar(url)}
+                      className={`w-9 h-9 rounded-full overflow-hidden border-2 duration-200 hover:scale-105 cursor-pointer ${
+                        selectedAvatar === url ? "border-[#006590] scale-110 shadow-md" : "border-slate-200"
+                      }`}>
+                      <img src={url} alt={`Preset ${idx}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Lifestyle Preferences Title */}
-          <div className="pt-4 border-t border-slate-100">
-            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Khảo sát phong cách sống</h4>
+          {/* Basic Info */}
+          <div className="rounded-2xl border border-slate-150 bg-white p-5 space-y-4">
+            <div className="pb-3 border-b border-slate-100">
+              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Thông tin cá nhân</p>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">⏰ GIỜ GIẤC NGỦ NGHỈ</label>
-                <select
-                  value={sleep}
-                  onChange={(e: any) => setSleep(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
-                >
-                  <option value="Bình thường">Bình thường</option>
-                  <option value="Ngủ sớm">Ngủ sớm</option>
-                  <option value="Cú đêm">Cú đêm</option>
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-slate-700">Họ &amp; Tên <span className="text-rose-500">*</span></label>
+                <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Nhập tên của bạn..."
+                  className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] text-slate-800 outline-none transition-all placeholder:text-slate-300" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="block text-[13px] font-semibold text-slate-700">Tuổi</label>
+                  <input type="number" required min="16" max="40" value={age} onChange={(e) => setAge(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-3 py-3 text-[14px] text-slate-800 outline-none transition-all" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-[13px] font-semibold text-slate-700">Giới tính</label>
+                  <select value={gender} onChange={(e: any) => setGender(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-3 py-3 text-[14px] text-slate-800 outline-none transition-all cursor-pointer">
+                    <option value="Nữ">Nữ</option>
+                    <option value="Nam">Nam</option>
+                    <option value="LGBT">LGBT</option>
+                    <option value="Khác">Khác</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-slate-700">Nghề nghiệp</label>
+                <input type="text" required value={role} onChange={(e) => setRole(e.target.value)} placeholder="Sinh viên, Designer..."
+                  className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] text-slate-800 outline-none transition-all placeholder:text-slate-300" />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-slate-700">Quận / Huyện</label>
+                <select value={district} onChange={(e) => setDistrict(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] text-slate-800 outline-none transition-all cursor-pointer">
+                  <option value="Hải Châu">Quận Hải Châu</option>
+                  <option value="Thanh Khê">Quận Thanh Khê</option>
+                  <option value="Liên Chiểu">Quận Liên Chiểu</option>
+                  <option value="Sơn Trà">Quận Sơn Trà</option>
+                  <option value="Ngũ Hành Sơn">Quận Ngũ Hành Sơn</option>
+                  <option value="Cẩm Lệ">Quận Cẩm Lệ</option>
+                  <option value="Hòa Vang">Huyện Hòa Vang</option>
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">🐾 THÁI ĐỘ THÚ CƯNG</label>
-                <select
-                  value={pets}
-                  onChange={(e: any) => setPets(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
-                >
-                  <option value="Thoải mái">Thoải mái</option>
-                  <option value="Yêu mèo">Yêu mèo</option>
-                  <option value="Yêu chó">Yêu chó</option>
-                  <option value="Không tiện nuôi">Không dắt thú cưng về</option>
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-slate-700">Loại phòng muốn ở</label>
+                <select value={type} onChange={(e) => setType(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] text-slate-800 outline-none transition-all cursor-pointer">
+                  <option value="Phòng trọ">Phòng trọ</option>
+                  <option value="Ký túc xá">Ký túc xá</option>
+                  <option value="Căn hộ">Căn hộ</option>
+                  <option value="Chung cư">Chung cư</option>
+                  <option value="Homestay">Homestay</option>
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">🚬 THÓI QUEN HÚT THUỐC</label>
-                <select
-                  value={smoke}
-                  onChange={(e: any) => setSmoke(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
-                >
-                  <option value="Không hút thuốc">Không hút thuốc</option>
-                  <option value="Hút thuốc ngoài ban công">Hút thuốc ngoài ban công</option>
-                  <option value="Không quan trọng">Không quan trọng</option>
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-slate-700">Địa chỉ chi tiết</label>
+                <input type="text" required value={location} onChange={(e) => setLocation(e.target.value)} placeholder="120 Hùng Vương..."
+                  className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] text-slate-800 outline-none transition-all placeholder:text-slate-300" />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-slate-700">Ngân sách / tháng (VNĐ)</label>
+                <input type="number" required step="500000" min="1000000" value={budget} onChange={(e) => setBudget(Number(e.target.value))}
+                  className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] font-bold text-[#006590] outline-none transition-all" />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-slate-700">Trạng thái ghép đôi</label>
+                <select value={status} onChange={(e: any) => setStatus(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] text-slate-800 outline-none transition-all cursor-pointer">
+                  <option value="chưa tìm được bạn">Chưa tìm được bạn</option>
+                  <option value="đã tìm được bạn">Đã tìm được bạn</option>
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">🍳 THÓI QUEN NẤU ĂN</label>
-                <select
-                  value={cook}
-                  onChange={(e: any) => setCook(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
-                >
-                  <option value="Đôi khi nấu">Đôi khi nấu</option>
-                  <option value="Thích nấu ăn">Thích nấu ăn (thường xuyên)</option>
-                  <option value="Ăn ngoài">Ăn ngoài là chính</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">💬 GIAO TIẾP XÃ HỘI</label>
-                <select
-                  value={interaction}
-                  onChange={(e: any) => setInteraction(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
-                >
-                  <option value="Cân bằng">Cân bằng</option>
-                  <option value="Hướng nội">Hướng nội (ít tương tác)</option>
-                  <option value="Hướng ngoại">Hướng ngoại (hay tụ tập kể chuyện)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">🧹 CHỈ SỐ GỌN GÀNG SẠCH SẼ</label>
-                <select
-                  value={neatness}
-                  onChange={(e: any) => setNeatness(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
-                >
-                  <option value="Sạch sẽ">Sạch sẽ (dọn dẹp thường xuyên)</option>
-                  <option value="Ngăn nắp">Ngăn nắp (mọi thứ quy củ)</option>
-                  <option value="Thoải mái">Thoải mái (tự do gọn gàng khi rảnh)</option>
-                </select>
+              <div className="sm:col-span-2 space-y-1.5">
+                <label className="block text-[13px] font-semibold text-slate-700">Bio / Lời nhắn</label>
+                <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="Nói ngắn gọn về sở thích và mong muốn tìm roommate..."
+                  className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] text-slate-800 outline-none transition-all resize-none placeholder:text-slate-300" />
               </div>
             </div>
           </div>
 
-          {/* Action Row */}
-          <div className="flex gap-2.5 pt-4 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 border border-slate-200 text-slate-500 py-3 rounded-xl font-bold hover:bg-slate-50 duration-200 cursor-pointer text-center"
-            >
-              Hủy bỏ
-            </button>
-            <button
-              type="submit"
-              className="flex-1 bg-[#006590] hover:bg-[#005176] text-white py-3 rounded-xl font-bold shadow-md hover:shadow-lg duration-200 cursor-pointer text-center"
-            >
-              Lưu & Cập Nhật Hồ Sơ
-            </button>
+          {/* Lifestyle Section */}
+          <div className="rounded-2xl border border-slate-150 bg-white p-5 space-y-4">
+            <div className="pb-3 border-b border-slate-100">
+              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Phong cách sống</p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {[
+                { label: "Giờ giấc", value: sleep, setter: setSleep, options: ["Bình thường", "Ngủ sớm", "Cú đêm"] },
+                { label: "Thú cưng", value: pets, setter: setPets, options: ["Thoải mái", "Yêu mèo", "Yêu chó", "Không tiện nuôi"] },
+                { label: "Hút thuốc", value: smoke, setter: setSmoke, options: ["Không hút thuốc", "Hút thuốc ngoài ban công", "Không quan trọng"] },
+                { label: "Nấu ăn", value: cook, setter: setCook, options: ["Đôi khi nấu", "Thích nấu ăn", "Ăn ngoài"] },
+                { label: "Giao tiếp", value: interaction, setter: setInteraction, options: ["Cân bằng", "Hướng nội", "Hướng ngoại"] },
+                { label: "Gọn gàng", value: neatness, setter: setNeatness, options: ["Sạch sẽ", "Ngăn nắp", "Thoải mái"] },
+              ].map(({ label, value, setter, options }) => (
+                <div key={label} className="space-y-1.5">
+                  <label className="block text-[12px] font-bold text-slate-500 uppercase tracking-wide">{label}</label>
+                  <select value={value} onChange={(e) => (setter as any)(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] rounded-xl px-3 py-2.5 text-[13px] text-slate-700 outline-none cursor-pointer transition-all">
+                    {options.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
           </div>
-        </form>
+
+          </form>
+        </div>
+
+        {/* Action Row */}
+        <div className="px-6 sm:px-8 py-5 border-t border-slate-100 bg-white shrink-0 z-20 flex gap-3">
+          <button type="button" onClick={onClose}
+            className="flex-1 border border-slate-200 text-slate-500 py-3.5 rounded-xl font-semibold text-sm hover:bg-slate-50 hover:text-slate-700 duration-200 cursor-pointer text-center">
+            Hủy bỏ
+          </button>
+          <button type="submit" form="profile-form" disabled={isSaving}
+            className="flex-1 bg-[#006590] hover:bg-[#005176] text-white py-3.5 rounded-xl font-bold text-sm shadow-md duration-200 cursor-pointer text-center disabled:opacity-70 flex items-center justify-center gap-2">
+            {isSaving ? "Đang lưu..." : "Lưu & Cập Nhật Hồ Sơ"}
+          </button>
+        </div>
       </div>
     </div>
   );

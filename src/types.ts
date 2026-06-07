@@ -26,15 +26,16 @@ export interface Roommate {
   district?: string;
   type?: string;
   matchScore: number;
-  reputationScore: number; // e.g. 98 for 98%
+  reputationScore: number;
   tags: string[];
   isVerified: boolean;
-  status?: "Đã có phòng" | "Chưa có phòng"; // "Đã có phòng" vs "Chưa có phòng"
+  status?: "Đã có phòng" | "Chưa có phòng";
   bio: string;
-  budget: number; // in VND
+  budget: number;
   gender: "Nam" | "Nữ" | "LGBT" | "Khác";
   majorKhoidoi?: "Khối Kinh tế" | "Khối Kỹ thuật" | "Khối Sư phạm" | "Khối Y Dược" | "Khối Nghệ thuật";
   phoneNumber?: string;
+  postedBy?: string; // user ID who posted this listing
   lifestyle: {
     sleep: "Cú đêm" | "Ngủ sớm" | "Bình thường";
     pets: "Yêu mèo" | "Yêu chó" | "Không tiện nuôi" | "Thoải mái";
@@ -49,15 +50,15 @@ export interface Roommate {
 export interface Room {
   id: string;
   title: string;
-  price: number; // in VND
+  price: number;
   location: string;
   district: string;
-  type: string; // "Phòng trọ" | "Ký túc xá" | "Căn hộ" | "Chung cư" | "Homestay"
+  type: string;
   images: string[];
   features: string[];
   isHot: boolean;
-  status?: "còn phòng" | "hết phòng"; // "còn phòng" vs "hết phòng"
-  isVerifiedRoom?: boolean; // verified status
+  status?: "còn phòng" | "hết phòng";
+  isVerifiedRoom?: boolean;
   bedrooms: number;
   wc: string;
   kitchen: string;
@@ -75,6 +76,7 @@ export interface Room {
   hostRole?: string;
   roommateInfo?: string;
   habits?: string[];
+  postedBy?: string; // user ID who posted this listing
 }
 
 export interface RoomReview {

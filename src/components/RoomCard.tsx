@@ -1,12 +1,15 @@
-import { Heart, Flame, Bed, Bath, Shield, ChefHat, MapPin, Cpu, Car, Eye } from "lucide-react";
+import { Heart, Flame, Bed, Bath, Shield, ChefHat, MapPin, Cpu, Car, Eye, Star, Trash2 } from "lucide-react";
 import { Room } from "../types";
 import { useState } from "react";
 
 interface RoomCardProps {
   room: Room;
   onViewDetails: (room: Room) => void;
-  onLikeChange?: (id: string, isLiked: boolean) => void;
+  onLikeChange?: (id: string, isLiked: boolean) => boolean | void;
   isInitiallyLiked?: boolean;
+  onDelete?: (id: string) => void;
+  onEdit?: (room: Room) => void;
+  currentUserId?: string;
 }
 
 export default function RoomCard({
@@ -14,6 +17,9 @@ export default function RoomCard({
   onViewDetails,
   onLikeChange,
   isInitiallyLiked = false,
+  onDelete,
+  onEdit,
+  currentUserId,
 }: RoomCardProps) {
   const [isLiked, setIsLiked] = useState(isInitiallyLiked);
 
@@ -28,10 +34,14 @@ export default function RoomCard({
 
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const newLiked = !isLiked;
-    setIsLiked(newLiked);
     if (onLikeChange) {
-      onLikeChange(room.id, newLiked);
+      const newLiked = !isLiked;
+      const success = onLikeChange(room.id, newLiked);
+      if (success !== false) {
+        setIsLiked(newLiked);
+      }
+    } else {
+      setIsLiked(!isLiked);
     }
   };
 
@@ -63,10 +73,13 @@ export default function RoomCard({
       {/* Room Image Container */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-50">
         <img
-          src={room.images[0]}
+          src={room.images[0] || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=500&auto=format&fit=crop"}
           alt={room.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           referrerPolicy="no-referrer"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=500&auto=format&fit=crop";
+          }}
         />
 
         {/* Room Top Left Badges */}
@@ -99,90 +112,87 @@ export default function RoomCard({
         >
           <Heart className={`h-5 w-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
         </button>
+
+        {/* Owner Actions */}
+        {currentUserId && room.postedBy === currentUserId && (
+          <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
+            {onEdit && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onEdit(room); }}
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 hover:bg-white text-[#006590] text-[11px] font-bold shadow-md transition-all duration-200"
+              >
+                Sửa tin
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={(e) => { e.stopPropagation(); if (confirm("Xóa tin đăng này?")) onDelete(room.id); }}
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold shadow-md transition-all duration-200"
+              >
+                <Trash2 className="h-3 w-3" />
+                Xóa tin
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Room Content */}
-      <div className="p-6 flex flex-col flex-grow justify-between">
-        <div>
-          {/* Price Tag & Rating */}
-          <div className="flex items-baseline justify-between gap-1 mb-2">
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-extrabold text-[#006590] tracking-tight">
-                {formatPrice(room.price).replace("đ", "")}
-              </span>
-              <span className="text-xs text-slate-500 font-bold">
-                {room.type.toLowerCase().includes("ký túc xá") || room.type.toLowerCase().includes("kí túc xá") || room.type.toLowerCase().includes("homestay") ? "đ / người / tháng" : "đ / phòng / tháng"}
-              </span>
+      <div className="p-5 flex flex-col flex-1">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-baseline gap-1 overflow-hidden">
+            <span className="text-xl font-bold text-slate-900 tracking-tight truncate">
+              {formatPrice(room.price).replace("đ", "")}
+            </span>
+            <span className="text-[11px] text-slate-500 font-bold shrink-0">
+              {room.type.toLowerCase().includes("ký túc") || room.type.toLowerCase().includes("homestay") ? "đ / người" : "đ / phòng"}
+            </span>
+          </div>
+          {avgRating && (
+            <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
+              <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+              <span>{avgRating}</span>
             </div>
-            {avgRating && (
-              <div className="flex items-center gap-1.5 bg-amber-500 text-white px-2 py-0.5 rounded-lg text-xs font-black shadow-sm shrink-0">
-                <span>★ {avgRating}</span>
-                <span className="text-[10px] font-semibold text-white/90">({reviewsCount})</span>
-              </div>
-            )}
-          </div>
-
-          {/* Title & Proximity indicator */}
-          <h4 className="text-[17px] font-bold text-slate-700 leading-snug tracking-tight mb-2 group-hover:text-[#006590] duration-200">
-            {room.title}
-          </h4>
-
-          {/* Location & Proximity line */}
-          <div className="flex flex-col gap-1.5 mb-3">
-            <div className="flex items-center gap-1 text-xs font-semibold text-slate-500">
-              <MapPin className="h-3.5 w-3.5 text-[#006590] shrink-0" />
-              <span className="truncate">{room.location}</span>
-            </div>
-            {room.proximity && (
-              <span className="text-[11px] text-[#006590] font-black bg-[#dff6ff] px-2.5 py-1 rounded-lg self-start">
-                📍 {room.proximity}
-              </span>
-            )}
-          </div>
-
-          {/* Utilities Row: electricity, water, parking */}
-          <div className="flex items-center gap-2 text-[10px] font-extrabold text-slate-500 bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-2 mb-3.5 select-none justify-between">
-            {room.electricity && <span className="flex items-center gap-0.5">{room.electricity}</span>}
-            <span className="text-slate-200">|</span>
-            {room.water && <span className="flex items-center gap-0.5">{room.water}</span>}
-            <span className="text-slate-200">|</span>
-            {room.parking && <span className="flex items-center gap-0.5">{room.parking}</span>}
-          </div>
-
-          {/* Badges for Gender & Pets & Habits */}
-          <div className="flex flex-wrap gap-1.5 mb-4">
-            {room.gender && (
-              <span className="text-[10px] uppercase tracking-wider font-extrabold bg-[#006590]/10 text-[#006590] px-2.5 py-0.5 rounded-md">
-                👥 {room.gender}
-              </span>
-            )}
-            {room.habits && room.habits.length > 0 && (
-              <span className="text-[10px] uppercase tracking-wider font-extrabold bg-purple-50 text-purple-700 border border-purple-100 px-2.5 py-0.5 rounded-md">
-                🍳 {room.habits[0]}
-              </span>
-            )}
-            {room.pets && (
-              <span className={`text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-md ${
-                room.pets === "thoải mái"
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                  : "bg-amber-50 text-amber-700 border border-amber-100"
-              }`}>
-                🐾 {room.pets === "thoải mái" ? "Nuôi Pet" : "Không Pet"}
-              </span>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* Host footer info line instead of standard slice */}
-        <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-[11px] font-bold text-slate-500">
-          <span className="flex items-center gap-1">
-            <span className="text-slate-400">Chủ:</span>
-            <span className="text-slate-800 font-extrabold">{room.hostName}</span>
-            {room.hostRole && (
-              <span className="text-slate-400 font-medium">({room.hostRole})</span>
-            )}
-          </span>
-          <span className="text-[#006590] text-[10px] font-black uppercase tracking-wider">Xem Chi Tiết ➔</span>
+        {/* Title */}
+        <h4 className="text-[14px] font-bold text-slate-700 leading-snug tracking-tight mb-2 group-hover:text-blue-600 transition-colors duration-200 line-clamp-2">
+          {room.title}
+        </h4>
+
+        {/* Location & Proximity */}
+        <div className="flex flex-col gap-1.5 mb-4">
+          <div className="flex items-center gap-1.5 text-[12px] font-semibold text-slate-500">
+            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            <span className="truncate">{room.location}</span>
+          </div>
+          {room.proximity && (
+            <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md w-fit">
+              <span className="text-slate-400">📍</span>
+              {room.proximity}
+            </div>
+          )}
+        </div>
+
+        {/* Feature Tags - Compact */}
+        <div className="flex items-center flex-wrap gap-1.5 mb-4 text-[11px] font-medium text-slate-600">
+          {room.gender && <span className="px-2 py-1 bg-slate-100 rounded-md">{room.gender}</span>}
+          {room.habits && room.habits.length > 0 && <span className="px-2 py-1 bg-slate-100 rounded-md">{room.habits[0]}</span>}
+          {room.pets && <span className="px-2 py-1 bg-slate-100 rounded-md">{room.pets === "thoải mái" ? "Pet OK" : "No Pet"}</span>}
+        </div>
+
+        {/* Host Info */}
+        <div className="mt-auto border-t border-slate-100 pt-3">
+          <div className="flex items-center justify-between text-[12px] font-bold text-slate-600">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] text-blue-700 uppercase">
+                {room.hostName.charAt(0)}
+              </div>
+              <span className="truncate">{room.hostName}</span>
+            </div>
+            <span className="text-[10px] text-slate-400 font-medium">Nhấn xem chi tiết</span>
+          </div>
         </div>
       </div>
     </div>

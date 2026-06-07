@@ -28,7 +28,7 @@ export const INITIAL_ROOMMATES: Roommate[] = [
     role: "Sinh viên",
     majorKhoidoi: "Khối Kinh tế",
     phoneNumber: "0943 123 456",
-    avatar: girlMinhanh,
+    avatar: "/portrait_minh_anh.png",
     status: "Đã có phòng",
     location: "Khu đô thị FPT, Ngũ Hành Sơn, Đà Nẵng",
     district: "Ngũ Hành Sơn",
@@ -37,7 +37,7 @@ export const INITIAL_ROOMMATES: Roommate[] = [
     reputationScore: 98,
     tags: ["Cú đêm", "Yêu mèo", "Không hút thuốc"],
     isVerified: true,
-    bio: "Mình là sinh viên năm 4 ngành Kinh doanh, hoạt bát vui vẻ. Mình thích giữ không gian sạch sẽ, chăm mèo và đôi lúc thức khuya học bài/làm quiz. Cần tìm một bạn nữ ở ghép hòa đồng tại Ngũ Hành Sơn.",
+    bio: "Mình là sinh viên năm 4 ngành Kinh doanh, hoạt bát vui vẻ. Cần tìm bạn nữ gọn gàng ở ghép chung cư.",
     budget: 3500000,
     gender: "Nữ",
     lifestyle: {
@@ -52,10 +52,10 @@ export const INITIAL_ROOMMATES: Roommate[] = [
       {
         id: "rev-ma-1",
         reviewerName: "Huyền Trang",
-        reviewerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop",
+        reviewerAvatar: "/avatar_huyen_trang.png",
         rating: 5,
-        comment: "Minh Anh siêu dễ thương và cực kỳ sạch sẽ luôn! Bé mèo của bạn làm siêu lòng mọi người ở chung.",
-        imageUrl: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=500&auto=format&fit=crop",
+        comment: "Minh Anh siêu dễ thương và cực kỳ sạch sẽ luôn!",
+        imageUrl: "/review_minh_anh_cat.png",
         createdAt: "15/04/2026"
       }
     ]
@@ -67,7 +67,7 @@ export const INITIAL_ROOMMATES: Roommate[] = [
     role: "IT Developer",
     majorKhoidoi: "Khối Kỹ thuật",
     phoneNumber: "0932 789 012",
-    avatar: guyHoangnam,
+    avatar: "/portrait_hoang_nam.png",
     status: "Chưa có phòng",
     location: "Đường Hùng Vương, Hải Châu, Đà Nẵng",
     district: "Hải Châu",
@@ -91,10 +91,10 @@ export const INITIAL_ROOMMATES: Roommate[] = [
       {
         id: "rev-hn-1",
         reviewerName: "Thanh Tùng",
-        reviewerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop",
+        reviewerAvatar: "/avatar_thanh_tung.png",
         rating: 5,
-        comment: "Nam nấu ăn cực đỉnh và rất đúng giờ giấc, chưa bao giờ phải phàn nàn về vấn đề dọn dẹp vệ sinh chung hằng tuần.",
-        imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop",
+        comment: "Nam nấu ăn cực đỉnh và rất đúng giờ giấc.",
+        imageUrl: "/review_hoang_nam_food.png",
         createdAt: "20/05/2026"
       }
     ]
@@ -106,7 +106,7 @@ export const INITIAL_ROOMMATES: Roommate[] = [
     role: "Sinh viên",
     majorKhoidoi: "Khối Nghệ thuật",
     phoneNumber: "0387 456 123",
-    avatar: girlTrangle,
+    avatar: "/portrait_trang_le.png",
     status: "Đã có phòng",
     location: "Đường Điện Biên Phủ, Thanh Khê, Đà Nẵng",
     district: "Thanh Khê",
@@ -130,10 +130,10 @@ export const INITIAL_ROOMMATES: Roommate[] = [
       {
         id: "rev-tl-1",
         reviewerName: "Như Quỳnh",
-        reviewerAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop",
+        reviewerAvatar: "/avatar_nhu_quynh.png",
         rating: 4.3,
         comment: "Trang Lê siêu yên tĩnh và tôn trọng không gian riêng tư. Bạn ấy vẽ tường trang trí chân dung siêu nghệ thuật!",
-        imageUrl: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=500&auto=format&fit=crop",
+        imageUrl: "/review_trang_le_art.png",
         createdAt: "12/03/2026"
       }
     ]
@@ -145,12 +145,12 @@ export const INITIAL_ROOMMATES: Roommate[] = [
     role: "Designer",
     majorKhoidoi: "Khối Nghệ thuật",
     phoneNumber: "0915 222 333",
-    avatar: guyDuctri,
+    avatar: "/portrait_duc_tri.png",
     status: "Chưa có phòng",
-    location: "Gần ĐH Bách Khoa, Liên Chiểu, Đà Nẵng",
-    district: "Liên Chiểu",
-    type: "Homestay",
-    matchScore: 85,
+    location: "Quận Sơn Trà, Đà Nẵng",
+    district: "Sơn Trà",
+    type: "Căn hộ",
+    matchScore: 86,
     reputationScore: 88,
     tags: ["Thích thể thao", "Thoải mái", "Vui tính"],
     isVerified: false,
@@ -169,10 +169,10 @@ export const INITIAL_ROOMMATES: Roommate[] = [
       {
         id: "rev-dt-1",
         reviewerName: "Minh Quân",
-        reviewerAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=150&auto=format&fit=crop",
+        reviewerAvatar: "/avatar_minh_quan.png",
         rating: 4,
         comment: "Trí sòng phẳng tiền bạc, vui vẻ năng động hoàn toàn hợp tính cách. Cuối tuần rủ đá banh tập thể thao siêu nhiệt tình.",
-        imageUrl: "https://images.unsplash.com/photo-1518063319789-7217e6706b04?q=80&w=500&auto=format&fit=crop",
+        imageUrl: "/review_duc_tri_sports.png",
         createdAt: "05/01/2026"
       }
     ]
@@ -183,8 +183,8 @@ export const INITIAL_ROOMMATES: Roommate[] = [
     age: 23,
     role: "Marketing Manager",
     majorKhoidoi: "Khối Kinh tế",
-    phoneNumber: "0905 444 555",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop",
+    phoneNumber: "0988 777 666",
+    avatar: "/portrait_khanh_vy.png",
     status: "Đã có phòng",
     location: "Quận Hải Châu, Đà Nẵng",
     district: "Hải Châu",
@@ -208,10 +208,10 @@ export const INITIAL_ROOMMATES: Roommate[] = [
       {
         id: "rev-kv-1",
         reviewerName: "Bảo Thy",
-        reviewerAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop",
+        reviewerAvatar: "/avatar_bao_thy.png",
         rating: 5,
         comment: "Chị Vy siêu giỏi luôn, hướng dẫn mình bao nhiêu thứ về marketing. Sống chung cực kỳ dễ thở và vui vẻ!",
-        imageUrl: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?q=80&w=500&auto=format&fit=crop",
+        imageUrl: "/review_khanh_vy_work.png",
         createdAt: "28/04/2026"
       }
     ]
@@ -223,7 +223,7 @@ export const INITIAL_ROOMMATES: Roommate[] = [
     role: "KOL/KOC Tự Do",
     majorKhoidoi: "Khối Nghệ thuật",
     phoneNumber: "0349 666 777",
-    avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=150&auto=format&fit=crop",
+    avatar: "/portrait_tuan_kiet.png",
     status: "Chưa có phòng",
     location: "Quận Thanh Khê, Đà Nẵng",
     district: "Thanh Khê",
@@ -247,7 +247,7 @@ export const INITIAL_ROOMMATES: Roommate[] = [
       {
         id: "rev-tk-1",
         reviewerName: "Tấn Sang",
-        reviewerAvatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=150&auto=format&fit=crop",
+        reviewerAvatar: "/avatar_tan_sang.png",
         rating: 4,
         comment: "Kiệt rất vui tính và cởi mở, phong cách sống hiện đại. Thỉnh thoảng hay cho mình mượn đồ công nghệ xài thử siêu thích.",
         createdAt: "02/02/2026"
@@ -261,7 +261,7 @@ export const INITIAL_ROOMMATES: Roommate[] = [
     role: "Giáo viên Tiếng Anh",
     majorKhoidoi: "Khối Sư phạm",
     phoneNumber: "0973 888 999",
-    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop",
+    avatar: "/portrait_thanh_hang.png",
     status: "Đã có phòng",
     location: "Quận Liên Chiểu, Đà Nẵng",
     district: "Liên Chiểu",
@@ -285,10 +285,10 @@ export const INITIAL_ROOMMATES: Roommate[] = [
       {
         id: "rev-th-1",
         reviewerName: "Mỹ Linh",
-        reviewerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop",
+        reviewerAvatar: "/avatar_my_linh.png",
         rating: 5,
         comment: "Chị Hằng lịch sự và nói chuyện siêu nhẹ nhàng ấm áp. Ở chung với chị giúp vốn từ vựng tiếng Anh giao tiếp của mình thăng tiến vùn vụt.",
-        imageUrl: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=500&auto=format&fit=crop",
+        imageUrl: "/review_thanh_hang_teaching.png",
         createdAt: "19/04/2026"
       }
     ]
@@ -300,7 +300,7 @@ export const INITIAL_ROOMMATES: Roommate[] = [
     role: "Quản lý Kinh doanh",
     majorKhoidoi: "Khối Kinh tế",
     phoneNumber: "0868 111 222",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop",
+    avatar: "/portrait_quoc_bao.png",
     status: "Chưa có phòng",
     location: "Quận Cẩm Lệ, Đà Nẵng",
     district: "Cẩm Lệ",
@@ -324,7 +324,7 @@ export const INITIAL_ROOMMATES: Roommate[] = [
       {
         id: "rev-qb-1",
         reviewerName: "Văn Lâm",
-        reviewerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop",
+        reviewerAvatar: "/avatar_van_lam.png",
         rating: 4,
         comment: "Anh Bảo rất thẳng thắn rõ ràng trong tài chính, đúng giờ giấc và cực gọn gàng. Vì anh đi làm suốt nên phòng rất rộng rãi yên tĩnh.",
         createdAt: "10/05/2026"
@@ -338,7 +338,7 @@ export const INITIAL_ROOMMATES: Roommate[] = [
     role: "Dược sĩ Y khoa",
     majorKhoidoi: "Khối Y Dược",
     phoneNumber: "0922 444 666",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop",
+    avatar: "/portrait_thuy_quynh.png",
     status: "Đã có phòng",
     location: "Huyện Hòa Vang, Đà Nẵng",
     district: "Hòa Vang",
@@ -362,10 +362,10 @@ export const INITIAL_ROOMMATES: Roommate[] = [
       {
         id: "rev-tq-1",
         reviewerName: "Lan Phương",
-        reviewerAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop",
+        reviewerAvatar: "/avatar_lan_phuong.png",
         rating: 5,
         comment: "Quỳnh làm bánh và nấu nướng đỉnh lắm mọi người ơi, ở chung được ăn ké suốt thèm mún xỉu hihi. Rất sạch sẽ lịch xự dọn dẹp hàng tuần.",
-        imageUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=500&auto=format&fit=crop",
+        imageUrl: "/review_thuy_quynh_baking.png",
         createdAt: "09/03/2026"
       }
     ]
@@ -377,7 +377,7 @@ export const INITIAL_ROOMMATES: Roommate[] = [
     role: "Freelancer Nhiếp ảnh",
     majorKhoidoi: "Khối Nghệ thuật",
     phoneNumber: "0944 555 777",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=150&auto=format&fit=crop",
+    avatar: "/portrait_duy_manh.png",
     status: "Chưa có phòng",
     location: "Quận Sơn Trà, Đà Nẵng",
     district: "Sơn Trà",

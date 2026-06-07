@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, MapPin, Building, Sparkles } from "lucide-react";
+import { Search, MapPin, Building, Sparkles, Users, Cat, DollarSign, CheckSquare } from "lucide-react";
 import { Room } from "../types";
 import RoomCard from "./RoomCard";
 
@@ -9,6 +9,11 @@ interface RoomsViewProps {
   likedRoomIds: string[];
   onLikeRoom: (id: string, isLiked: boolean) => void;
   onOpenPostModal?: () => void;
+  onDeleteRoom?: (id: string) => void;
+  currentUserId?: string;
+  currentUserProfile?: any;
+  onRequireAuth?: () => void;
+  onEditRoom?: (room: Room) => void;
 }
 
 export default function RoomsView({
@@ -17,6 +22,11 @@ export default function RoomsView({
   likedRoomIds,
   onLikeRoom,
   onOpenPostModal,
+  onDeleteRoom,
+  currentUserId,
+  currentUserProfile,
+  onRequireAuth,
+  onEditRoom,
 }: RoomsViewProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [districtFilter, setDistrictFilter] = useState("Tất cả");
@@ -28,6 +38,7 @@ export default function RoomsView({
   const [maxPrice, setMaxPrice] = useState<number>(20000000); // 20 million VND default max
   const [priceTag, setPriceTag] = useState<string>("Tất cả");
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+  const [showMyPostsOnly, setShowMyPostsOnly] = useState(false);
 
   const handlePriceTagClick = (tag: string) => {
     setPriceTag(tag);
@@ -78,6 +89,10 @@ export default function RoomsView({
       room.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
       room.description.toLowerCase().includes(searchTerm.toLowerCase());
 
+    if (showMyPostsOnly && room.postedBy !== currentUserId) {
+      return false;
+    }
+
     const matchesDistrict = districtFilter === "Tất cả" || room.district === districtFilter;
     const matchesType = typeFilter === "Tất cả" || (room.type && room.type === typeFilter);
     const matchesCapacity =
@@ -113,149 +128,196 @@ export default function RoomsView({
   });
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Title Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold text-[#0f172a] tracking-tight">Phòng trọ đang tìm bạn</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Duyệt danh sách các căn hộ, phòng trọ, kí túc xá và homestay đang đăng tuyển roommate ở ghép cùng ngay hôm nay.
-          </p>
+    <div className="space-y-6 animate-fade-in">
+      {/* Title Banner */}
+      <div className="relative bg-gradient-to-r from-[#003855] via-[#004e70] to-[#006590] rounded-[32px] p-8 sm:p-10 overflow-hidden shadow-2xl shadow-[#004e70]/20 border border-[#004e70]/50 mb-8">
+        {/* Decorative background shapes */}
+        <div className="absolute top-0 right-0 opacity-10 pointer-events-none transform translate-x-1/4 -translate-y-1/4">
+          <svg width="404" height="404" fill="none" viewBox="0 0 404 404"><defs><pattern id="85737c0e-0916-41d7-917f-596dc7edfa27" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><rect x="0" y="0" width="4" height="4" fill="currentColor"></rect></pattern></defs><rect width="404" height="404" fill="url(#85737c0e-0916-41d7-917f-596dc7edfa27)"></rect></svg>
         </div>
-        <button
-          onClick={onOpenPostModal}
-          className="flex items-center gap-2 px-5 py-3 bg-[#006590] hover:bg-[#005176] text-white font-extrabold text-xs rounded-full cursor-pointer duration-150 shadow-md shrink-0 border border-slate-100"
-        >
-          <Sparkles className="h-4.5 w-4.5 fill-white/10" />
-          <span>Đăng tin cho thuê / ghép phòng</span>
-        </button>
+        <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-sky-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+        <div className="absolute -top-24 right-12 w-64 h-64 bg-cyan-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="text-white max-w-2xl">
+            <p className="text-sky-200 text-[11px] font-bold uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-sky-300" />
+              Phòng trọ & căn hộ tại Đà Nẵng
+            </p>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight mb-3">
+              Phòng Trọ Đang Tìm Bạn
+            </h1>
+            <p className="text-sky-100/90 text-[15px] sm:text-base font-medium leading-relaxed max-w-xl">
+              Duyệt danh sách căn hộ, phòng trọ, ký túc xá và homestay đang tuyển roommate ở ghép ngay hôm nay.
+            </p>
+          </div>
+          
+          <button
+            onClick={() => { if (!currentUserProfile) { onRequireAuth && onRequireAuth(); } else { onOpenPostModal && onOpenPostModal(); } }}
+            className="group flex items-center justify-center gap-2.5 px-8 py-4 bg-white hover:bg-sky-50 text-[#004e70] font-black text-[15px] rounded-2xl cursor-pointer duration-300 shadow-[0_10px_25px_rgba(0,0,0,0.15)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.2)] hover:-translate-y-1 active:scale-95 shrink-0 w-full md:w-auto"
+          >
+            <Sparkles className="h-5 w-5 text-[#006590] group-hover:scale-110 transition-transform duration-300" />
+            <span>Đăng tin cho thuê / ghép phòng</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter layout wrapper */}
-      <div className="bg-white rounded-[24px] border border-gray-100 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.02)] space-y-5">
-        <div className="flex flex-col md:flex-row gap-3">
-          {/* Keyword Search Input */}
-          <div className="flex-1 relative flex items-center">
-            <Search className="absolute left-4.5 text-slate-400 h-5 w-5" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Tìm theo dự án chung cư, tên đường phố, quận huyện hoặc tiện nghi..."
-              className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-12 pr-4 py-3.5 text-sm outline-none focus:border-[#006590] focus:ring-1 focus:ring-[#006590] focus:bg-white duration-200"
-            />
-          </div>
+      <div className="bg-white rounded-[24px] border border-slate-200 shadow-[0_8px_30px_rgba(0,0,0,0.06)] overflow-hidden">
+        
+        {/* Search + Gender row */}
+        <div className="p-6 sm:p-7">
+          <div className="flex flex-col xl:flex-row gap-4 items-stretch xl:items-center">
+            <div className="flex-1 w-full relative group">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5 group-focus-within:text-[#006590] transition-colors" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Tìm theo tên dự án, đường phố, quận huyện, tiện nghi..."
+                className="w-full bg-white border-2 border-slate-100 rounded-2xl pl-13 pr-5 py-4 text-[15px] outline-none hover:border-slate-200 focus:border-sky-300 focus:ring-4 focus:ring-sky-100 focus:bg-white transition-all font-medium text-slate-700 placeholder:text-slate-400 placeholder:font-normal shadow-sm"
+              />
+            </div>
 
-          {/* Gender Filter Tab group */}
-          <div className="flex border border-slate-100 rounded-xl p-1 bg-slate-50 overflow-x-auto max-w-full">
-            {(["Tất cả", "Nam", "Nữ", "LGBT", "Khác"] as const).map((genderVal) => (
-              <button
-                key={genderVal}
-                onClick={() => setGenderFilter(genderVal)}
-                className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150 cursor-pointer ${
-                  genderFilter === genderVal
-                    ? "bg-white text-[#006590] shadow-sm font-bold"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
+            {/* My Posts Toggle */}
+            <div 
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 rounded-2xl border border-slate-200/60 shrink-0 cursor-pointer hover:bg-slate-200/50 transition-colors" 
+              onClick={() => {
+                if (!currentUserProfile) {
+                  onRequireAuth && onRequireAuth();
+                } else {
+                  setShowMyPostsOnly(!showMyPostsOnly);
+                }
+              }}
+            >
+              <div className={`w-5 h-5 rounded flex items-center justify-center border ${showMyPostsOnly ? 'bg-[#006590] border-[#006590]' : 'bg-white border-slate-300'}`}>
+                {showMyPostsOnly && <CheckSquare className="w-3 h-3 text-white" />}
+              </div>
+              <span className={`text-sm font-bold ${showMyPostsOnly ? 'text-[#006590]' : 'text-slate-600'}`}>Phòng của tôi</span>
+            </div>
+
+            <div className="flex bg-slate-100 border border-slate-200/60 rounded-2xl p-1.5 gap-1 overflow-x-auto shrink-0">
+              {(["Tất cả", "Nam", "Nữ", "LGBT", "Khác"] as const).map((genderVal) => (
+                <button
+                  key={genderVal}
+                  onClick={() => setGenderFilter(genderVal)}
+                  className={`flex-1 xl:flex-none whitespace-nowrap px-5 py-2.5 rounded-[12px] text-sm font-bold transition-all duration-200 cursor-pointer ${
+                    genderFilter === genderVal
+                      ? "bg-white text-[#006590] shadow-sm border border-slate-200/60"
+                      : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                  }`}
+                >
+                  {genderVal === "Tất cả" ? "Tất cả" : genderVal}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Dropdown filters */}
+        <div className="px-6 sm:px-7 py-6 border-t border-slate-100 bg-slate-50/50">
+          <p className="text-[12px] font-black text-slate-700 uppercase tracking-widest mb-5 flex items-center gap-2">
+            <Building className="h-4 w-4 text-[#006590]" />
+            Bộ lọc phòng trọ
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+            <div className="space-y-2.5">
+              <label className="flex items-center gap-1.5 text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">
+                <MapPin className="h-3.5 w-3.5" /> Khu vực
+              </label>
+              <select
+                value={districtFilter}
+                onChange={(e) => setDistrictFilter(e.target.value)}
+                className="w-full bg-white rounded-xl px-4 py-3 text-sm font-bold text-slate-800 border border-slate-200 shadow-sm outline-none hover:border-slate-300 focus:border-[#006590] focus:ring-4 focus:ring-sky-100 transition-all cursor-pointer"
               >
-                {genderVal === "Tất cả" ? "Tất cả giới" : genderVal}
-              </button>
-            ))}
+                <option value="Tất cả">Tất cả</option>
+                <option value="Hải Châu">Hải Châu</option>
+                <option value="Thanh Khê">Thanh Khê</option>
+                <option value="Liên Chiểu">Liên Chiểu</option>
+                <option value="Sơn Trà">Sơn Trà</option>
+                <option value="Ngũ Hành Sơn">Ngũ Hành Sơn</option>
+                <option value="Cẩm Lệ">Cẩm Lệ</option>
+                <option value="Hòa Vang">Hòa Vang</option>
+              </select>
+            </div>
+
+            <div className="space-y-2.5">
+              <label className="flex items-center gap-1.5 text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">
+                <Building className="h-3.5 w-3.5" /> Loại hình
+              </label>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="w-full bg-white rounded-xl px-4 py-3 text-sm font-bold text-slate-800 border border-slate-200 shadow-sm outline-none hover:border-slate-300 focus:border-[#006590] focus:ring-4 focus:ring-sky-100 transition-all cursor-pointer"
+              >
+                <option value="Tất cả">Tất cả</option>
+                <option value="Phòng trọ">Phòng trọ</option>
+                <option value="Ký túc xá">Ký túc xá</option>
+                <option value="Căn hộ">Căn hộ</option>
+                <option value="Chung cư">Chung cư</option>
+                <option value="Homestay">Homestay</option>
+              </select>
+            </div>
+
+            <div className="space-y-2.5">
+              <label className="flex items-center gap-1.5 text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">
+                <Users className="h-3.5 w-3.5" /> Sức chứa
+              </label>
+              <select
+                value={capacityFilter}
+                onChange={(e) => setCapacityFilter(e.target.value)}
+                className="w-full bg-white rounded-xl px-4 py-3 text-sm font-bold text-slate-800 border border-slate-200 shadow-sm outline-none hover:border-slate-300 focus:border-[#006590] focus:ring-4 focus:ring-sky-100 transition-all cursor-pointer"
+              >
+                <option value="Tất cả">Tất cả</option>
+                <option value="1">1 người</option>
+                <option value="2">2 người</option>
+                <option value="3">3 người</option>
+                <option value="4">4 người</option>
+                <option value="5+">5+ người</option>
+              </select>
+            </div>
+
+            <div className="space-y-2.5">
+              <label className="flex items-center gap-1.5 text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">
+                <Cat className="h-3.5 w-3.5" /> Thú cưng
+              </label>
+              <select
+                value={petsFilter}
+                onChange={(e) => setPetsFilter(e.target.value)}
+                className="w-full bg-white rounded-xl px-4 py-3 text-sm font-bold text-slate-800 border border-slate-200 shadow-sm outline-none hover:border-slate-300 focus:border-[#006590] focus:ring-4 focus:ring-sky-100 transition-all cursor-pointer"
+              >
+                <option value="Tất cả">Tất cả</option>
+                <option value="thoải mái">Cho phép</option>
+                <option value="không cho nuôi">Không cho nuôi</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        {/* Detailed Dropdown Specs selectors row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-          {/* Địa chỉ (District selection) */}
-          <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">📍 ĐỊA CHỈ (QUẬN / HUYỆN)</label>
-            <select
-              value={districtFilter}
-              onChange={(e) => setDistrictFilter(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#006590] focus:bg-white duration-200"
-            >
-              <option value="Tất cả">Tất cả địa chỉ / khu vực</option>
-              {/* Requested Da Nang Districts */}
-              <option value="Hải Châu">Hải Châu</option>
-              <option value="Thanh Khê">Thanh Khê</option>
-              <option value="Liên Chiểu">Liên Chiểu</option>
-              <option value="Sơn Trà">Sơn Trà</option>
-              <option value="Ngũ Hành Sơn">Ngũ Hành Sơn</option>
-              <option value="Cẩm Lệ">Cẩm Lệ</option>
-              <option value="Hòa Vang">Hòa Vang</option>
-            </select>
-          </div>
-
-          {/* Loại hình (Accommodation type) */}
-          <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">🏠 LOẠI HÌNH PHÒNG</label>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#006590] focus:bg-white duration-200"
-            >
-              <option value="Tất cả">Tất cả loại hình</option>
-              <option value="Phòng trọ">Phòng trọ</option>
-              <option value="Ký túc xá">Ký túc xá</option>
-              <option value="Căn hộ">Căn hộ</option>
-              <option value="Chung cư">Chung cư</option>
-              <option value="Homestay">Homestay</option>
-            </select>
-          </div>
-
-          {/* Số người ở */}
-          <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">🚹 SỐ NGƯỜI Ở</label>
-            <select
-              value={capacityFilter}
-              onChange={(e) => setCapacityFilter(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#006590] focus:bg-white duration-200"
-            >
-              <option value="Tất cả">Tất cả số người</option>
-              <option value="1">1 Người</option>
-              <option value="2">2 Người</option>
-              <option value="3">3 Người</option>
-              <option value="4">4 Người</option>
-              <option value="5+">5+ Người</option>
-            </select>
-          </div>
-
-          {/* Thú cưng */}
-          <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">🐾 THÚ CƯNG</label>
-            <select
-              value={petsFilter}
-              onChange={(e) => setPetsFilter(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#006590] focus:bg-white duration-200"
-            >
-              <option value="Tất cả">Tất cả ý kiến</option>
-              <option value="thoải mái">Thoải mái</option>
-              <option value="không cho nuôi">Không cho nuôi thú cưng</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Price Range Sizing */}
-        <div className="pt-4 border-t border-slate-100">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="shrink-0">
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">💵 Khoảng giá thuê (đầu người):</label>
-              <div className="text-sm font-extrabold text-[#006590]">
-                {minPrice === 0 && maxPrice === 20000000 
-                  ? "Tất cả mức giá" 
-                  : `${minPrice === 0 ? "Dưới 1" : (minPrice / 1000000).toFixed(0)}tr - ${maxPrice === 20000000 ? "Không giới hạn" : `${(maxPrice / 1000000).toFixed(0)}tr`}`}
+        {/* Budget + Amenities */}
+        <div className="px-6 sm:px-7 py-5 space-y-5 border-t border-slate-100 bg-slate-50/50">
+          {/* Budget */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-sky-100 flex items-center justify-center text-[#006590] shrink-0">
+                <DollarSign className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Giá thuê / tháng</p>
+                <p className="text-[15px] font-black text-[#006590]">
+                  {minPrice === 0 && maxPrice === 20000000 ? "Tất cả mức giá" : `${(minPrice/1000000).toFixed(0)}tr – ${maxPrice === 20000000 ? "không giới hạn" : `${(maxPrice/1000000).toFixed(0)}tr`}`}
+                </p>
               </div>
             </div>
-            
-            <div className="flex flex-wrap gap-2 flex-1 max-w-xl">
+            <div className="flex flex-wrap gap-2">
               {(["Tất cả", "Dưới 1tr", "1-2tr", "2-3tr", "3-5tr", "trên 5tr"] as const).map((tag) => (
                 <button
                   key={tag}
                   onClick={() => handlePriceTagClick(tag)}
-                  className={`px-4.5 py-2.5 rounded-full text-xs font-bold transition-all duration-150 cursor-pointer border ${
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer ${
                     priceTag === tag
-                      ? "bg-[#dff6ff] border-[#006590]/30 text-[#006590] scale-[1.02] shadow-sm font-extrabold"
-                      : "bg-slate-50 border-slate-100 text-slate-500 hover:text-[#006590] hover:bg-slate-100"
+                      ? "bg-[#006590] text-white shadow-md shadow-[#006590]/20 scale-105"
+                      : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
                   }`}
                 >
                   {tag}
@@ -263,39 +325,39 @@ export default function RoomsView({
               ))}
             </div>
           </div>
-        </div>
 
-        {/* Tiện ích đi kèm (Selectable checkboxes) */}
-        <div className="pt-4 border-t border-slate-100">
-          <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">⚡️ TIỆN ÍCH ĐI KÈM (TRỰC TIẾP BẤM TÍCH CHỌN)</label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-            {AMENITIES_LIST.map((amenity) => {
-              const isSelected = selectedAmenities.includes(amenity.id);
-              return (
-                <label
-                  key={amenity.id}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-[11px] sm:text-xs font-semibold cursor-pointer transition-all duration-150 select-none ${
-                    isSelected
-                      ? "bg-[#006590]/15 border-[#006590] text-[#006590] font-bold"
-                      : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => {
-                      if (isSelected) {
-                        setSelectedAmenities(selectedAmenities.filter((id) => id !== amenity.id));
-                      } else {
-                        setSelectedAmenities([...selectedAmenities, amenity.id]);
-                      }
-                    }}
-                    className="accent-[#006590] h-4 w-4 cursor-pointer rounded border-slate-300"
-                  />
-                  <span>{amenity.label}</span>
-                </label>
-              );
-            })}
+          {/* Amenities */}
+          <div className="border-t border-slate-100 pt-5">
+            <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest mb-3">Tiện ích đi kèm — bấm để lọc</p>
+            <div className="flex flex-wrap gap-2">
+              {AMENITIES_LIST.map((amenity) => {
+                const isSelected = selectedAmenities.includes(amenity.id);
+                return (
+                  <label
+                    key={amenity.id}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-semibold cursor-pointer transition-all duration-150 select-none ${
+                      isSelected
+                        ? "bg-[#006590] border-[#006590] text-white shadow-md"
+                        : "bg-white border-slate-200 text-slate-600 hover:border-[#006590]/40 hover:text-[#006590]"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {
+                        if (isSelected) {
+                          setSelectedAmenities(selectedAmenities.filter((id) => id !== amenity.id));
+                        } else {
+                          setSelectedAmenities([...selectedAmenities, amenity.id]);
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <span>{amenity.label}</span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -310,6 +372,9 @@ export default function RoomsView({
               onViewDetails={onViewRoom}
               onLikeChange={onLikeRoom}
               isInitiallyLiked={likedRoomIds.includes(room.id)}
+              onDelete={onDeleteRoom}
+              onEdit={onEditRoom}
+              currentUserId={currentUserId}
             />
           ))}
         </div>
@@ -334,7 +399,7 @@ export default function RoomsView({
             }}
             className="bg-[#006590] text-white font-bold py-2.5 px-6 rounded-full text-sm hover:bg-[#005176] duration-150 cursor-pointer"
           >
-            Reset danh sách
+            Xóa bộ lọc
           </button>
         </div>
       )}

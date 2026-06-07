@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { X, Flame, Shield, MapPin, Bed, Bath, User, MessageSquare, Handshake, Check, Info, Star, Upload, Trash2, Moon, Dog, ChefHat, Compass, Sparkles, Heart, CheckCircle2, Smile, FileText } from "lucide-react";
+import { X, Flame, Shield, MapPin, Bed, Bath, User, MessageSquare, Handshake, Check, Info, Star, Upload, Trash2, Moon, Dog, ChefHat, Compass, Sparkles, Heart, CheckCircle2, Smile, FileText, Phone } from "lucide-react";
 import { Room, Roommate } from "../types";
 
 interface RoomModalProps {
   room: Room | null;
   onClose: () => void;
   onInquire: (hostName: string) => void;
-  onAddReview?: (roomId: string, review: { reviewerName: string; rating: number; comment: string; images: string[] }) => void;
+  onAddReview?: (roomId: string, review: { reviewerName: string; rating: number; comment: string; images: string[] }) => void | boolean | Promise<boolean>;
   roommates?: Roommate[];
 }
 
@@ -120,19 +120,23 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
     }
   };
 
-  const handleSubmitReview = () => {
-    if (!newComment.trim()) return;
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newRating === 0 || !newComment.trim()) return;
+
     if (onAddReview) {
-      onAddReview(room.id, {
-        reviewerName: newName.trim(),
+      const success = await onAddReview(room.id, {
+        reviewerName: "Người dùng RoomieMatch",
         rating: newRating,
-        comment: newComment.trim(),
-        images: newImages,
+        comment: newComment,
+        images: newImages.filter(url => url.trim() !== "")
       });
-      setNewName("");
-      setNewRating(5);
-      setNewComment("");
-      setNewImages([]);
+
+      if (success !== false) {
+        setNewRating(0);
+        setNewComment("");
+        setNewImages([""]);
+      }
     }
   };
 
@@ -145,17 +149,21 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
       {/* Backdrop */}
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={onClose} />
 
-      {/* Modal Container */}
-      <div className="relative bg-white rounded-[32px] shadow-2xl border border-gray-100 w-full max-w-2xl max-h-[90vh] overflow-y-auto z-10 animate-fade-in p-6 sm:p-8 scrollbar-thin">
+      {/* Modal Wrapper */}
+      <div className="relative w-full max-w-2xl z-10 animate-fade-in">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 w-11 h-11 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:scale-110 duration-200 cursor-pointer"
+          className="absolute -top-4 -right-2 sm:-right-4 w-11 h-11 rounded-full bg-white shadow-xl border border-gray-200 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:scale-110 duration-200 cursor-pointer z-50"
         >
           <X className="h-5 w-5" />
         </button>
 
-        {/* Room Header Carousel Image */}
+        {/* Scrollable Container */}
+        <div className="bg-white rounded-[32px] shadow-2xl border border-gray-100 w-full max-h-[85vh] overflow-hidden flex flex-col">
+          <div className="overflow-y-auto w-full h-full scrollbar-thin scrollbar-thumb-slate-200 hover:scrollbar-thumb-slate-300">
+            <div className="p-6 sm:p-8">
+          {/* Room Header Carousel Image */}
         <div className="relative rounded-2xl overflow-hidden aspect-[16/9] w-full bg-slate-100 mb-6 border border-slate-100/50 pt-4 sm:pt-0">
           <img
             src={room.images[0]}
@@ -172,53 +180,53 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
         </div>
 
         {/* Title & Price Metadata */}
-        <div className="pb-6 border-b border-slate-100">
-          <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 mb-2">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-800 leading-tight tracking-tight flex-1">
+        <div className="pb-7 border-b-2 border-slate-100">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 leading-[1.15] tracking-tight flex-1">
               {room.title}
             </h2>
-            <div className="text-2xl font-black text-[#006590] shrink-0 whitespace-nowrap">
+            <div className="text-3xl sm:text-4xl font-black text-[#006590] shrink-0 whitespace-nowrap bg-[#006590]/5 px-4 py-2.5 rounded-2xl border-2 border-[#006590]/10 text-right">
               {formatPrice(room.price)}
-              <span className="text-xs font-bold text-slate-500">
-                {room.type.toLowerCase().includes("ký túc xá") || room.type.toLowerCase().includes("kí túc xá") || room.type.toLowerCase().includes("homestay") ? " / người / tháng" : " / phòng / tháng"}
+              <span className="block text-[12px] font-black text-slate-500 mt-1 uppercase tracking-wider">
+                {room.type.toLowerCase().includes("ký túc xá") || room.type.toLowerCase().includes("kí túc xá") || room.type.toLowerCase().includes("homestay") ? "/ người / tháng" : "/ phòng / tháng"}
               </span>
             </div>
           </div>
 
-          <p className="text-sm text-slate-500 font-semibold flex items-center gap-1">
-            <MapPin className="h-4.5 w-4.5 text-sky-600 shrink-0" />
-            Vị trí: {room.location}
+          <p className="text-[15px] text-slate-700 font-bold flex items-center gap-2 mb-5 bg-slate-50 inline-flex px-4 py-2 rounded-xl border-2 border-slate-100">
+            <MapPin className="h-5 w-5 text-sky-600 shrink-0" />
+            {room.location}
           </p>
 
           {/* Badges for Gender & Pets */}
-          <div className="flex flex-wrap gap-2 mt-3">
+          <div className="flex flex-wrap gap-2.5">
             {/* Availability Status */}
             {room.status === "hết phòng" ? (
-              <span className="text-[11px] uppercase tracking-wider font-extrabold bg-red-100 text-red-800 border border-red-200 px-3 py-1 rounded-full">
-                🔴 Đã hết phòng
+              <span className="text-[12px] uppercase tracking-wider font-black bg-red-500 text-white px-4 py-2 rounded-xl shadow-md flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-white/80" /> Đã hết phòng
               </span>
             ) : (
-              <span className="text-[11px] uppercase tracking-wider font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-150 px-3 py-1 rounded-full">
-                🟢 Còn phòng sẵn sàng
+              <span className="text-[12px] uppercase tracking-wider font-black bg-emerald-500 text-white px-4 py-2 rounded-xl shadow-md flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" /> Còn phòng sẵn sàng
               </span>
             )}
 
             {room.gender && (
-              <span className="text-[11px] uppercase tracking-wider font-extrabold bg-[#006590]/15 text-[#006590] px-3 py-1 rounded-full">
-                👥 Đối tượng ghép: {room.gender}
+              <span className="text-[12px] uppercase tracking-wider font-black bg-sky-50 text-[#006590] border-2 border-sky-200 px-4 py-2 rounded-xl flex items-center gap-2">
+                <User className="h-4.5 w-4.5" /> Ghép: {room.gender}
               </span>
             )}
             {room.pets && (
-              <span className={`text-[11px] uppercase tracking-wider font-extrabold px-3 py-1 rounded-full ${
+              <span className={`text-[12px] uppercase tracking-wider font-black px-4 py-2 rounded-xl flex items-center gap-2 border-2 ${
                 room.pets === "thoải mái"
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                  : "bg-amber-50 text-amber-700 border border-amber-100"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-amber-50 text-amber-700 border-amber-200"
               }`}>
-                🐾 {room.pets === "thoải mái" ? "Nuôi Pet thoải mái" : "Không nuôi Pet"}
+                <Dog className="h-4.5 w-4.5" /> {room.pets === "thoải mái" ? "Pet thoải mái" : "Không Pet"}
               </span>
             )}
-            <span className="text-[11px] uppercase tracking-wider font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-150 px-3 py-1 rounded-full">
-              📞 SĐT: {room.phoneNumber || "0987 123 456"}
+            <span className="text-[12px] uppercase tracking-wider font-black bg-indigo-50 text-indigo-700 border-2 border-indigo-200 px-4 py-2 rounded-xl flex items-center gap-2">
+              <Phone className="h-4.5 w-4.5" /> {room.phoneNumber || "0987 123 456"}
             </span>
           </div>
         </div>
@@ -226,12 +234,12 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
         {/* Key Features Icons Cards */}
         <div className="py-6 space-y-6">
           <div>
-            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Đặc trưng nổi bật</h4>
+            <h4 className="text-[13px] font-black text-[#006590] uppercase tracking-wider mb-3">Đặc trưng nổi bật</h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {room.features.map((feat, idx) => (
-                <div key={idx} className="bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl flex items-center gap-2">
+                <div key={idx} className="bg-white border-2 border-slate-100 shadow-sm px-4 py-3.5 rounded-2xl flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-sky-500 shrink-0" />
-                  <span className="text-sm font-bold text-slate-700">{feat}</span>
+                  <span className="text-[14px] font-bold text-slate-800">{feat}</span>
                 </div>
               ))}
             </div>
@@ -239,20 +247,21 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
 
           {/* Detailed description */}
           <div>
-            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2.5">Mô tả thông tin chi tiết</h4>
-            <div className="bg-[#f6fafe] border border-sky-100/50 p-4 rounded-2xl text-slate-700 text-[14.5px] leading-relaxed">
+            <h4 className="text-[13px] font-black text-slate-500 uppercase tracking-wider mb-3">Mô tả thông tin chi tiết</h4>
+            <div className="bg-[#f6fafe] border-2 border-sky-100 p-5 rounded-3xl text-slate-800 text-[15px] font-medium leading-relaxed shadow-sm">
               {room.description}
             </div>
           </div>
 
           {/* Host & Roommate Search Specifications: FULL PROFILE CARDS */}
-          <div className="pt-6 border-t border-slate-100 space-y-6">
+          <div className="pt-8 border-t-2 border-slate-100 space-y-6">
             <div>
-              <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
-                👤 Thông tin chi tiết chủ phòng / Bạn ở ghép
+              <h4 className="text-[13px] font-black text-[#006590] uppercase tracking-wider mb-4 flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Thông tin chi tiết chủ phòng / Bạn ở ghép
               </h4>
 
-              <div className="bg-gradient-to-br from-[#006590]/5 to-indigo-50/40 border border-sky-100/60 rounded-3xl p-5 sm:p-6 space-y-5">
+              <div className="bg-gradient-to-br from-sky-50 to-indigo-50 border-2 border-sky-100/60 rounded-[32px] p-6 space-y-6 shadow-sm">
                 {/* Header Row: Avatar, Name & Metadata */}
                 <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start text-center sm:text-left">
                   <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white shadow-md overflow-hidden shrink-0">
@@ -287,84 +296,84 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                 </div>
 
                 {/* Bio text block */}
-                <div className="bg-white/85 border border-sky-100/50 p-4 rounded-2xl relative shadow-xs">
-                  <div className="absolute -top-2 left-6 px-2 bg-sky-100/60 rounded text-[9px] font-extrabold uppercase text-[#006590] scale-85">
-                    Lời tự bạch / Yêu cầu
+                <div className="bg-white border-2 border-sky-100 p-5 rounded-2xl relative shadow-sm mt-3">
+                  <div className="absolute -top-3 left-6 px-3 bg-[#006590] rounded-lg text-[10px] font-black uppercase text-white py-1 shadow-sm">
+                    Giới thiệu & Tiêu chí
                   </div>
-                  <p className="text-xs font-medium text-slate-600 leading-relaxed italic pt-1">
+                  <p className="text-[13px] font-bold text-slate-700 leading-relaxed italic pt-1">
                     "{resolvedRoommate.bio}"
                   </p>
                 </div>
 
                 {/* Behavioral Grid of parameters */}
-                <div className="space-y-3">
-                  <h6 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">
+                <div className="space-y-4">
+                  <h6 className="text-[12px] font-black text-slate-500 uppercase tracking-wider">
                     Thống kê thói quen sinh hoạt
                   </h6>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
                     {/* Sleep */}
-                    <div className="bg-white/70 border border-slate-100/80 px-3 py-2.5 rounded-xl flex items-center gap-2.5 shadow-xs">
-                      <span className="p-1.5 bg-blue-50 text-blue-600 rounded-lg shrink-0">
-                        <Moon className="h-3.5 w-3.5" />
+                    <div className="bg-white border-2 border-slate-100 px-4 py-3.5 rounded-2xl flex items-center gap-3 shadow-sm">
+                      <span className="p-2 bg-blue-50 text-blue-600 rounded-xl shrink-0">
+                        <Moon className="h-4 w-4" />
                       </span>
                       <div>
-                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none">Giờ giấc</p>
-                        <p className="text-xs font-extrabold text-slate-700 mt-0.5">{resolvedRoommate.lifestyle.sleep}</p>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider leading-none">Giờ giấc</p>
+                        <p className="text-[13px] font-black text-slate-800 mt-1">{resolvedRoommate.lifestyle.sleep}</p>
                       </div>
                     </div>
 
                     {/* Pets */}
-                    <div className="bg-white/70 border border-slate-100/80 px-3 py-2.5 rounded-xl flex items-center gap-2.5 shadow-xs">
-                      <span className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg shrink-0">
-                        <Dog className="h-3.5 w-3.5" />
+                    <div className="bg-white border-2 border-slate-100 px-4 py-3.5 rounded-2xl flex items-center gap-3 shadow-sm">
+                      <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
+                        <Dog className="h-4 w-4" />
                       </span>
                       <div>
-                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none">Thú cưng</p>
-                        <p className="text-xs font-extrabold text-slate-700 mt-0.5">{resolvedRoommate.lifestyle.pets}</p>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider leading-none">Thú cưng</p>
+                        <p className="text-[13px] font-black text-slate-800 mt-1">{resolvedRoommate.lifestyle.pets}</p>
                       </div>
                     </div>
 
                     {/* Smoke */}
-                    <div className="bg-white/70 border border-slate-100/80 px-3 py-2.5 rounded-xl flex items-center gap-2.5 shadow-xs">
-                      <span className="p-1.5 bg-red-50 text-red-500 rounded-lg shrink-0">
-                        <Shield className="h-3.5 w-3.5" />
+                    <div className="bg-white border-2 border-slate-100 px-4 py-3.5 rounded-2xl flex items-center gap-3 shadow-sm">
+                      <span className="p-2 bg-red-50 text-red-500 rounded-xl shrink-0">
+                        <Shield className="h-4 w-4" />
                       </span>
                       <div>
-                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none">Hút thuốc</p>
-                        <p className="text-xs font-extrabold text-slate-700 mt-0.5">{resolvedRoommate.lifestyle.smoke}</p>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider leading-none">Hút thuốc</p>
+                        <p className="text-[13px] font-black text-slate-800 mt-1">{resolvedRoommate.lifestyle.smoke}</p>
                       </div>
                     </div>
 
                     {/* Cook */}
-                    <div className="bg-white/70 border border-slate-100/80 px-3 py-2.5 rounded-xl flex items-center gap-2.5 shadow-xs">
-                      <span className="p-1.5 bg-amber-50 text-amber-600 rounded-lg shrink-0">
-                        <ChefHat className="h-3.5 w-3.5" />
+                    <div className="bg-white border-2 border-slate-100 px-4 py-3.5 rounded-2xl flex items-center gap-3 shadow-sm">
+                      <span className="p-2 bg-amber-50 text-amber-600 rounded-xl shrink-0">
+                        <ChefHat className="h-4 w-4" />
                       </span>
                       <div>
-                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none">Nấu ăn</p>
-                        <p className="text-xs font-extrabold text-slate-700 mt-0.5">{resolvedRoommate.lifestyle.cook}</p>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider leading-none">Nấu ăn</p>
+                        <p className="text-[13px] font-black text-slate-800 mt-1">{resolvedRoommate.lifestyle.cook}</p>
                       </div>
                     </div>
 
                     {/* Interaction */}
-                    <div className="bg-white/70 border border-slate-100/80 px-3 py-2.5 rounded-xl flex items-center gap-2.5 shadow-xs">
-                      <span className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
-                        <Compass className="h-3.5 w-3.5" />
+                    <div className="bg-white border-2 border-slate-100 px-4 py-3.5 rounded-2xl flex items-center gap-3 shadow-sm">
+                      <span className="p-2 bg-indigo-50 text-indigo-600 rounded-xl shrink-0">
+                        <Compass className="h-4 w-4" />
                       </span>
                       <div>
-                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none">Tương tác</p>
-                        <p className="text-xs font-extrabold text-slate-700 mt-0.5">{resolvedRoommate.lifestyle.interaction}</p>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider leading-none">Tương tác</p>
+                        <p className="text-[13px] font-black text-slate-800 mt-1">{resolvedRoommate.lifestyle.interaction}</p>
                       </div>
                     </div>
 
                     {/* Neatness */}
-                    <div className="bg-white/70 border border-slate-100/80 px-3 py-2.5 rounded-xl flex items-center gap-2.5 shadow-xs">
-                      <span className="p-1.5 bg-purple-50 text-purple-600 rounded-lg shrink-0">
-                        <Smile className="h-3.5 w-3.5" />
+                    <div className="bg-white border-2 border-slate-100 px-4 py-3.5 rounded-2xl flex items-center gap-3 shadow-sm">
+                      <span className="p-2 bg-purple-50 text-purple-600 rounded-xl shrink-0">
+                        <Smile className="h-4 w-4" />
                       </span>
                       <div>
-                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none">Vệ sinh</p>
-                        <p className="text-xs font-extrabold text-slate-700 mt-0.5">{resolvedRoommate.lifestyle.neatness}</p>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider leading-none">Vệ sinh</p>
+                        <p className="text-[13px] font-black text-slate-800 mt-1">{resolvedRoommate.lifestyle.neatness}</p>
                       </div>
                     </div>
                   </div>
@@ -386,10 +395,11 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
           </div>
 
           {/* Private Notes Section - Local Storage only */}
-          <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-5 space-y-3">
+          <div className="bg-indigo-50/50 border-2 border-indigo-100 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold text-amber-800 flex items-center gap-1.5 select-none animate-fade-in">
-                <span>📝 Ghi chú cá nhân (Chỉ mình bạn thấy)</span>
+              <h4 className="text-[13px] font-black text-indigo-800 uppercase tracking-wider flex items-center gap-2 select-none animate-fade-in">
+                <FileText className="h-4.5 w-4.5 text-indigo-600" />
+                <span>Ghi chú cá nhân (Chỉ mình bạn thấy)</span>
               </h4>
               {isSavingNote && (
                 <span className="text-[10px] text-emerald-600 font-extrabold bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200 animate-pulse">
@@ -397,7 +407,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-slate-500 leading-normal font-semibold">
+            <p className="text-[12px] text-indigo-900/60 leading-normal font-semibold">
               Lưu lại số phòng, thông tin liên lạc mở rộng, nhận xét riêng, lịch hẹn... Ghi chú này chỉ lưu trên thiết bị của bạn, tuyệt đối bảo mật và không ai khác có thể nhìn thấy.
             </p>
             <textarea
@@ -405,32 +415,32 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
               placeholder={`Nhập ghi chú cá nhân của bạn về căn phòng này (${room.title}) tại đây...`}
               value={privateNote}
               onChange={(e) => handlePrivateNoteChange(e.target.value)}
-              className="w-full bg-white border border-amber-200/60 focus:border-amber-500 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none duration-250 resize-none font-medium shadow-inner"
+              className="w-full bg-white border-2 border-indigo-200/80 focus:border-indigo-400 rounded-xl px-4 py-3 text-[13px] text-slate-800 outline-none duration-250 resize-none font-bold shadow-sm placeholder:font-medium placeholder:text-indigo-900/30"
             />
           </div>
 
           {/* Reviews & Ratings Section */}
-          <div className="pt-6 border-t border-slate-100 space-y-4">
+          <div className="pt-8 mt-2 border-t-2 border-slate-100 space-y-5">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                ⭐ Đánh giá & Bình luận ({room.reviews?.length || 0})
+              <h4 className="text-[13px] font-black text-[#006590] uppercase tracking-wider flex items-center gap-2">
+                <Star className="h-4 w-4" /> Đánh giá & Bình luận ({room.reviews?.length || 0})
               </h4>
               {room.reviews && room.reviews.length > 0 && (
-                <div className="text-xs font-extrabold text-amber-600 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-lg">
+                <div className="text-[12px] font-black text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl shadow-sm">
                   ★ {(room.reviews.reduce((acc, r) => acc + r.rating, 0) / room.reviews.length).toFixed(1)} / 5.0
                 </div>
               )}
             </div>
 
             {/* Reviews List Scroll Area */}
-            <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin">
+            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200">
               {!room.reviews || room.reviews.length === 0 ? (
-                <div className="bg-slate-50 border border-slate-100/60 p-4 rounded-xl text-center">
-                  <p className="text-xs text-slate-400 font-medium italic">Chưa có đánh giá nào cho phòng trọ này. Hãy là người đầu tiên đánh giá!</p>
+                <div className="bg-slate-50 border-2 border-slate-100 p-6 rounded-3xl text-center">
+                  <p className="text-[13px] text-slate-500 font-bold italic">Chưa có đánh giá nào cho phòng trọ này. Hãy là người đầu tiên đánh giá!</p>
                 </div>
               ) : (
                 room.reviews.map((rev) => (
-                  <div key={rev.id} className="bg-slate-50 border border-slate-100 p-4 rounded-2xl space-y-2.5 shadow-[0_4px_12px_rgba(0,0,0,0.01)]">
+                  <div key={rev.id} className="bg-white border-2 border-slate-100 p-5 rounded-3xl space-y-3 shadow-sm hover:border-[#006590]/20 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <img
@@ -484,18 +494,21 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
 
             {/* Create review input form matching instructions */}
             {onAddReview && (
-              <div className="bg-[#fafbfd] border border-sky-100/30 rounded-2xl p-4 sm:p-5 space-y-4">
-                <h5 className="text-xs font-black text-slate-700 uppercase tracking-wider">Viết bài đánh giá mới</h5>
+              <div className="bg-white border-2 border-slate-100 rounded-3xl p-5 sm:p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-5">
+                <h5 className="text-[13px] font-black text-[#006590] uppercase tracking-wider flex items-center gap-2">
+                  <Star className="h-4 w-4" />
+                  Viết bài đánh giá mới
+                </h5>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Tên của bạn</label>
+                    <label className="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">Tên của bạn</label>
                     <input
                       type="text"
                       placeholder="Người dùng ẩn danh"
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
-                      className="w-full border border-slate-200 bg-white rounded-xl px-3 py-2 text-xs font-bold text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#006590]/15"
+                      className="w-full border-2 border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-[13px] font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#006590] focus:bg-white transition-colors"
                     />
                   </div>
 
@@ -524,28 +537,28 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Nội dung nhận xét</label>
+                  <label className="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">Nội dung nhận xét</label>
                   <textarea
-                    rows={2.5}
+                    rows={3}
                     placeholder="Mô tả trải nghiệm thực tế về phòng trọ (an ninh, sạch sẽ, chủ nhà, tiện nghi...)"
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
-                    className="w-full border border-slate-200 bg-white rounded-xl px-3 py-2 text-xs font-medium text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#006590]/15 resize-none leading-relaxed"
+                    className="w-full border-2 border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-[13px] font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#006590] focus:bg-white transition-colors resize-none leading-relaxed"
                   />
                 </div>
 
                 {/* Drag and Drop with click trigger */}
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Đính kèm hình ảnh</label>
+                  <label className="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">Đính kèm hình ảnh</label>
                   <div
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                     onClick={triggerFileInput}
-                    className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center ${
+                    className={`border-2 border-dashed rounded-2xl p-5 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center ${
                       isDragging 
-                        ? "border-[#006590] bg-[#006590]/5" 
-                        : "border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300"
+                        ? "border-[#006590] bg-sky-50" 
+                        : "border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-slate-400"
                     }`}
                   >
                     <input
@@ -556,16 +569,16 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                       onChange={handleFileChange}
                       className="hidden"
                     />
-                    <Upload className="h-5 w-5 text-slate-400 mb-1.5" />
-                    <p className="text-[11px] text-slate-600 font-extrabold">Kéo thả hình ảnh vào đây hoặc bấm để chọn</p>
-                    <p className="text-[9px] text-slate-400 mt-0.5">Hỗ trợ JPG, PNG (tối đa 4 ảnh)</p>
+                    <Upload className="h-6 w-6 text-[#006590] mb-2" />
+                    <p className="text-[13px] text-slate-700 font-extrabold">Kéo thả hình ảnh vào đây hoặc bấm để chọn</p>
+                    <p className="text-[11px] text-slate-500 mt-1 font-medium">Hỗ trợ JPG, PNG (tối đa 4 ảnh)</p>
                   </div>
 
                   {/* Previews */}
                   {newImages.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2.5">
+                    <div className="flex flex-wrap gap-3 mt-3">
                       {newImages.map((imgBase64, index) => (
-                        <div key={index} className="relative w-12 h-12 rounded-lg overflow-hidden border border-slate-200 group">
+                        <div key={index} className="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-200 group shadow-sm">
                           <img src={imgBase64} alt={`Attachment preview ${index}`} className="w-full h-full object-cover" />
                           <button
                             type="button"
@@ -573,9 +586,9 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                               e.stopPropagation();
                               setNewImages(newImages.filter((_, idx) => idx !== index));
                             }}
-                            className="absolute inset-0 bg-black/40 flex items-center justify-center text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-150"
+                            className="absolute inset-0 bg-black/50 flex items-center justify-center text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-150"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-5 w-5" />
                           </button>
                         </div>
                       ))}
@@ -583,13 +596,14 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                   )}
                 </div>
 
-                <div className="flex justify-end pt-1">
+                <div className="flex justify-end pt-2">
                   <button
                     type="button"
                     disabled={!newComment.trim()}
-                    onClick={handleSubmitReview}
-                    className="bg-[#006590] hover:bg-[#005176] disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white text-xs font-extrabold px-5 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-1 shadow-sm uppercase cursor-pointer"
+                    onClick={handleReviewSubmit}
+                    className="bg-[#006590] hover:bg-[#004e70] disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed disabled:shadow-none text-white text-[13px] font-black px-6 py-3.5 rounded-[14px] transition-all duration-200 flex items-center gap-2 shadow-[0_4px_15px_rgba(0,101,144,0.3)] uppercase cursor-pointer"
                   >
+                    <Star className="h-4 w-4" />
                     <span>Gửi đánh giá phòng</span>
                   </button>
                 </div>
@@ -599,30 +613,33 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
         </div>
 
         {/* Inquire buttons row */}
-        <div className="flex flex-col gap-3 pt-6 border-t border-slate-100">
+        <div className="flex flex-col gap-3 pt-6 mt-2 border-t-2 border-slate-100">
           <div className="flex flex-col sm:flex-row gap-3">
             <a
               href={`tel:${(room.phoneNumber || "0987123456").replace(/\s/g, "")}`}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 px-6 rounded-full font-bold shadow-md hover:shadow-emerald-900/15 active:scale-95 duration-200 flex items-center justify-center gap-2 cursor-pointer text-center text-sm"
+              className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-4 px-6 rounded-[16px] font-black shadow-[0_6px_20px_rgba(16,185,129,0.3)] hover:shadow-[0_8px_25px_rgba(16,185,129,0.4)] active:scale-95 duration-200 flex items-center justify-center gap-2.5 cursor-pointer text-center text-[15px]"
             >
-              📞 Gọi điện: {room.phoneNumber || "0987 123 456"}
+              <Phone className="h-5 w-5" /> Gọi điện: {room.phoneNumber || "0987 123 456"}
             </a>
 
             <button
               onClick={() => onInquire(room.hostName)}
-              className="flex-1 bg-[#006590] hover:bg-[#005176] text-white py-3.5 px-6 rounded-full font-bold shadow-md hover:shadow-sky-900/10 active:scale-95 duration-200 flex items-center justify-center gap-2 cursor-pointer text-sm"
+              className="flex-1 bg-[#006590] hover:bg-[#004e70] text-white py-4 px-6 rounded-[16px] font-black shadow-[0_6px_20px_rgba(0,101,144,0.3)] hover:shadow-[0_8px_25px_rgba(0,101,144,0.4)] active:scale-95 duration-200 flex items-center justify-center gap-2.5 cursor-pointer text-[15px]"
             >
               <MessageSquare className="h-5 w-5" />
-              Liên hệ hỏi thông tin phòng
+              Liên hệ hỏi thông tin
             </button>
           </div>
 
           <button
             onClick={onClose}
-            className="w-full border border-slate-200 text-slate-500 py-3.5 px-6 rounded-full font-bold hover:bg-slate-50 active:scale-95 duration-200 text-center cursor-pointer text-sm"
+            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-4 px-6 rounded-[16px] font-black active:scale-95 duration-200 text-center cursor-pointer text-[15px] border border-slate-200"
           >
             Quay lại
           </button>
+        </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

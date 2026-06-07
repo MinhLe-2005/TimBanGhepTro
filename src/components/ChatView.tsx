@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, CheckCircle2, AlertCircle, Sparkles, MessageSquare, PhoneCall, Image, FileText, X } from "lucide-react";
+import { Send, CheckCircle2, AlertCircle, Sparkles, MessageSquare, PhoneCall, Image, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck } from "lucide-react";
 import { Roommate, Message } from "../types";
+import { supabase } from "../lib/supabase";
 
 interface ChatViewProps {
   roommates: Roommate[];
   initialChats: { roommateId: string; messages: Message[] }[];
   activeRoommateId: string | null;
   setActiveRoommateId: (id: string | null) => void;
+  currentUserProfile?: any;
+  onRequireAuth?: () => void;
+  onNavigateToTab?: (tabId: string) => void;
 }
 
 export default function ChatView({
@@ -14,6 +18,9 @@ export default function ChatView({
   initialChats,
   activeRoommateId,
   setActiveRoommateId,
+  currentUserProfile,
+  onRequireAuth,
+  onNavigateToTab,
 }: ChatViewProps) {
   // Chat records list
   const [chats, setChats] = useState<{ [roommateId: string]: Message[] }>(() => {
@@ -25,8 +32,10 @@ export default function ChatView({
   });
 
   const [inputText, setInputText] = useState("");
+  const [friendSearchQuery, setFriendSearchQuery] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // States for Image sending
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
@@ -77,103 +86,165 @@ export default function ChatView({
 
   // Scroll to bottom on updates
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
   }, [chats, activeRoommateId, isTyping]);
 
   const activeRoommate = roommates.find((r) => r.id === activeRoommateId) || roommates[0];
   const activeMessages = activeRoommateId ? chats[activeRoommateId] || [] : [];
+  
+  const chatId = currentUserProfile && activeRoommateId 
+    ? [currentUserProfile.id, activeRoommateId].sort().join("_")
+    : null;
+
+  // Supabase Real-time Fetch & Subscribe
+  useEffect(() => {
+    if (!chatId || !import.meta.env.VITE_SUPABASE_URL) return;
+
+    const fetchMessages = async () => {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('chat_id', chatId)
+        .order('timestamp', { ascending: true });
+        
+      if (!error && data) {
+        setChats(prev => ({
+          ...prev,
+          [activeRoommateId!]: data.map((d: any) => ({
+             id: d.id,
+             chatId: d.chat_id,
+             senderId: d.sender_id,
+             text: d.text,
+             imageUrl: d.image_url,
+             timestamp: d.timestamp
+          }))
+        }));
+      }
+    };
+    fetchMessages();
+
+    // Subscribe to new messages
+    const channel = supabase
+      .channel(`messages:${chatId}`)
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'messages',
+        filter: `chat_id=eq.${chatId}`
+      }, (payload) => {
+        const newMsg = payload.new;
+        setChats(prev => {
+          const currentChats = prev[activeRoommateId!] || [];
+          if (currentChats.some(m => m.id === newMsg.id)) return prev;
+          
+          return {
+            ...prev,
+            [activeRoommateId!]: [...currentChats, {
+              id: newMsg.id,
+              chatId: newMsg.chat_id,
+              senderId: newMsg.sender_id,
+              text: newMsg.text,
+              imageUrl: newMsg.image_url,
+              timestamp: newMsg.timestamp
+            }]
+          };
+        });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [chatId, activeRoommateId]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!inputText.trim() && !attachedImage) || !activeRoommateId) return;
+    if ((!inputText.trim() && !attachedImage) || !activeRoommateId || !currentUserProfile) return;
 
     const userMessageText = inputText.trim();
     const sentImage = attachedImage;
     setInputText("");
     setAttachedImage(null);
 
+    const newMsgId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString();
     const newMsg: Message = {
-      id: Math.random().toString(),
+      id: newMsgId,
       chatId: activeRoommateId,
-      senderId: "me",
+      senderId: currentUserProfile.id,
       text: userMessageText,
       imageUrl: sentImage || undefined,
       timestamp: new Date().toISOString(),
     };
 
-    // Update state with User message
+    // Optimistic UI Update
     const updatedMessages = [...activeMessages, newMsg];
     setChats((prev) => ({
       ...prev,
       [activeRoommateId]: updatedMessages,
     }));
 
-    // Trigger AI Typing status
-    setIsTyping(true);
-
-    try {
-      // API call to Express backend `/api/chat`
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          roommate: activeRoommate,
-          messages: updatedMessages,
-        }),
+    if (import.meta.env.VITE_SUPABASE_URL) {
+      // Send to Supabase
+      const { error } = await supabase.from('messages').insert({
+        id: newMsg.id,
+        chat_id: chatId,
+        sender_id: currentUserProfile.id,
+        text: userMessageText,
+        image_url: sentImage || undefined,
       });
-
-      if (!response.ok) {
-        throw new Error("Lỗi mạng máy chủ");
-      }
-
-      const data = await response.json();
-      const aiReplyText = data.text;
-
-      const aiMsg: Message = {
-        id: Math.random().toString(),
-        chatId: activeRoommateId,
-        senderId: activeRoommateId,
-        text: aiReplyText,
-        timestamp: new Date().toISOString(),
-      };
-
-      setChats((prev) => ({
-        ...prev,
-        [activeRoommateId]: [...(prev[activeRoommateId] || []), aiMsg],
-      }));
-    } catch (err) {
-      console.warn("Express endpoint failed, using local fallback", err);
-      // Simulate fallback
-      setTimeout(() => {
-        const fallMsg: Message = {
-          id: Math.random().toString(),
-          chatId: activeRoommateId,
-          senderId: activeRoommateId,
-          text: `Cảm ơn tin nhắn của bạn nhé! Mình vừa nhận được tin. Cùng thống nhất các điều khoản sống chung hay hẹn gặp nhé! 😄`,
-          timestamp: new Date().toISOString(),
-        };
-        setChats((prev) => ({
-          ...prev,
-          [activeRoommateId]: [...(prev[activeRoommateId] || []), fallMsg],
-        }));
-      }, 1000);
-    } finally {
-      setIsTyping(false);
+      if (error) console.error("Error sending message to Supabase", error);
     }
   };
 
+  if (!currentUserProfile) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-4 min-h-[60vh] animate-fade-in">
+        <div className="bg-white p-10 rounded-[32px] shadow-[0_10px_40px_rgba(15,23,42,0.06)] border border-slate-100 max-w-md text-center">
+          <div className="w-20 h-20 bg-sky-50 text-sky-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+             <Lock className="h-10 w-10" />
+          </div>
+          <h3 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">Yêu cầu đăng nhập</h3>
+          <p className="text-slate-500 mb-8 leading-relaxed">Bạn cần có hồ sơ RoomieMatch để có thể trò chuyện an toàn và bảo mật với các bạn cùng phòng tiềm năng.</p>
+          <button 
+            onClick={() => onRequireAuth && onRequireAuth()} 
+            className="w-full py-4 bg-[#006590] hover:bg-[#005176] text-white font-bold rounded-2xl shadow-lg shadow-[#006590]/20 transition-all duration-200 cursor-pointer text-base"
+          >
+            Đăng nhập / Đăng ký ngay
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white rounded-[24px] border border-gray-100 overflow-hidden shadow-[0_10px_30px_rgba(15,23,42,0.02)] h-[75vh] flex divide-x divide-slate-100 animate-fade-in">
+    <div className="bg-white rounded-[32px] border border-gray-100 overflow-hidden shadow-[0_15px_50px_rgba(15,23,42,0.04)] h-[calc(100vh-140px)] min-h-[600px] flex divide-x divide-slate-100 animate-fade-in relative">
+
       {/* Left Column: Matches list */}
-      <div className="w-80 h-full flex flex-col bg-slate-50/50 shrink-0 hidden md:flex">
+      <div className="w-[300px] h-full flex flex-col bg-slate-50/50 shrink-0 hidden md:flex">
         <div className="p-5 border-b border-slate-100 bg-white">
-          <h3 className="text-lg font-extrabold text-[#0f172a] tracking-tight">Trò Chuyện Đang Chạy</h3>
-          <p className="text-xs text-slate-500 mt-0.5">Nơi thỏa thuận quy tắc sinh hoạt cùng roommate tiềm năng.</p>
+          <h3 className="text-lg font-extrabold text-[#0f172a] tracking-tight mb-4">Tin Nhắn</h3>
+          {/* Search Bar */}
+          <div className="relative group">
+            <input
+              type="text"
+              placeholder="Tìm theo tên..."
+              value={friendSearchQuery}
+              onChange={(e) => setFriendSearchQuery(e.target.value)}
+              className="w-full bg-slate-100/70 border border-slate-200/60 text-slate-800 text-[13px] rounded-2xl px-4 py-2.5 outline-none focus:bg-white focus:border-sky-300 focus:ring-4 focus:ring-sky-50 transition-all duration-300 font-medium placeholder:text-slate-400 group-hover:bg-slate-50"
+            />
+          </div>
         </div>
 
         {/* Roommates chat list wrapper */}
         <div className="flex-grow overflow-y-auto p-3 space-y-1.5 scrollbar-thin">
-          {roommates.map((r) => {
+          {roommates
+            .filter(r => r.name.toLowerCase().includes(friendSearchQuery.toLowerCase()))
+            .map((r) => {
             const isActive = r.id === activeRoommateId;
             const history = chats[r.id] || [];
             const lastMsg = history[history.length - 1]?.text || "Chưa có tin nhắn hội thoại";
@@ -249,17 +320,17 @@ export default function ChatView({
                   <FileText className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => alert(`Tính năng gọi video cùng ${activeRoommate.name} sẽ khả dụng sau khi hai bạn đạt thỏa thuận ở ghép!`)}
-                  className="p-2.5 rounded-xl border border-slate-200 text-[#006590] hover:bg-slate-50 duration-150 cursor-pointer"
-                  title="Call roommate"
+                  onClick={() => onNavigateToTab && onNavigateToTab('agreement')}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#006590] to-sky-600 hover:shadow-lg hover:-translate-y-0.5 text-white text-[13px] font-bold transition-all duration-300 cursor-pointer flex items-center gap-2"
                 >
-                  <PhoneCall className="h-4 w-4" />
+                  <BadgeCheck className="h-4 w-4" />
+                  <span className="hidden sm:inline">Lập Thỏa Thuận</span>
                 </button>
               </div>
             </div>
 
             {/* Message bubbles wrapper container */}
-            <div className="flex-grow p-6 overflow-y-auto space-y-4">
+            <div ref={scrollContainerRef} className="flex-grow p-6 overflow-y-auto space-y-4 scroll-smooth">
               {activeMessages.length === 0 ? (
                 <div className="text-center py-12 max-w-sm mx-auto">
                   <div className="p-4 bg-sky-50 text-[#006590] rounded-2xl inline-flex mb-3">
@@ -272,7 +343,7 @@ export default function ChatView({
                 </div>
               ) : (
                 activeMessages.map((msg) => {
-                  const isMe = msg.senderId === "me";
+                  const isMe = msg.senderId === "me" || msg.senderId === currentUserProfile.id;
                   return (
                     <div
                       key={msg.id}
@@ -358,7 +429,7 @@ export default function ChatView({
                 </div>
               )}
 
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-2.5 items-center">
                 <input
                   type="file"
                   id="chat-image-input"
@@ -368,25 +439,25 @@ export default function ChatView({
                 />
                 <label
                   htmlFor="chat-image-input"
-                  className="bg-slate-50 hover:bg-slate-100 border border-slate-150 text-[#006590] p-3.5 rounded-xl duration-150 flex items-center justify-center cursor-pointer transition-all hover:scale-105"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-[#006590] w-12 h-12 rounded-full duration-150 flex items-center justify-center cursor-pointer transition-all shrink-0"
                   title="Gửi hình ảnh"
                 >
-                  <Image className="h-4.5 w-4.5" />
+                  <Image className="h-5 w-5" />
                 </label>
 
                 <input
                   type="text"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder={`Nhắn tin thầm kín, thương lượng cùng ${activeRoommate.name}...`}
-                  className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#006590] focus:bg-white duration-150"
+                  placeholder={`Nhắn tin cùng ${activeRoommate.name}...`}
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-5 py-3.5 text-sm outline-none focus:border-sky-500/50 focus:bg-white transition-all shadow-inner"
                 />
                 <button
                   type="submit"
                   disabled={(!inputText.trim() && !attachedImage) || isTyping}
-                  className="bg-[#006590] text-white p-3.5 rounded-xl hover:bg-[#005176] disabled:bg-slate-200 disabled:text-slate-400 duration-150 flex items-center justify-center cursor-pointer shadow-md shadow-sky-900/10"
+                  className="bg-gradient-to-r from-sky-500 to-[#006590] text-white w-12 h-12 rounded-full hover:shadow-lg disabled:opacity-50 disabled:from-slate-300 disabled:to-slate-400 duration-150 flex items-center justify-center cursor-pointer transition-all hover:scale-105 shrink-0"
                 >
-                  <Send className="h-4.5 w-4.5" />
+                  <Send className="h-5 w-5 -ml-0.5 mt-0.5" />
                 </button>
               </div>
             </form>
@@ -406,62 +477,73 @@ export default function ChatView({
 
       {/* Third Column: Private notes and profile snapshot */}
       {activeRoommate && (
-        <div className="w-80 h-full bg-slate-50/30 p-5 flex flex-col justify-between shrink-0 hidden lg:flex border-l border-slate-100 overflow-y-auto">
-          <div className="space-y-4">
-            <div className="text-center pb-4 border-b border-slate-100">
-              <div className="w-16 h-16 rounded-full overflow-hidden border border-slate-200 shadow-inner mx-auto mb-2">
+        <div className="w-[320px] h-full bg-gradient-to-b from-slate-50 to-white p-6 flex flex-col justify-between shrink-0 hidden lg:flex border-l border-slate-100 overflow-y-auto relative">
+          
+          <div className="space-y-6">
+            {/* Profile Avatar Header */}
+            <div className="text-center pb-5 border-b border-slate-100/80">
+              <div className="w-24 h-24 rounded-full overflow-hidden border-[4px] border-white shadow-[0_10px_30px_rgba(15,23,42,0.08)] mx-auto mb-3">
                 <img src={activeRoommate.avatar} alt={activeRoommate.name} className="w-full h-full object-cover" />
               </div>
-              <h4 className="text-sm font-extrabold text-[#0f172a] tracking-tight">{activeRoommate.name}</h4>
-              <p className="text-[11px] text-slate-500 font-medium leading-none mt-1">{activeRoommate.role}</p>
+              <h4 className="text-[18px] font-black text-[#0f172a] tracking-tight">{activeRoommate.name}</h4>
+              <p className="text-[12px] text-sky-600 font-extrabold uppercase tracking-widest mt-1 bg-sky-50 inline-block px-3 py-1 rounded-full">{activeRoommate.role}</p>
             </div>
 
             {/* Private Notes form */}
-            <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <h5 className="text-xs font-bold text-amber-800 flex items-center gap-1 select-none">
-                  <span>📝 Ghi chú cá nhân</span>
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50/30 border border-amber-200/50 rounded-[24px] p-5 space-y-3 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-amber-400/10 rounded-bl-full -z-0"></div>
+              
+              <div className="flex items-center justify-between relative z-10">
+                <h5 className="text-[14px] font-black text-amber-900 flex items-center gap-2 select-none">
+                  <span className="p-1.5 bg-white/60 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] text-amber-600">
+                    <PencilLine className="h-4 w-4" />
+                  </span>
+                  Ghi chú riêng
                 </h5>
                 {isSavingChatNote && (
-                  <span className="text-[9px] text-emerald-600 font-extrabold bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200 animate-pulse">
+                  <span className="text-[10px] text-emerald-700 font-extrabold bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-200 animate-pulse backdrop-blur-sm">
                     ✓ Đã lưu
                   </span>
                 )}
               </div>
-              <p className="text-[10px] text-slate-500 leading-normal font-semibold">
-                Ghi lại lịch hẹn, điều kiện giá, số điện thoại riêng của {activeRoommate.name}... Chỉ mình bạn có thể thấy.
+              <p className="text-[11.5px] text-amber-800/70 leading-relaxed font-semibold relative z-10">
+                Lưu lại lịch hẹn, mức giá, liên hệ... Chỉ mình bạn xem được.
               </p>
               <textarea
-                rows={5}
+                rows={4}
                 placeholder={`Nhập ghi chú cá nhân của bạn về ${activeRoommate.name}...`}
                 value={chatPrivateNote}
                 onChange={(e) => handleChatPrivateNoteChange(e.target.value)}
-                className="w-full bg-white border border-amber-200/60 focus:border-amber-500 rounded-xl px-3 py-2 text-xs text-slate-700 outline-none duration-250 resize-none font-medium shadow-inner"
+                className="w-full bg-white/80 backdrop-blur-md border border-amber-200 focus:border-amber-400 focus:ring-4 focus:ring-amber-400/20 rounded-2xl px-4 py-3 text-[13px] text-slate-800 outline-none transition-all duration-300 resize-none font-semibold shadow-inner relative z-10"
               />
             </div>
 
-            {/* Roommate details snippet for handy view while chatting */}
-            <div className="space-y-2">
-              <h5 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">💡 Tóm tắt lối sống</h5>
-              <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                <div className="bg-white border border-slate-100 p-2 rounded-xl text-slate-600">
-                  <span className="block text-[9px] text-slate-400 font-bold uppercase">Giấc ngủ</span>
-                  <span className="font-bold text-[#006590]">{activeRoommate.lifestyle?.sleep || "Đúng giờ"}</span>
+            {/* Roommate details snippet */}
+            <div className="space-y-3">
+              <h5 className="text-[12px] font-black text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <Lightbulb className="h-4 w-4 text-amber-500" />
+                Lối sống
+              </h5>
+              <div className="grid grid-cols-2 gap-2.5 text-[11px]">
+                <div className="bg-white border border-slate-100/80 shadow-[0_2px_12px_rgba(0,0,0,0.02)] p-3 rounded-2xl text-slate-600 transition-all hover:border-sky-200 hover:shadow-md group">
+                  <span className="block text-[10px] text-slate-400 font-bold uppercase mb-1 group-hover:text-sky-500 transition-colors">Giấc ngủ</span>
+                  <span className="font-extrabold text-[#0f172a] text-[13px]">{activeRoommate.lifestyle?.sleep || "Đúng giờ"}</span>
                 </div>
-                <div className="bg-white border border-slate-100 p-2 rounded-xl text-slate-600">
-                  <span className="block text-[9px] text-slate-400 font-bold uppercase">Thú cưng</span>
-                  <span className="font-bold text-[#006590]">{activeRoommate.lifestyle?.pets || "Thoải mái"}</span>
+                <div className="bg-white border border-slate-100/80 shadow-[0_2px_12px_rgba(0,0,0,0.02)] p-3 rounded-2xl text-slate-600 transition-all hover:border-sky-200 hover:shadow-md group">
+                  <span className="block text-[10px] text-slate-400 font-bold uppercase mb-1 group-hover:text-sky-500 transition-colors">Thú cưng</span>
+                  <span className="font-extrabold text-[#0f172a] text-[13px]">{activeRoommate.lifestyle?.pets || "Thoải mái"}</span>
                 </div>
-                <div className="bg-white border border-slate-100 p-2 rounded-xl text-slate-600 col-span-2">
-                  <span className="block text-[9px] text-slate-400 font-bold uppercase">Ngân sách tối đa</span>
-                  <span className="font-extrabold text-[#006590]">{activeRoommate.budget ? `${(activeRoommate.budget / 1000000).toFixed(1)} tr/tháng` : "Liên hệ"}</span>
+                <div className="bg-white border border-slate-100/80 shadow-[0_2px_12px_rgba(0,0,0,0.02)] p-3.5 rounded-2xl text-slate-600 col-span-2 flex items-center justify-between transition-all hover:border-sky-200 hover:shadow-md group">
+                  <span className="block text-[10px] text-slate-400 font-bold uppercase group-hover:text-sky-500 transition-colors">Ngân sách tối đa</span>
+                  <span className="font-black text-[#006590] text-[14px] bg-[#dff6ff] px-3 py-1.5 rounded-xl border border-sky-100">{activeRoommate.budget ? `${(activeRoommate.budget / 1000000).toFixed(1)} tr/tháng` : "Liên hệ"}</span>
                 </div>
               </div>
             </div>
           </div>
           
-          <div className="text-[10px] text-slate-400 text-center font-bold px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl mt-4 leading-normal">
-            ⚙️ Dữ liệu được bảo mật an toàn trên bộ nhớ thiết bị của bạn.
+          <div className="text-[11px] text-slate-400 font-bold px-4 py-3.5 bg-slate-100/50 rounded-2xl mt-6 leading-relaxed border border-slate-200/50 backdrop-blur-sm flex items-start gap-2.5">
+            <ShieldCheck className="h-4 w-4 text-slate-400 shrink-0" />
+            <span>Mọi ghi chú được lưu an toàn trên thiết bị của bạn.</span>
           </div>
         </div>
       )}

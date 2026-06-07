@@ -4,16 +4,20 @@ import { Roommate, Room } from "../types";
 
 interface PostListingModalProps {
   onClose: () => void;
-  onAddRoom: (room: Room) => void;
-  onAddRoommate: (roommate: Roommate) => void;
+  onSubmitRoom?: (room: Room) => void;
+  onSubmitRoommate?: (roommate: Roommate) => void;
   initialTab?: "roommate" | "room";
+  currentProfile?: any;
+  editingData?: any;
 }
 
 export default function PostListingModal({
   onClose,
-  onAddRoom,
-  onAddRoommate,
-  initialTab = "roommate"
+  onSubmitRoom,
+  onSubmitRoommate,
+  initialTab = "roommate",
+  currentProfile,
+  editingData
 }: PostListingModalProps) {
   const [activeTab, setActiveTab] = useState<"roommate" | "room">(initialTab);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -137,6 +141,80 @@ export default function PostListingModal({
     setRAmenities(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  React.useEffect(() => {
+    if (editingData) {
+      if (initialTab === "roommate" || editingData.name) {
+        setActiveTab("roommate");
+        setRmName(editingData.name || "");
+        setRmAge(editingData.age || 21);
+        setRmGender(editingData.gender || "Nữ");
+        setRmRole(editingData.role || "Sinh viên");
+        setRmMajor(editingData.majorKhoidoi || "Khối Kinh tế");
+        setRmDistrict(editingData.district || "Hải Châu");
+        setRmAddress(editingData.location ? editingData.location.split(", Quận")[0] : "");
+        setRmBudget(editingData.budget?.toString() || "");
+        setRmPhone(editingData.phoneNumber || "");
+        setRmBio(editingData.bio || "");
+        setRmStatus(editingData.status || "Chưa có phòng");
+        setRmAvatar(editingData.avatar || AVATAR_PRESETS[0]);
+        setRmType(editingData.type || "Phòng trọ");
+        if (editingData.lifestyle) {
+          setRmSleep(editingData.lifestyle.sleep || "Bình thường");
+          setRmPets(editingData.lifestyle.pets || "Thoải mái");
+          setRmSmoke(editingData.lifestyle.smoke || "Không hút thuốc");
+          setRmCook(editingData.lifestyle.cook || "Đôi khi nấu");
+          setRmInteraction(editingData.lifestyle.interaction || "Cân bằng");
+          setRmNeatness(editingData.lifestyle.neatness || "Sạch sẽ");
+        }
+        if (editingData.tags) {
+          setCustomTags(editingData.tags.join(", "));
+        }
+      } else {
+        setActiveTab("room");
+        setRTitle(editingData.title || "");
+        setRPrice(editingData.price?.toString() || "");
+        setRDistrict(editingData.district || "Hải Châu");
+        setRAddress(editingData.location ? editingData.location.split(", Quận")[0] : "");
+        setRType(editingData.type || "Phòng trọ");
+        setRBedrooms(editingData.bedrooms?.toString() || "1");
+        setRWc(editingData.wc || "Khép kín");
+        setRKitchen(editingData.kitchen || "Bếp riêng");
+        setRPriceElectricity(editingData.electricity || "3.500đ/kWh");
+        setRPriceWater(editingData.water || "10.000đ/m3");
+        setRPets(editingData.pets || "thoải mái");
+        setRGenderTarget(editingData.gender || "Tất cả");
+        setRPhone(editingData.phoneNumber || "");
+        setRDescription(editingData.description || "");
+        setRHostName(editingData.hostName || "");
+        setRHostRole(editingData.hostRole || "Giảng viên / Sinh viên");
+        setRRoommateInfo(editingData.roommateInfo || "");
+        if (editingData.images && editingData.images.length > 0) {
+          setRImage(editingData.images[0]);
+        }
+        if (editingData.features) {
+          const feats = editingData.features as string[];
+          setRAmenities({
+            dieuhoa: feats.includes("Điều hòa"),
+            maygiat: feats.includes("Máy giặt"),
+            nhabep: feats.includes("Nhà bếp riêng"),
+            wifi: feats.includes("Wifi cáp quang"),
+            tulanh: feats.includes("Tủ lạnh riêng"),
+            tv: feats.includes("Tivi"),
+            baove: feats.includes("Bảo vệ 24/7"),
+            baigieuxe: feats.includes("Bãi xe rộng rãi")
+          });
+        }
+      }
+    } else if (currentProfile) {
+      setRmName(currentProfile.name || "");
+      setRmGender(currentProfile.gender || "Nữ");
+      setRmAvatar(currentProfile.avatar || AVATAR_PRESETS[0]);
+      setRHostName(currentProfile.name || "");
+    }
+  }, [editingData, currentProfile, initialTab]);
+
+
+
   const handleRoommateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!rmName.trim() || !rmBudget || !rmPhone.trim()) {
@@ -179,8 +257,8 @@ export default function PostListingModal({
       reviews: []
     };
 
-    onAddRoommate(newRoommate);
-    setSuccessMessage(`Đã đăng bài Tìm bạn ở ghép cho ${rmName} thành công lên cộng đồng RoomieMatch!`);
+    if (onSubmitRoommate) onSubmitRoommate(newRoommate);
+    setSuccessMessage(editingData ? `Đã cập nhật bài Tìm bạn ở ghép cho ${rmName} thành công!` : `Đã đăng bài Tìm bạn ở ghép cho ${rmName} thành công lên cộng đồng RoomieMatch!`);
     setIsSuccess(true);
   };
 
@@ -233,8 +311,8 @@ export default function PostListingModal({
       reviews: []
     };
 
-    onAddRoom(newRoom);
-    setSuccessMessage(`Đã đăng bài cho thuê / ghép phòng "${rTitle}" thành công!`);
+    if (onSubmitRoom) onSubmitRoom(newRoom);
+    setSuccessMessage(editingData ? `Đã cập nhật bài cho thuê / ghép phòng "${rTitle}" thành công!` : `Đã đăng bài cho thuê / ghép phòng "${rTitle}" thành công!`);
     setIsSuccess(true);
   };
 
@@ -244,15 +322,18 @@ export default function PostListingModal({
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={onClose} />
 
       {/* Main Container */}
-      <div className="relative bg-white rounded-[32px] shadow-2xl border border-gray-100 w-full max-w-2xl max-h-[90vh] overflow-y-auto z-10 p-6 sm:p-8 scrollbar-thin animate-fade-in">
+      <div className="relative bg-white rounded-[32px] shadow-2xl border border-gray-100 w-full max-w-2xl max-h-[90vh] flex flex-col z-10 overflow-hidden animate-fade-in">
         
-        {/* Close Button */}
+        {/* Close Button - Sticky at top right */}
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 w-10 h-10 rounded-full bg-slate-50 border border-slate-150 flex items-center justify-center text-slate-500 hover:text-slate-800 duration-150 cursor-pointer shadow-xs"
+          className="absolute top-6 right-6 w-10 h-10 rounded-full bg-slate-50 border border-slate-150 flex items-center justify-center text-slate-500 hover:text-slate-800 duration-150 cursor-pointer shadow-xs z-50"
         >
           <X className="h-4.5 w-4.5" />
         </button>
+
+        {/* Scrollable Content */}
+        <div className="overflow-y-auto scrollbar-thin p-6 sm:p-8 flex-1">
 
         {/* Dynamic Screens logic */}
         {isSuccess ? (
@@ -287,7 +368,7 @@ export default function PostListingModal({
                 <Sparkles className="h-6 w-6 stroke-[2px]" />
               </span>
               <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Đăng bài tin mới</h3>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">{editingData ? "Cập nhật bài viết" : "Đăng bài tin mới"}</h3>
                 <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Cổng kết nối Đà Nẵng</p>
               </div>
             </div>
@@ -322,97 +403,72 @@ export default function PostListingModal({
 
             {/* TAB CONTENT: 1. SEEKING ROOMMATE FORM */}
             {activeTab === "roommate" && (
-              <form onSubmit={handleRoommateSubmit} className="space-y-6">
+              <form onSubmit={handleRoommateSubmit} className="space-y-5">
                 
-                {/* Section 1: Avatar select */}
-                <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-4.5 space-y-3.5">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-extrabold uppercase tracking-wider text-slate-400 block">👤 Ảnh đại diện của bạn</label>
-                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-[#006590] hover:text-[#005176] rounded-full text-[11px] font-black shadow-xs duration-150">
+                {/* Section 1: Avatar */}
+                <div className="rounded-2xl border border-slate-150 bg-slate-50/50 p-5">
+                  <div className="flex justify-between items-center mb-4">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Ảnh đại diện</p>
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-[#006590] hover:text-[#005176] rounded-full text-[11px] font-black shadow-sm duration-150">
                       <Upload className="h-3.5 w-3.5" />
-                      <span>Tự tải ảnh cá nhân</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleRmAvatarUpload}
-                      />
+                      <span>Tải ảnh cá nhân</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={handleRmAvatarUpload} />
                     </label>
                   </div>
                   <div className="flex gap-4 items-center">
-                    <div className="w-16 h-16 rounded-full border-2 border-[#006590] overflow-hidden shadow-inner bg-white shrink-0">
-                      <img src={rmAvatar} alt="Selected" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <div className="w-16 h-16 rounded-full border-2 border-[#006590]/30 overflow-hidden shadow-sm bg-white shrink-0">
+                      <img src={rmAvatar} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     </div>
-                    <div className="text-xs text-slate-400 leading-relaxed font-medium">
-                      <span className="font-extrabold text-[#006590]">Ảnh cá nhân hiện tại</span>. Vui lòng bấm nút phía trên "Tự tải ảnh cá nhân" để tải lên ảnh đại diện thực tế của bạn (định dạng JPG, PNG dưới 2MB).
-                    </div>
+                    <p className="text-[12px] text-slate-400 leading-relaxed">
+                      Bấm <strong className="text-[#006590]">"Tải ảnh cá nhân"</strong> để dùng ảnh thực tế của bạn (JPG, PNG &lt; 2MB).
+                    </p>
                   </div>
                 </div>
 
-                {/* Section 2: Personal details */}
-                <div className="space-y-4">
-                  <h4 className="text-xs font-bold text-[#006590] uppercase tracking-wider border-b border-sky-100 pb-2">💼 THÔNG TIN CÁ NHÂN</h4>
+                {/* Section 2: Personal info */}
+                <div className="rounded-2xl border border-slate-150 bg-white p-5 space-y-4">
+                  <div className="pb-3 border-b border-slate-100">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Thông tin cá nhân</p>
+                  </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Họ & Tên <span className="text-red-500">*</span></label>
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Họ &amp; Tên <span className="text-rose-500">*</span></label>
                       <input
-                        type="text"
-                        required
-                        value={rmName}
-                        onChange={(e) => setRmName(e.target.value)}
+                        type="text" required value={rmName} onChange={(e) => setRmName(e.target.value)}
                         placeholder="Ví dụ: Nguyễn Minh Thảo"
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none"
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300"
                       />
                     </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Giới tính</label>
-                        <select
-                          value={rmGender}
-                          onChange={(e) => setRmGender(e.target.value as any)}
-                          className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-3 py-2.5 text-xs outline-none"
-                        >
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="block text-[13px] font-semibold text-slate-700">Giới tính</label>
+                        <select value={rmGender} onChange={(e) => setRmGender(e.target.value as any)}
+                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-3 py-3 text-[14px] outline-none text-slate-800 transition-all cursor-pointer">
                           <option value="Nam">Nam</option>
                           <option value="Nữ">Nữ</option>
                           <option value="LGBT">LGBT</option>
                           <option value="Khác">Khác</option>
                         </select>
                       </div>
-                      
-                      <div>
-                        <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Tuổi</label>
-                        <input
-                          type="number"
-                          value={rmAge}
-                          onChange={(e) => setRmAge(Number(e.target.value))}
-                          placeholder="21"
-                          className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-3 py-2.5 text-xs outline-none"
-                        />
+                      <div className="space-y-1.5">
+                        <label className="block text-[13px] font-semibold text-slate-700">Tuổi</label>
+                        <input type="number" value={rmAge} onChange={(e) => setRmAge(Number(e.target.value))} placeholder="21"
+                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-3 py-3 text-[14px] outline-none text-slate-800 transition-all" />
                       </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Nghề nghiệp / Vai trò</label>
-                      <input
-                        type="text"
-                        value={rmRole}
-                        onChange={(e) => setRmRole(e.target.value)}
-                        placeholder="Ví dụ: Sinh viên, Chuyên viên IT"
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none"
-                      />
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Nghề nghiệp / Vai trò</label>
+                      <input type="text" value={rmRole} onChange={(e) => setRmRole(e.target.value)} placeholder="Sinh viên, Nhân viên văn phòng..."
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
                     </div>
-
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Khối ngành hoạt động</label>
-                      <select
-                        value={rmMajor}
-                        onChange={(e) => setRmMajor(e.target.value as any)}
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none"
-                      >
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Khối ngành</label>
+                      <select value={rmMajor} onChange={(e) => setRmMajor(e.target.value as any)}
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all cursor-pointer">
                         <option value="Khối Kinh tế">Khối Kinh tế</option>
                         <option value="Khối Kỹ thuật">Khối Kỹ thuật</option>
                         <option value="Khối Sư phạm">Khối Sư phạm</option>
@@ -423,18 +479,17 @@ export default function PostListingModal({
                   </div>
                 </div>
 
-                {/* Section 3: Roommate Location & Budget */}
-                <div className="space-y-4">
-                  <h4 className="text-xs font-bold text-[#006590] uppercase tracking-wider border-b border-sky-100 pb-2">📍 ĐỊA ĐIỂM & ĐIỀU KIỆN TÀI CHÍNH</h4>
-                  
+                {/* Section 3: Location & Budget */}
+                <div className="rounded-2xl border border-slate-150 bg-white p-5 space-y-4">
+                  <div className="pb-3 border-b border-slate-100">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Địa điểm &amp; Ngân sách</p>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Khu vực Đà Nẵng</label>
-                      <select
-                        value={rmDistrict}
-                        onChange={(e) => setRmDistrict(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none"
-                      >
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Khu vực Đà Nẵng</label>
+                      <select value={rmDistrict} onChange={(e) => setRmDistrict(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all cursor-pointer">
                         <option value="Hải Châu">Quận Hải Châu</option>
                         <option value="Thanh Khê">Quận Thanh Khê</option>
                         <option value="Liên Chiểu">Quận Liên Chiểu</option>
@@ -444,40 +499,24 @@ export default function PostListingModal({
                         <option value="Hòa Vang">Huyện Hòa Vang</option>
                       </select>
                     </div>
-
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Ngân sách tối đa (VND / tháng) <span className="text-red-500">*</span></label>
-                      <input
-                        type="number"
-                        required
-                        value={rmBudget}
-                        onChange={(e) => setRmBudget(e.target.value)}
-                        placeholder="Ví dụ: 2500000"
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none font-semibold text-[#006590]"
-                      />
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Ngân sách tối đa / tháng <span className="text-rose-500">*</span></label>
+                      <input type="number" required value={rmBudget} onChange={(e) => setRmBudget(e.target.value)} placeholder="VD: 2500000"
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] font-bold text-[#006590] outline-none transition-all placeholder:text-slate-300 placeholder:font-normal" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Địa chỉ cụ thể / Dự kiến ở loại hình nào</label>
-                      <input
-                        type="text"
-                        value={rmAddress}
-                        onChange={(e) => setRmAddress(e.target.value)}
-                        placeholder="Ví dụ: Gần ĐH Duy Tân, 120 Điện Biên Phủ"
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none"
-                      />
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Địa chỉ khu vực mong muốn</label>
+                      <input type="text" value={rmAddress} onChange={(e) => setRmAddress(e.target.value)} placeholder="Gần ĐH Duy Tân, 120 Điện Biên Phủ..."
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
                     </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Loại hình</label>
-                        <select
-                          value={rmType}
-                          onChange={(e) => setRmType(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-3 py-2.5 text-xs outline-none"
-                        >
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="block text-[13px] font-semibold text-slate-700">Loại hình</label>
+                        <select value={rmType} onChange={(e) => setRmType(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 transition-all cursor-pointer">
                           <option value="Phòng trọ">Phòng trọ</option>
                           <option value="Ký túc xá">Ký túc xá</option>
                           <option value="Căn hộ">Căn hộ</option>
@@ -485,14 +524,10 @@ export default function PostListingModal({
                           <option value="Homestay">Homestay</option>
                         </select>
                       </div>
-
-                      <div>
-                        <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Tình trạng</label>
-                        <select
-                          value={rmStatus}
-                          onChange={(e) => setRmStatus(e.target.value as any)}
-                          className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-3 py-2.5 text-xs outline-none"
-                        >
+                      <div className="space-y-1.5">
+                        <label className="block text-[13px] font-semibold text-slate-700">Tình trạng</label>
+                        <select value={rmStatus} onChange={(e) => setRmStatus(e.target.value as any)}
+                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 transition-all cursor-pointer">
                           <option value="Chưa có phòng">Chưa có phòng</option>
                           <option value="Đã có phòng">Đã có phòng</option>
                         </select>
@@ -501,147 +536,68 @@ export default function PostListingModal({
                   </div>
                 </div>
 
-                {/* Section 4: Contact details & Bio */}
-                <div className="space-y-4">
-                  <h4 className="text-xs font-bold text-[#006590] uppercase tracking-wider border-b border-sky-100 pb-2">📞 THÔNG TIN LIÊN HỆ & GIỚI THIỆU</h4>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Số điện thoại <span className="text-red-500">*</span></label>
-                      <input
-                        type="text"
-                        required
-                        value={rmPhone}
-                        onChange={(e) => setRmPhone(e.target.value)}
-                        placeholder="Số zalo/SĐT liên hệ: 09xx xxx xxx"
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none font-bold"
-                      />
-                    </div>
+                {/* Section 4: Contact & Bio */}
+                <div className="rounded-2xl border border-slate-150 bg-white p-5 space-y-4">
+                  <div className="pb-3 border-b border-slate-100">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Liên hệ &amp; Giới thiệu</p>
+                  </div>
 
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Thói quen nhanh (cách nhau bằng dấu phẩy)</label>
-                      <input
-                        type="text"
-                        value={customTags}
-                        onChange={(e) => setCustomTags(e.target.value)}
-                        placeholder="Ví dụ: Không hút thuốc, Yêu mèo, Ngủ sớm"
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none"
-                      />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Số điện thoại <span className="text-rose-500">*</span></label>
+                      <input type="text" required value={rmPhone} onChange={(e) => setRmPhone(e.target.value)} placeholder="09xx xxx xxx"
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] font-bold outline-none text-slate-800 transition-all placeholder:text-slate-300 placeholder:font-normal" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Thói quen nhanh <span className="text-slate-400 font-normal text-[12px]">(cách bằng dấu phẩy)</span></label>
+                      <input type="text" value={customTags} onChange={(e) => setCustomTags(e.target.value)} placeholder="Không hút thuốc, Yêu mèo, Ngủ sớm..."
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Mô tả bản thân & yêu cầu về roommate chung phòng</label>
-                    <textarea
-                      rows={4}
-                      value={rmBio}
-                      onChange={(e) => setRmBio(e.target.value)}
-                      placeholder="Hãy kể một chút về bản thân như: Tần suất dọn vệ sinh, bạn có chấp nhận tụ tập bạn bè không, tính cách thích làm quen hay riêng tư..."
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-3 text-xs outline-none resize-none"
-                    />
+                  <div className="space-y-1.5">
+                    <label className="block text-[13px] font-semibold text-slate-700">Giới thiệu bản thân &amp; yêu cầu roommate</label>
+                    <textarea rows={4} value={rmBio} onChange={(e) => setRmBio(e.target.value)}
+                      placeholder="Kể một chút về bản thân: Tần suất dọn vệ sinh, có chấp nhận tụ tập bạn bè không, tính cách thích làm quen hay riêng tư..."
+                      className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 resize-none transition-all placeholder:text-slate-300" />
                   </div>
                 </div>
 
-                {/* Section 5: Lifestyle Detail metrics */}
-                <div className="space-y-4">
-                  <h4 className="text-xs font-bold text-[#006590] uppercase tracking-wider border-b border-sky-100 pb-2">⚡ THÓI QUEN SINH HOẠT THỜI GIAN BIỂU</h4>
+                {/* Section 5: Lifestyle */}
+                <div className="rounded-2xl border border-slate-150 bg-white p-5 space-y-4">
+                  <div className="pb-3 border-b border-slate-100">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Thói quen sinh hoạt</p>
+                  </div>
                   
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-400 mb-1.5">🕐 GIỜ GIẤC</label>
-                      <select
-                        value={rmSleep}
-                        onChange={(e) => setRmSleep(e.target.value as any)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none"
-                      >
-                        <option value="Bình thường">Bình thường</option>
-                        <option value="Ngủ sớm">Ngủ sớm</option>
-                        <option value="Cú đêm">Cú đêm</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-400 mb-1.5">🐶 THÚ CƯNG</label>
-                      <select
-                        value={rmPets}
-                        onChange={(e) => setRmPets(e.target.value as any)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none"
-                      >
-                        <option value="Thoải mái">Thoải mái</option>
-                        <option value="Yêu mèo">Yêu mèo</option>
-                        <option value="Yêu chó">Yêu chó</option>
-                        <option value="Không tiện nuôi">Không nuôi</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-400 mb-1.5">🚭 HÚT THUỐC</label>
-                      <select
-                        value={rmSmoke}
-                        onChange={(e) => setRmSmoke(e.target.value as any)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none"
-                      >
-                        <option value="Không hút thuốc">Không hút</option>
-                        <option value="Hút thuốc ngoài ban công">Ban công</option>
-                        <option value="Không quan trọng">Bất kì</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-400 mb-1.5">🍳 NẤU ĂN</label>
-                      <select
-                        value={rmCook}
-                        onChange={(e) => setRmCook(e.target.value as any)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none"
-                      >
-                        <option value="Đôi khi nấu">Đôi khi nấu</option>
-                        <option value="Thích nấu ăn">Thích nấu</option>
-                        <option value="Ăn ngoài">Ăn ngoài</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-400 mb-1.5">✨ VỆ SINH</label>
-                      <select
-                        value={rmNeatness}
-                        onChange={(e) => setRmNeatness(e.target.value as any)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none"
-                      >
-                        <option value="Sạch sẽ">Sạch sẽ</option>
-                        <option value="Ngăn nắp">Ngăn nắp</option>
-                        <option value="Thoải mái">Thoải mái</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-400 mb-1.5">🧩 GIAO TIẾP</label>
-                      <select
-                        value={rmInteraction}
-                        onChange={(e) => setRmInteraction(e.target.value as any)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none"
-                      >
-                        <option value="Cân bằng">Cân bằng</option>
-                        <option value="Hướng nội">Hướng nội</option>
-                        <option value="Hướng ngoại">Hướng ngoại</option>
-                      </select>
-                    </div>
+                    {[
+                      { label: "Giờ giấc", value: rmSleep, setter: setRmSleep, options: ["Bình thường", "Ngủ sớm", "Cú đêm"] },
+                      { label: "Thú cưng", value: rmPets, setter: setRmPets, options: ["Thoải mái", "Yêu mèo", "Yêu chó", "Không nuôi"] },
+                      { label: "Hút thuốc", value: rmSmoke, setter: setRmSmoke, options: ["Không hút thuốc", "Hút thuốc ngoài ban công", "Không quan trọng"] },
+                      { label: "Nấu ăn", value: rmCook, setter: setRmCook, options: ["Đôi khi nấu", "Thích nấu ăn", "Ăn ngoài"] },
+                      { label: "Vệ sinh", value: rmNeatness, setter: setRmNeatness, options: ["Sạch sẽ", "Ngăn nắp", "Thoải mái"] },
+                      { label: "Giao tiếp", value: rmInteraction, setter: setRmInteraction, options: ["Cân bằng", "Hướng nội", "Hướng ngoại"] },
+                    ].map(({ label, value, setter, options }) => (
+                      <div key={label} className="space-y-1.5">
+                        <label className="block text-[12px] font-bold text-slate-500 uppercase tracking-wide">{label}</label>
+                        <select value={value} onChange={(e) => (setter as any)(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] rounded-xl px-3 py-2.5 text-[13px] outline-none text-slate-700 cursor-pointer transition-all">
+                          {options.map(o => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="px-6 py-3 border border-slate-200 hover:bg-slate-50 font-bold rounded-full text-xs text-slate-500 duration-150 cursor-pointer"
-                  >
+                <div className="flex justify-end gap-3 pt-2">
+                  <button type="button" onClick={onClose}
+                    className="px-6 py-3 border border-slate-200 hover:bg-slate-50 font-semibold rounded-full text-sm text-slate-500 duration-150 cursor-pointer">
                     Hủy bỏ
                   </button>
-                  <button
-                    type="submit"
-                    className="px-8 py-3 bg-[#006590] hover:bg-[#005176] font-extrabold rounded-full text-xs text-white duration-150 cursor-pointer shadow-md flex items-center gap-2"
-                  >
+                  <button type="submit"
+                    className="px-8 py-3 bg-[#006590] hover:bg-[#005176] font-bold rounded-full text-sm text-white duration-150 cursor-pointer shadow-md flex items-center gap-2">
                     <Plus className="h-4 w-4" />
-                    Đăng tin ngay
+                    {editingData ? "Cập nhật tin" : "Đăng tin ngay"}
                   </button>
                 </div>
               </form>
@@ -649,69 +605,49 @@ export default function PostListingModal({
 
             {/* TAB CONTENT: 2. ROOM FOR RENT FORM */}
             {activeTab === "room" && (
-              <form onSubmit={handleRoomSubmit} className="space-y-6">
+              <form onSubmit={handleRoomSubmit} className="space-y-5">
                 
-                {/* Section 1: Choose stock Room images */}
-                <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-4.5 space-y-3">
-                  <div className="flex justify-between items-center flex-wrap gap-2">
-                    <label className="text-xs font-extrabold uppercase tracking-wider text-slate-400 block">📸 Hình ảnh căn phòng</label>
-                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-[#006590] hover:text-[#005176] rounded-full text-[11px] font-black shadow-xs duration-150">
+                {/* Section 1: Room image */}
+                <div className="rounded-2xl border border-slate-150 bg-slate-50/50 p-5">
+                  <div className="flex justify-between items-center mb-4">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Hình ảnh căn phòng</p>
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-[#006590] hover:text-[#005176] rounded-full text-[11px] font-black shadow-sm duration-150">
                       <Upload className="h-3.5 w-3.5" />
-                      <span>Tự tải ảnh thực tế căn phòng</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleRImageUpload}
-                      />
+                      <span>Tải ảnh thực tế</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={handleRImageUpload} />
                     </label>
                   </div>
-                  <div className="flex flex-col gap-3">
-                    <div className="w-full h-44 rounded-2xl border border-slate-200 overflow-hidden shadow-inner bg-white relative">
-                      <img src={rImage} alt="Current Room preset" className="w-full h-full object-cover" />
-                    </div>
-                    <p className="text-[11px] text-slate-400 font-medium leading-normal">
-                      Vui lòng bấm nút <strong className="text-[#006590]">"Tự tải ảnh thực tế căn phòng"</strong> bên trên để tải lên hình ảnh chân thật của căn phòng đang tìm bạn ở ghép.
-                    </p>
+                  <div className="w-full h-44 rounded-2xl border border-slate-200 overflow-hidden bg-white mb-3">
+                    <img src={rImage} alt="Room" className="w-full h-full object-cover" />
                   </div>
+                  <p className="text-[12px] text-slate-400 leading-relaxed">
+                    Bấm <strong className="text-[#006590]">"Tải ảnh thực tế"</strong> để dùng ảnh chân thật của căn phòng (JPG, PNG &lt; 3MB).
+                  </p>
                 </div>
 
-                {/* Section 2: Room specification details */}
-                <div className="space-y-4">
-                  <h4 className="text-xs font-bold text-[#006590] uppercase tracking-wider border-b border-sky-100 pb-2">🏠 THÔNG TIN CHI TIẾT PHÒNG TRỌ</h4>
+                {/* Section 2: Room details */}
+                <div className="rounded-2xl border border-slate-150 bg-white p-5 space-y-4">
+                  <div className="pb-3 border-b border-slate-100">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Thông tin chi tiết phòng trọ</p>
+                  </div>
 
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Tiêu đề tin đăng cho phòng trọ <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      required
-                      value={rTitle}
-                      onChange={(e) => setRTitle(e.target.value)}
-                      placeholder="Ví dụ: Phòng trọ khép kín mới xây gần Đại học Bách Khoa, có điều hòa..."
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none"
-                    />
+                  <div className="space-y-1.5">
+                    <label className="block text-[13px] font-semibold text-slate-700">Tiêu đề tin đăng <span className="text-rose-500">*</span></label>
+                    <input type="text" required value={rTitle} onChange={(e) => setRTitle(e.target.value)}
+                      placeholder="VD: Phòng trọ khép kín mới xây gần Đại học Bách Khoa, có điều hòa..."
+                      className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Giá phòng thuê / Tháng (VNĐ) <span className="text-red-500">*</span></label>
-                      <input
-                        type="number"
-                        required
-                        value={rPrice}
-                        onChange={(e) => setRPrice(e.target.value)}
-                        placeholder="Ví dụ: 3000000"
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none font-bold text-[#006590]"
-                      />
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Giá thuê / tháng (VNĐ) <span className="text-rose-500">*</span></label>
+                      <input type="number" required value={rPrice} onChange={(e) => setRPrice(e.target.value)} placeholder="VD: 3000000"
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] font-bold text-[#006590] outline-none transition-all placeholder:text-slate-300 placeholder:font-normal" />
                     </div>
-
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Quận / Huyện Đà Nẵng</label>
-                      <select
-                        value={rDistrict}
-                        onChange={(e) => setRDistrict(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none"
-                      >
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Quận / Huyện</label>
+                      <select value={rDistrict} onChange={(e) => setRDistrict(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all cursor-pointer">
                         <option value="Hải Châu">Quận Hải Châu</option>
                         <option value="Thanh Khê">Quận Thanh Khê</option>
                         <option value="Liên Chiểu">Quận Liên Chiểu</option>
@@ -724,26 +660,16 @@ export default function PostListingModal({
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Địa chỉ số nhà / Tên đường cụ thể <span className="text-red-500">*</span></label>
-                      <input
-                        type="text"
-                        required
-                        value={rAddress}
-                        onChange={(e) => setRAddress(e.target.value)}
-                        placeholder="Ví dụ: K34/12 Lê Duẩn"
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none"
-                      />
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Địa chỉ cụ thể <span className="text-rose-500">*</span></label>
+                      <input type="text" required value={rAddress} onChange={(e) => setRAddress(e.target.value)} placeholder="VD: K34/12 Lê Duẩn"
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
                     </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Loại hình</label>
-                        <select
-                          value={rType}
-                          onChange={(e) => setRType(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-3 py-2.5 text-xs outline-none"
-                        >
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="block text-[13px] font-semibold text-slate-700">Loại hình</label>
+                        <select value={rType} onChange={(e) => setRType(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 cursor-pointer transition-all">
                           <option value="Phòng trọ">Phòng trọ</option>
                           <option value="Ký túc xá">Ký túc xá</option>
                           <option value="Căn hộ">Căn hộ</option>
@@ -751,14 +677,10 @@ export default function PostListingModal({
                           <option value="Homestay">Homestay</option>
                         </select>
                       </div>
-
-                      <div>
-                        <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Phòng ngủ</label>
-                        <select
-                          value={rBedrooms}
-                          onChange={(e) => setRBedrooms(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-3 py-2.5 text-xs outline-none"
-                        >
+                      <div className="space-y-1.5">
+                        <label className="block text-[13px] font-semibold text-slate-700">Phòng ngủ</label>
+                        <select value={rBedrooms} onChange={(e) => setRBedrooms(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 cursor-pointer transition-all">
                           <option value="1">1 phòng</option>
                           <option value="2">2 phòng</option>
                           <option value="3">3 phòng+</option>
@@ -768,131 +690,87 @@ export default function PostListingModal({
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Mô tả phòng tắm & WC</label>
-                      <input
-                        type="text"
-                        value={rWc}
-                        onChange={(e) => setRWc(e.target.value)}
-                        placeholder="Ví dụ: WC riêng khép kín, sạch sẽ"
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none"
-                      />
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Phòng tắm &amp; WC</label>
+                      <input type="text" value={rWc} onChange={(e) => setRWc(e.target.value)} placeholder="WC riêng khép kín, sạch sẽ"
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
                     </div>
-
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Mô tả khu vực nấu ăn</label>
-                      <input
-                        type="text"
-                        value={rKitchen}
-                        onChange={(e) => setRKitchen(e.target.value)}
-                        placeholder="Phần nấu ăn: Bếp riêng, Bếp chung biệt lập..."
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none"
-                      />
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Khu vực nấu ăn</label>
+                      <input type="text" value={rKitchen} onChange={(e) => setRKitchen(e.target.value)} placeholder="Bếp riêng, Bếp chung biệt lập..."
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Giá điện sinh hoạt</label>
-                      <input
-                        type="text"
-                        value={rPriceElectricity}
-                        onChange={(e) => setRPriceElectricity(e.target.value)}
-                        placeholder="Ví dụ: 3.500d/kWh hoặc giá nhà nước"
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none"
-                      />
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Giá điện sinh hoạt</label>
+                      <input type="text" value={rPriceElectricity} onChange={(e) => setRPriceElectricity(e.target.value)} placeholder="3.500đ/kWh hoặc giá nhà nước"
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
                     </div>
-
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Giá nước sinh hoạt</label>
-                      <input
-                        type="text"
-                        value={rPriceWater}
-                        onChange={(e) => setRPriceWater(e.target.value)}
-                        placeholder="Ví dụ: 10.000d/khối hoặc 50.000đ/tháng/người"
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none"
-                      />
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Giá nước sinh hoạt</label>
+                      <input type="text" value={rPriceWater} onChange={(e) => setRPriceWater(e.target.value)} placeholder="10.000đ/m3 hoặc 50.000đ/người/tháng"
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
                     </div>
                   </div>
                 </div>
 
-                {/* Section 3: Target Roommate requirements */}
-                <div className="space-y-4">
-                  <h4 className="text-xs font-bold text-[#006590] uppercase tracking-wider border-b border-sky-100 pb-2">👥 TIÊU CHUẨN TÌM BẠN Ở GHÉP CÙNG</h4>
+                {/* Section 3: Roommate criteria */}
+                <div className="rounded-2xl border border-slate-150 bg-white p-5 space-y-4">
+                  <div className="pb-3 border-b border-slate-100">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Tiêu chuẩn bạn ở ghép</p>
+                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Giới tính bạn ở ghép mong muốn</label>
-                      <select
-                        value={rGenderTarget}
-                        onChange={(e) => setRGenderTarget(e.target.value as any)}
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none"
-                      >
-                        <option value="Tất cả">Mọi giới tính (Tất cả)</option>
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Giới tính mong muốn</label>
+                      <select value={rGenderTarget} onChange={(e) => setRGenderTarget(e.target.value as any)}
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all cursor-pointer">
+                        <option value="Tất cả">Mọi giới tính</option>
                         <option value="Nam">Nam</option>
                         <option value="Nữ">Nữ</option>
                         <option value="LGBT">LGBT</option>
                       </select>
                     </div>
-
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Quy định nuôi thú cưng</label>
-                      <select
-                        value={rPets}
-                        onChange={(e) => setRPets(e.target.value as any)}
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none"
-                      >
-                        <option value="thoải mái">Cho nuôi thú cưng (Thoải mái)</option>
-                        <option value="không cho nuôi">Nghiêm cấm cấm nuôi thú cưng</option>
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Quy định thú cưng</label>
+                      <select value={rPets} onChange={(e) => setRPets(e.target.value as any)}
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all cursor-pointer">
+                        <option value="thoải mái">Cho nuôi thú cưng</option>
+                        <option value="không cho nuôi">Không cho nuôi</option>
                       </select>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Mô tả cụ thể thói quen/yêu cầu roommate mong muốn</label>
-                    <textarea
-                      rows={3}
-                      value={rRoommateInfo}
-                      onChange={(e) => setRRoommateInfo(e.target.value)}
-                      placeholder="Ý kiến của bạn về roommate của mình (Ví dụ: Thích gọn gàng, sòng phẳng, thấu hiểu, tôn trọng giấc ngủ của người còn lại)."
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-3 text-xs outline-none resize-none"
-                    />
+                  <div className="space-y-1.5">
+                    <label className="block text-[13px] font-semibold text-slate-700">Yêu cầu về roommate</label>
+                    <textarea rows={3} value={rRoommateInfo} onChange={(e) => setRRoommateInfo(e.target.value)}
+                      placeholder="Thích gọn gàng, sòng phẳng, thấu hiểu, tôn trọng giấc ngủ của người còn lại..."
+                      className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 resize-none transition-all placeholder:text-slate-300" />
                   </div>
 
-                  {/* Amenities switches */}
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-black tracking-wide text-slate-400 uppercase">⚡️ TRANG BỊ TIỆN NGHI SẴN CÓ</label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                      {Object.keys(rAmenities).map((key) => {
-                        const amKey = key as keyof typeof rAmenities;
+                  {/* Amenities */}
+                  <div className="space-y-3">
+                    <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">Tiện nghi sẵn có</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {(Object.keys(rAmenities) as Array<keyof typeof rAmenities>).map((key) => {
                         const labelsMap: Record<string, string> = {
-                          dieuhoa: "Điều hòa lạnh",
-                          maygiat: "Máy giặt dùng",
-                          nhabep: "Khu vực bếp",
-                          wifi: "Mạng internet wifi",
-                          tulanh: "Bình tủ lạnh",
-                          tv: "Có tivi",
-                          baove: "Bảo an trực 24h",
-                          baigieuxe: "Nhà để xe"
+                          dieuhoa: "Điều hòa", maygiat: "Máy giặt", nhabep: "Khu bếp", wifi: "Wifi",
+                          tulanh: "Tủ lạnh", tv: "Tivi", baove: "Bảo vệ 24h", baigieuxe: "Để xe"
                         };
-                        const active = rAmenities[amKey];
+                        const active = rAmenities[key];
                         return (
-                          <button
-                            key={amKey}
-                            type="button"
-                            onClick={() => handleAmenityChange(amKey)}
-                            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-[11px] font-extrabold duration-150 cursor-pointer ${
-                              active
-                                ? "bg-[#006590]/15 border-[#006590] text-[#006590]"
-                                : "bg-slate-50 border-slate-150 text-slate-500 hover:bg-slate-100"
-                            }`}
-                          >
-                            <span className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-white ${
+                          <button key={key} type="button" onClick={() => handleAmenityChange(key)}
+                            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-[13px] font-semibold duration-150 cursor-pointer transition-all ${
+                              active ? "bg-[#006590]/10 border-[#006590]/40 text-[#006590]" : "bg-slate-50 border-slate-200 text-slate-500 hover:border-slate-300"
+                            }`}>
+                            <span className={`w-4 h-4 rounded-md flex items-center justify-center border shrink-0 transition-all ${
                               active ? "bg-[#006590] border-[#006590]" : "bg-white border-slate-300"
                             }`}>
-                              {active && <Check className="h-2 w-2 stroke-[4px]" />}
+                              {active && <Check className="h-2.5 w-2.5 text-white stroke-[3px]" />}
                             </span>
-                            {labelsMap[amKey]}
+                            {labelsMap[key]}
                           </button>
                         );
                       })}
@@ -900,75 +778,48 @@ export default function PostListingModal({
                   </div>
                 </div>
 
-                {/* Section 4: Host profile info & Description */}
-                <div className="space-y-4">
-                  <h4 className="text-xs font-bold text-[#006590] uppercase tracking-wider border-b border-sky-100 pb-2">✏️ THÔNG TIN NGƯỜI ĐĂNG & MÔ TẢ PHÒNG</h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Tên người đăng tin phòng trọ <span className="text-red-500">*</span></label>
-                      <input
-                        type="text"
-                        required
-                        value={rHostName}
-                        onChange={(e) => setRHostName(e.target.value)}
-                        placeholder="Họ tên của bạn (Ví dụ: Khánh Linh)"
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Họ tên/Vai trò</label>
-                      <input
-                        type="text"
-                        value={rHostRole}
-                        onChange={(e) => setRHostRole(e.target.value)}
-                        placeholder="Ví dụ: Sinh viên Đại học / Chủ phòng trọ"
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none"
-                      />
-                    </div>
+                {/* Section 4: Host info */}
+                <div className="rounded-2xl border border-slate-150 bg-white p-5 space-y-4">
+                  <div className="pb-3 border-b border-slate-100">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Thông tin người đăng &amp; mô tả phòng</p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Số điện thoại liên hệ trực tiếp <span className="text-red-500">*</span></label>
-                      <input
-                        type="text"
-                        required
-                        value={rPhone}
-                        onChange={(e) => setRPhone(e.target.value)}
-                        placeholder="Số zalo/SĐT liên lạc: 09xx xxx xxx"
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-2.5 text-xs outline-none font-bold"
-                      />
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Tên người đăng <span className="text-rose-500">*</span></label>
+                      <input type="text" required value={rHostName} onChange={(e) => setRHostName(e.target.value)} placeholder="VD: Khánh Linh"
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Vai trò</label>
+                      <input type="text" value={rHostRole} onChange={(e) => setRHostRole(e.target.value)} placeholder="Sinh viên / Chủ phòng trọ"
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-500 mb-1.5">Mô tả đầy đủ chi tiết hơn về căn phòng</label>
-                    <textarea
-                      rows={3}
-                      value={rDescription}
-                      onChange={(e) => setRDescription(e.target.value)}
-                      placeholder="Chúng mình cho thuê căn phòng rộng 25m2, có cửa sổ lớn đón gió, giờ giấc tự do không chung chủ, có kho giữ xe máy, tiền điện tính theo công tơ..."
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-4 py-3 text-xs outline-none resize-none"
-                    />
+                  <div className="space-y-1.5">
+                    <label className="block text-[13px] font-semibold text-slate-700">Số điện thoại liên hệ <span className="text-rose-500">*</span></label>
+                    <input type="text" required value={rPhone} onChange={(e) => setRPhone(e.target.value)} placeholder="09xx xxx xxx"
+                      className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] font-bold outline-none text-slate-800 transition-all placeholder:text-slate-300 placeholder:font-normal" />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[13px] font-semibold text-slate-700">Mô tả chi tiết căn phòng</label>
+                    <textarea rows={4} value={rDescription} onChange={(e) => setRDescription(e.target.value)}
+                      placeholder="Phòng rộng 25m2, cửa sổ lớn đón gió, giờ giấc tự do không chung chủ, có kho giữ xe máy, tiền điện tính theo công tơ..."
+                      className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 resize-none transition-all placeholder:text-slate-300" />
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="px-6 py-3 border border-slate-200 hover:bg-slate-50 font-bold rounded-full text-xs text-slate-500 duration-150 cursor-pointer"
-                  >
+                <div className="flex justify-end gap-3 pt-2">
+                  <button type="button" onClick={onClose}
+                    className="px-6 py-3 border border-slate-200 hover:bg-slate-50 font-semibold rounded-full text-sm text-slate-500 duration-150 cursor-pointer">
                     Hủy bỏ
                   </button>
-                  <button
-                    type="submit"
-                    className="px-8 py-3 bg-[#006590] hover:bg-[#005176] font-extrabold rounded-full text-xs text-white duration-150 cursor-pointer shadow-md flex items-center gap-2"
-                  >
+                  <button type="submit"
+                    className="px-8 py-3 bg-[#006590] hover:bg-[#005176] font-bold rounded-full text-sm text-white duration-150 cursor-pointer shadow-md flex items-center gap-2">
                     <Plus className="h-4 w-4" />
-                    Đăng tin phòng trọ
+                    {editingData ? "Cập nhật tin phòng trọ" : "Đăng tin phòng trọ"}
                   </button>
                 </div>
               </form>
@@ -977,6 +828,7 @@ export default function PostListingModal({
           </div>
         )}
 
+        </div>
       </div>
     </div>
   );

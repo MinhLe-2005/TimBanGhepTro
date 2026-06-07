@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { INITIAL_ROOMMATES, INITIAL_ROOMS, SUGGGESTED_CHATS } from "./data";
 import { Roommate, Room } from "./types";
-
+import { supabase } from "./lib/supabase";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import HomeView from "./components/HomeView";
@@ -9,6 +9,8 @@ import RoommatesView from "./components/RoommatesView";
 import RoomsView from "./components/RoomsView";
 import ChatView from "./components/ChatView";
 import AgreementView from "./components/AgreementView";
+import HistoryView from "./components/HistoryView";
+import InfoView from "./components/InfoView";
 
 import RoommateModal from "./components/RoommateModal";
 import RoomModal from "./components/RoomModal";
@@ -17,13 +19,94 @@ import LoginModal from "./components/LoginModal";
 import PostListingModal from "./components/PostListingModal";
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<string>("home");
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const hash = window.location.hash.replace("#", "").split("?")[0];
+    return hash && ["home", "roommates", "rooms", "chat", "agreement", "info"].includes(hash) ? hash : "home";
+  });
+  
+  useEffect(() => {
+    const handleGlobalHash = () => {
+      const hash = window.location.hash.replace("#", "").split("?")[0];
+      if (hash && ["home", "roommates", "rooms", "chat", "agreement", "info"].includes(hash)) {
+        setActiveTab(hash);
+      }
+    };
+    window.addEventListener("hashchange", handleGlobalHash);
+    return () => window.removeEventListener("hashchange", handleGlobalHash);
+  }, []);
+  
+  const [globalSearchFilters, setGlobalSearchFilters] = useState<any>(null);
   
   // Authentication states
-  const [currentUser, setCurrentUser] = useState<any>(() => {
-    const saved = localStorage.getItem("roomiematch_user");
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setCurrentUser({
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.user_metadata?.full_name || "Thành viên Roomie",
+          avatar: session.user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop",
+        });
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setCurrentUser({
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.user_metadata?.full_name || "Thành viên Roomie",
+          avatar: session.user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop",
+        });
+      } else {
+        setCurrentUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Fetch data from Supabase
+  useEffect(() => {
+    const fetchSupabaseData = async () => {
+      if (!import.meta.env.VITE_SUPABASE_URL) return; // Fallback to local data if not configured
+
+      try {
+        // Fetch Roommates
+        const { data: roommatesData } = await supabase.from('roommates').select('*');
+        if (roommatesData && roommatesData.length > 0) {
+          const { data: reviewsData } = await supabase.from('reviews').select('*');
+          const enhancedRoommates = roommatesData.map((rm: any) => ({
+            ...rm,
+            reviews: reviewsData?.filter((rev: any) => rev.roommateId === rm.id) || []
+          }));
+          
+          setRoommates(prev => {
+            const saved = localStorage.getItem("roomiematch_posted_roommates");
+            const parsed = saved ? JSON.parse(saved) : [];
+            return [...parsed, ...enhancedRoommates];
+          });
+        }
+
+        // Fetch Rooms
+        const { data: roomsData } = await supabase.from('rooms').select('*');
+        if (roomsData && roomsData.length > 0) {
+          setRooms(prev => {
+            const saved = localStorage.getItem("roomiematch_posted_rooms");
+            const parsed = saved ? JSON.parse(saved) : [];
+            return [...parsed, ...roomsData];
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching from Supabase:", err);
+      }
+    };
+
+    fetchSupabaseData();
+  }, []);
+
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // Persistence for user profile
@@ -31,6 +114,28 @@ export default function App() {
     const saved = localStorage.getItem("roomiematch_user_profile");
     return saved ? JSON.parse(saved) : null;
   });
+
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
+
+  // Listen for unread messages
+  useEffect(() => {
+    if (!currentUserProfile || activeTab === 'chat') return;
+    const sub = supabase.channel('header_messages')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        const newMessage = payload.new;
+        if (newMessage.sender_id !== currentUserProfile.id) {
+          setHasUnreadMessages(true);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(sub); };
+  }, [currentUserProfile, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'chat') {
+      setHasUnreadMessages(false);
+    }
+  }, [activeTab]);
 
   // State lists
   const [roommates, setRoommates] = useState<Roommate[]>(() => {
@@ -47,27 +152,148 @@ export default function App() {
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [postModalInitialTab, setPostModalInitialTab] = useState<"roommate" | "room">("roommate");
 
+  const [editingListingData, setEditingListingData] = useState<any>(null);
+
   const handleOpenPostModal = (tab: "roommate" | "room") => {
+    if (!currentUser) {
+      setIsLoginModalOpen(true);
+      return;
+    }
+    setEditingListingData(null);
     setPostModalInitialTab(tab);
     setIsPostModalOpen(true);
   };
 
-  const handleAddRoom = (newRoom: Room) => {
-    setRooms((prev) => {
-      const updated = [newRoom, ...prev];
-      const customRooms = updated.filter((r) => r.id.startsWith("room-"));
-      localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(customRooms));
-      return updated;
-    });
+  const handleEditRoommate = (roommate: Roommate) => {
+    setEditingListingData(roommate);
+    setPostModalInitialTab("roommate");
+    setIsPostModalOpen(true);
   };
 
-  const handleAddRoommate = (newRoommate: Roommate) => {
-    setRoommates((prev) => {
-      const updated = [newRoommate, ...prev];
-      const customRoommates = updated.filter((r) => r.id.startsWith("rm-"));
-      localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(customRoommates));
+  const handleEditRoom = (room: Room) => {
+    setEditingListingData(room);
+    setPostModalInitialTab("room");
+    setIsPostModalOpen(true);
+  };
+
+  const handleAddRoom = async (newRoom: Room) => {
+    const roomWithOwner = { ...newRoom, postedBy: currentUser?.id || "" };
+    
+    if (editingListingData) {
+      // Optimistic UI Update for Edit
+      const updatedRoom = { ...roomWithOwner, id: editingListingData.id };
+      setRooms((prev) => prev.map(r => r.id === editingListingData.id ? updatedRoom : r));
+      
+      // Local cache update
+      const saved = localStorage.getItem("roomiematch_posted_rooms");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(parsed.map((r: any) => r.id === editingListingData.id ? updatedRoom : r)));
+      }
+
+      // Supabase Update
+      if (import.meta.env.VITE_SUPABASE_URL) {
+        const { error } = await supabase.from('rooms').update(updatedRoom).eq('id', editingListingData.id);
+        if (error) console.error("Error updating room to Supabase:", error);
+      }
+      setEditingListingData(null);
+      return;
+    }
+
+    // Optimistic UI Update for Insert
+    setRooms((prev) => {
+      const updated = [roomWithOwner, ...prev];
       return updated;
     });
+
+    // Local fallback cache
+    const saved = localStorage.getItem("roomiematch_posted_rooms");
+    const parsed = saved ? JSON.parse(saved) : [];
+    localStorage.setItem("roomiematch_posted_rooms", JSON.stringify([roomWithOwner, ...parsed]));
+
+    // Supabase Insert
+    if (import.meta.env.VITE_SUPABASE_URL) {
+      const { error } = await supabase.from('rooms').insert(roomWithOwner);
+      if (error) console.error("Error inserting room to Supabase:", error);
+    }
+  };
+
+  const handleAddRoommate = async (newRoommate: Roommate) => {
+    const roommateWithOwner = { ...newRoommate, postedBy: currentUser?.id || "" };
+    
+    if (editingListingData) {
+      // Optimistic UI Update for Edit
+      const updatedRoommate = { ...roommateWithOwner, id: editingListingData.id };
+      setRoommates((prev) => prev.map(r => r.id === editingListingData.id ? updatedRoommate : r));
+      
+      // Local cache update
+      const saved = localStorage.getItem("roomiematch_posted_roommates");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(parsed.map((r: any) => r.id === editingListingData.id ? updatedRoommate : r)));
+      }
+
+      // Supabase Update
+      if (import.meta.env.VITE_SUPABASE_URL) {
+        const { error } = await supabase.from('roommates').update(updatedRoommate).eq('id', editingListingData.id);
+        if (error) console.error("Error updating roommate to Supabase:", error);
+      }
+      setEditingListingData(null);
+      return;
+    }
+
+    // Optimistic UI Update for Insert
+    setRoommates((prev) => {
+      const updated = [roommateWithOwner, ...prev];
+      return updated;
+    });
+
+    // Local fallback cache
+    const saved = localStorage.getItem("roomiematch_posted_roommates");
+    const parsed = saved ? JSON.parse(saved) : [];
+    localStorage.setItem("roomiematch_posted_roommates", JSON.stringify([roommateWithOwner, ...parsed]));
+
+    // Supabase Insert
+    if (import.meta.env.VITE_SUPABASE_URL) {
+      const { error } = await supabase.from('roommates').insert(roommateWithOwner);
+      if (error) console.error("Error inserting roommate to Supabase:", error);
+    }
+  };
+
+  const handleDeleteRoom = async (id: string) => {
+    // Optimistic UI Update
+    setRooms((prev) => prev.filter((r) => r.id !== id));
+    
+    // Supabase Delete
+    if (import.meta.env.VITE_SUPABASE_URL) {
+      const { error } = await supabase.from('rooms').delete().eq('id', id);
+      if (error) console.error("Error deleting room from Supabase:", error);
+    } else {
+      // Local fallback
+      const saved = localStorage.getItem("roomiematch_posted_rooms");
+      if (saved) {
+        const parsed = JSON.parse(saved).filter((r: any) => r.id !== id);
+        localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(parsed));
+      }
+    }
+  };
+
+  const handleDeleteRoommate = async (id: string) => {
+    // Optimistic UI Update
+    setRoommates((prev) => prev.filter((r) => r.id !== id));
+
+    // Supabase Delete
+    if (import.meta.env.VITE_SUPABASE_URL) {
+      const { error } = await supabase.from('roommates').delete().eq('id', id);
+      if (error) console.error("Error deleting roommate from Supabase:", error);
+    } else {
+      // Local fallback
+      const saved = localStorage.getItem("roomiematch_posted_roommates");
+      if (saved) {
+        const parsed = JSON.parse(saved).filter((r: any) => r.id !== id);
+        localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(parsed));
+      }
+    }
   };
 
   // Saved / Liked states
@@ -81,19 +307,23 @@ export default function App() {
   });
 
   const handleLikeRoommate = (id: string, isLiked: boolean) => {
+    if (!requireAuth()) return false;
     setLikedRoommateIds((prev) => {
       const next = isLiked ? [...prev, id] : prev.filter((x) => x !== id);
       localStorage.setItem("roomiematch_liked_roommates", JSON.stringify(next));
       return next;
     });
+    return true;
   };
 
   const handleLikeRoom = (id: string, isLiked: boolean) => {
+    if (!requireAuth()) return false;
     setLikedRoomIds((prev) => {
       const next = isLiked ? [...prev, id] : prev.filter((x) => x !== id);
       localStorage.setItem("roomiematch_liked_rooms", JSON.stringify(next));
       return next;
     });
+    return true;
   };
 
   // Modal display states
@@ -101,10 +331,118 @@ export default function App() {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
+  const requireAuth = () => {
+    if (!currentUser) {
+      setIsLoginModalOpen(true);
+      return false;
+    }
+    if (!currentUserProfile) {
+      setIsProfileModalOpen(true);
+      return false;
+    }
+    return true;
+  };
+
+  // Sync selectedRoommate when roommates array updates (e.g. new reviews)
+  useEffect(() => {
+    if (selectedRoommate) {
+      const updated = roommates.find(r => r.id === selectedRoommate.id);
+      if (updated && JSON.stringify(updated.reviews) !== JSON.stringify(selectedRoommate.reviews)) {
+        setSelectedRoommate(updated);
+      }
+    }
+  }, [roommates, selectedRoommate]);
+
+  // Browser History & Navigation Management
+  const wasModalOpen = useRef(false);
+
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      const state = event.state;
+      // Close all modals if we navigate back to a non-modal state
+      if (!state?.modal) {
+        setSelectedRoommate(null);
+        setSelectedRoom(null);
+        setIsPostModalOpen(false);
+        setIsProfileModalOpen(false);
+        setIsLoginModalOpen(false);
+        wasModalOpen.current = false;
+      }
+      // Sync active tab with hash
+      const hash = window.location.hash.split("?")[0].replace("#", "");
+      if (hash && ["home", "roommates", "rooms", "chat", "agreement", "info"].includes(hash)) {
+        setActiveTab(hash);
+      } else {
+        setActiveTab("home");
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  // Update URL hash when activeTab changes
+  useEffect(() => {
+    const currentHash = window.location.hash.split("?")[0].replace("#", "");
+    const targetHash = activeTab === "home" ? "" : activeTab;
+    if (currentHash !== targetHash) {
+      window.history.pushState({ tab: activeTab }, "", activeTab === "home" ? window.location.pathname : `#${activeTab}`);
+    }
+  }, [activeTab]);
+
+  // Scroll to top whenever tab changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeTab]);
+
+  // Push state when ANY modal opens
+  useEffect(() => {
+    const isAnyModalOpen = !!(selectedRoommate || selectedRoom || isPostModalOpen || isProfileModalOpen || isLoginModalOpen);
+    if (isAnyModalOpen && !wasModalOpen.current) {
+      window.history.pushState({ modal: true, tab: activeTab }, "", window.location.hash || window.location.pathname);
+      wasModalOpen.current = true;
+    } else if (!isAnyModalOpen && wasModalOpen.current) {
+      wasModalOpen.current = false;
+    }
+  }, [selectedRoommate, selectedRoom, isPostModalOpen, isProfileModalOpen, isLoginModalOpen, activeTab]);
+
+  const handleCloseModal = () => {
+    // If multiple modals are open, close the top-most one and return
+    if (isLoginModalOpen) {
+      setIsLoginModalOpen(false);
+      return;
+    }
+    if (isProfileModalOpen) {
+      setIsProfileModalOpen(false);
+      return;
+    }
+    
+    // If we reach here, it means we are closing the base modal (Roommate, Room, or Post)
+    setSelectedRoommate(null);
+    setSelectedRoom(null);
+    setIsPostModalOpen(false);
+
+    // Now pop the history state since all modals are closed
+    if (window.history.state?.modal) {
+      window.history.back();
+    }
+  };
+
   // Chat coordination
   const [activeChatRoommateId, setActiveChatRoommateId] = useState<string | null>(null);
 
   // Calculate matching scores dynamically if user profile changes
+  const [supabaseReviews, setSupabaseReviews] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      const { data, error } = await supabase.from('reviews').select('*').order('created_at', { ascending: false });
+      if (!error && data) {
+        setSupabaseReviews(data);
+      }
+    };
+    fetchReviews();
+  }, []);
+
   useEffect(() => {
     const saved = localStorage.getItem("roomiematch_posted_roommates");
     const customOnes = saved ? JSON.parse(saved) : [];
@@ -148,129 +486,175 @@ export default function App() {
 
         // Normalization bounds: 65% up to 99%
         const normalized = Math.min(99, Math.max(65, score));
+        
+        // Merge Supabase reviews
+        const dbReviews = supabaseReviews
+          .filter(rev => rev.roommate_id === r.id)
+          .map(rev => ({
+            id: rev.id,
+            reviewerName: rev.reviewer_name,
+            reviewerAvatar: rev.reviewer_avatar,
+            rating: rev.rating,
+            comment: rev.comment,
+            imageUrl: rev.image_url,
+            createdAt: new Date(rev.created_at).toLocaleDateString("vi-VN"),
+          }));
+
+        const isOwner = (currentUser && r.postedBy === currentUser.id) || r.name === currentUserProfile.name;
+
         return {
           ...r,
           matchScore: r.id === "me" ? 100 : normalized,
+          reviews: [...dbReviews, ...(r.reviews || [])],
+          avatar: isOwner ? currentUserProfile.avatar : r.avatar,
+          name: isOwner ? currentUserProfile.name : r.name,
         };
       });
 
       // Sort by match score from largest to smallest
       setRoommates(updated.sort((a, b) => b.matchScore - a.matchScore));
     } else {
-      setRoommates(allCandidates);
+      const updated = allCandidates.map(r => {
+        const dbReviews = supabaseReviews
+          .filter(rev => rev.roommate_id === r.id)
+          .map(rev => ({
+            id: rev.id,
+            reviewerName: rev.reviewer_name,
+            reviewerAvatar: rev.reviewer_avatar,
+            rating: rev.rating,
+            comment: rev.comment,
+            imageUrl: rev.image_url,
+            createdAt: new Date(rev.created_at).toLocaleDateString("vi-VN"),
+          }));
+        return {
+          ...r,
+          reviews: [...dbReviews, ...(r.reviews || [])],
+        };
+      });
+      setRoommates(updated);
     }
-  }, [currentUserProfile, roommates.length]);
+  }, [currentUserProfile, supabaseReviews, currentUser]);
+
+  // Sync rooms with updated profile
+  useEffect(() => {
+    const saved = localStorage.getItem("roomiematch_posted_rooms");
+    const parsed = saved ? JSON.parse(saved) : [];
+    let allRooms = [...parsed, ...INITIAL_ROOMS];
+
+    if (currentUserProfile) {
+      allRooms = allRooms.map(r => {
+        const isOwner = (currentUser && r.postedBy === currentUser.id) || r.hostName === currentUserProfile.name;
+        return {
+          ...r,
+          hostAvatar: isOwner ? currentUserProfile.avatar : r.hostAvatar,
+          hostName: isOwner ? currentUserProfile.name : r.hostName,
+        };
+      });
+    }
+    setRooms(allRooms);
+  }, [currentUserProfile, currentUser]);
 
   const handleSaveProfile = (profile: any) => {
     setCurrentUserProfile(profile);
     localStorage.setItem("roomiematch_user_profile", JSON.stringify(profile));
-    setIsProfileModalOpen(false);
   };
 
   const handleLoginSuccess = (user: any) => {
-    setCurrentUser(user);
-    localStorage.setItem("roomiematch_user", JSON.stringify(user));
-    setIsLoginModalOpen(false);
-
-    // Automatically synchronize or pre-fill roommate profile info if none exists
+    if (window.history.state?.modal) { window.history.back(); } else { setIsLoginModalOpen(false); }
     if (!currentUserProfile) {
-      const defaultProfile = {
-        name: user.name,
-        avatar: user.avatar,
-        email: user.email,
-        age: 21,
-        gender: "Nam",
-        district: "Liên Chiểu",
-        role: "Sinh viên",
-        budget: 2500000,
-        bio: "Xin chào! Mình vừa đăng nhập và đang muốn tìm bạn ở ghép tử tế, thân thiện tại Đà Nẵng.",
-        isVerified: false,
-        status: "chưa tìm được bạn",
-        matchScore: 100,
-        tags: ["Ngủ sớm", "Kín đáo", "Không"],
-        lifestyle: {
-          sleep: "Ngủ sớm",
-          neatness: "Kín đáo",
-          smoke: "Không",
-          cook: "Thường xuyên",
-          pets: "Không nuôi"
-        }
-      };
-      setCurrentUserProfile(defaultProfile);
-      localStorage.setItem("roomiematch_user_profile", JSON.stringify(defaultProfile));
+      setTimeout(() => setIsProfileModalOpen(true), 100);
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setCurrentUser(null);
-    localStorage.removeItem("roomiematch_user");
-    
-    // Reset/clear current local profile matching details as well
     setCurrentUserProfile(null);
     localStorage.removeItem("roomiematch_user_profile");
   };
 
   const startChatConversation = (roommateId: string) => {
-    setSelectedRoommate(null);
+    if (!requireAuth()) return;
+    if (window.history.state?.modal) { window.history.back(); } else { setSelectedRoommate(null); setSelectedRoom(null); }
     setActiveChatRoommateId(roommateId);
-    setActiveTab("chat");
+    setTimeout(() => setActiveTab("chat"), 50);
   };
 
   const startAgreementForm = (roommateId: string) => {
-    setSelectedRoommate(null);
+    if (!requireAuth()) return;
+    if (window.history.state?.modal) { window.history.back(); } else { setSelectedRoommate(null); setSelectedRoom(null); }
     setActiveChatRoommateId(roommateId);
-    setActiveTab("agreement");
+    setTimeout(() => setActiveTab("agreement"), 50);
   };
 
   const handleRoomInquiry = (hostName: string) => {
-    setSelectedRoom(null);
+    if (!requireAuth()) return;
+    if (window.history.state?.modal) { window.history.back(); } else { setSelectedRoommate(null); setSelectedRoom(null); }
     
     // Find matching roommate profile, or fallback to first roommate
     const matchedRoommate = roommates.find((r) => r.name === hostName) || roommates[0];
     setActiveChatRoommateId(matchedRoommate.id);
-    setActiveTab("chat");
+    setTimeout(() => setActiveTab("chat"), 50);
   };
 
-  const handleAddReview = (roommateId: string, review: { reviewerName: string; rating: number; comment: string; imageUrl?: string }) => {
-    setRoommates((prev) =>
-      prev.map((r) => {
-        if (r.id === roommateId) {
-          const newReview = {
-            id: `rev-${Date.now()}`,
-            reviewerName: review.reviewerName || "Bạn ở ghép ẩn danh",
-            reviewerAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop",
-            rating: review.rating,
-            comment: review.comment,
-            imageUrl: review.imageUrl,
-            createdAt: new Date().toLocaleDateString("vi-VN"),
-          };
-          const updatedReviews = [newReview, ...(r.reviews || [])];
-          
-          let newScore = r.reputationScore;
-          if (review.rating >= 4) {
-            newScore = Math.min(100, r.reputationScore + 1);
-          } else {
-            newScore = Math.max(50, r.reputationScore - 10);
+  const handleAddReview = async (roommateId: string, review: { reviewerName: string; rating: number; comment: string; imageUrl?: string }) => {
+    if (!requireAuth()) return false;
+
+    const newDbReview = {
+      roommate_id: roommateId,
+      reviewer_name: review.reviewerName || "Bạn ở ghép ẩn danh",
+      reviewer_avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop",
+      rating: review.rating,
+      comment: review.comment,
+      image_url: review.imageUrl || null,
+    };
+
+    // 1. Insert into Supabase
+    const { data, error } = await supabase.from('reviews').insert([newDbReview]).select();
+    
+    if (!error && data && data.length > 0) {
+      // 2. Update local supabaseReviews state so it triggers the useEffect to recalculate roommates
+      setSupabaseReviews(prev => [data[0], ...prev]);
+    } else {
+      console.error("Failed to insert review to Supabase", error);
+      // Fallback: update state anyway if Supabase fails (e.g. RLS issues or offline)
+      setRoommates((prev) =>
+        prev.map((r) => {
+          if (r.id === roommateId) {
+            const fallbackReview = {
+              id: `rev-${Date.now()}`,
+              reviewerName: newDbReview.reviewer_name,
+              reviewerAvatar: newDbReview.reviewer_avatar,
+              rating: newDbReview.rating,
+              comment: newDbReview.comment,
+              imageUrl: newDbReview.image_url || undefined,
+              createdAt: new Date().toLocaleDateString("vi-VN"),
+            };
+            const updatedReviews = [fallbackReview, ...(r.reviews || [])];
+            
+            let newScore = r.reputationScore;
+            if (review.rating >= 4) {
+              newScore = Math.min(100, r.reputationScore + 1);
+            } else {
+              newScore = Math.max(50, r.reputationScore - 10);
+            }
+  
+            return {
+              ...r,
+              reviews: updatedReviews,
+              reputationScore: newScore,
+            };
           }
-
-          const updatedRoommate = {
-            ...r,
-            reviews: updatedReviews,
-            reputationScore: newScore,
-          };
-
-          if (selectedRoommate && selectedRoommate.id === roommateId) {
-            setSelectedRoommate(updatedRoommate);
-          }
-
-          return updatedRoommate;
-        }
-        return r;
-      })
-    );
+          return r;
+        })
+      );
+    }
+    return true;
   };
 
   const handleAddRoomReview = (roomId: string, review: { reviewerName: string; rating: number; comment: string; images: string[] }) => {
+    if (!requireAuth()) return false;
+
     setRooms((prev) =>
       prev.map((r) => {
         if (r.id === roomId) {
@@ -298,6 +682,7 @@ export default function App() {
         return r;
       })
     );
+    return true;
   };
 
   // Helper calculating specific category matching details for modal displays
@@ -321,7 +706,14 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f6fafe] to-white flex flex-col justify-between">
+    <div className="min-h-screen bg-[#f0f4f8] relative overflow-x-hidden flex flex-col justify-between">
+      {/* Global Abstract Background Orbs */}
+      <div className="absolute top-0 left-0 w-full h-[1000px] pointer-events-none -z-10">
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[80%] rounded-full bg-rose-200/30 blur-[120px]" />
+        <div className="absolute top-[10%] right-[-10%] w-[50%] h-[70%] rounded-full bg-sky-300/20 blur-[120px]" />
+        <div className="absolute top-[40%] left-[20%] w-[40%] h-[60%] rounded-full bg-indigo-200/20 blur-[120px]" />
+      </div>
+
       {/* 1. Sticky Navigation Header */}
       <Header
         activeTab={activeTab}
@@ -331,10 +723,11 @@ export default function App() {
         currentUser={currentUser}
         onOpenLogin={() => setIsLoginModalOpen(true)}
         onLogout={handleLogout}
+        hasUnreadMessages={hasUnreadMessages}
       />
 
       {/* 2. Primary Tab Contents Display Body */}
-      <main className="max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-grow">
+      <main className="max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 pt-28 pb-12 flex-grow">
         {activeTab === "home" && (
           <HomeView
             roommates={roommates}
@@ -345,8 +738,14 @@ export default function App() {
             onLikeRoom={handleLikeRoom}
             onViewRoommate={setSelectedRoommate}
             onViewRoom={setSelectedRoom}
-            onNavigateToTab={setActiveTab}
+            onNavigateToTab={(tabId, filters) => {
+              if (filters) setGlobalSearchFilters(filters);
+              setActiveTab(tabId);
+            }}
             onStartChat={startChatConversation}
+            currentUserProfile={currentUserProfile}
+            onRequireAuth={() => setIsLoginModalOpen(true)}
+            onOpenCreateProfile={() => setIsProfileModalOpen(true)}
           />
         )}
 
@@ -359,6 +758,11 @@ export default function App() {
             currentUserProfile={currentUserProfile}
             onStartChat={startChatConversation}
             onOpenPostModal={() => handleOpenPostModal("roommate")}
+            onRequireAuth={() => setIsLoginModalOpen(true)}
+            onDeleteRoommate={handleDeleteRoommate}
+            onEditRoommate={handleEditRoommate}
+            currentUserId={currentUser?.id}
+            initialFilters={globalSearchFilters}
           />
         )}
 
@@ -369,6 +773,11 @@ export default function App() {
             onLikeRoom={handleLikeRoom}
             onViewRoom={setSelectedRoom}
             onOpenPostModal={() => handleOpenPostModal("room")}
+            currentUserProfile={currentUserProfile}
+            onRequireAuth={() => setIsLoginModalOpen(true)}
+            onDeleteRoom={handleDeleteRoom}
+            onEditRoom={handleEditRoom}
+            currentUserId={currentUser?.id}
           />
         )}
 
@@ -378,6 +787,9 @@ export default function App() {
             initialChats={SUGGGESTED_CHATS}
             activeRoommateId={activeChatRoommateId}
             setActiveRoommateId={setActiveChatRoommateId}
+            currentUserProfile={currentUserProfile}
+            onRequireAuth={() => setIsLoginModalOpen(true)}
+            onNavigateToTab={setActiveTab}
           />
         )}
 
@@ -386,18 +798,30 @@ export default function App() {
             roommates={roommates}
             currentUserProfile={currentUserProfile}
             preSelectedRoommateId={activeChatRoommateId}
+            onRequireAuth={() => setIsLoginModalOpen(true)}
           />
+        )}
+
+        {activeTab === "history" && (
+          <HistoryView
+            currentUserProfile={currentUserProfile}
+            roommates={roommates}
+          />
+        )}
+
+        {activeTab === "info" && (
+          <InfoView />
         )}
       </main>
 
       {/* 3. Footer Bar Section */}
-      <Footer />
+      <Footer onNavigateToTab={setActiveTab} />
 
       {/* Modals Popup Layers */}
       {selectedRoommate && (
         <RoommateModal
           roommate={selectedRoommate}
-          onClose={() => setSelectedRoommate(null)}
+          onClose={handleCloseModal}
           onStartChat={startChatConversation}
           onStartAgreement={startAgreementForm}
           compatibilityDetails={getCompatibilityDetails(selectedRoommate)}
@@ -408,16 +832,31 @@ export default function App() {
       {selectedRoom && (
         <RoomModal
           room={selectedRoom}
-          onClose={() => setSelectedRoom(null)}
+          onClose={handleCloseModal}
           onInquire={handleRoomInquiry}
           onAddReview={handleAddRoomReview}
           roommates={roommates}
         />
       )}
 
+      {isPostModalOpen && (
+        <PostListingModal
+          isOpen={isPostModalOpen}
+          onClose={() => {
+            setIsPostModalOpen(false);
+            setEditingListingData(null);
+          }}
+          initialTab={postModalInitialTab}
+          onSubmitRoommate={handleAddRoommate}
+          onSubmitRoom={handleAddRoom}
+          currentProfile={currentUserProfile}
+          editingData={editingListingData}
+        />
+      )}
+
       {isProfileModalOpen && (
         <CreateProfileModal
-          onClose={() => setIsProfileModalOpen(false)}
+          onClose={handleCloseModal}
           onSave={handleSaveProfile}
           currentProfile={currentUserProfile}
         />
@@ -425,19 +864,12 @@ export default function App() {
 
       {isLoginModalOpen && (
         <LoginModal
-          onClose={() => setIsLoginModalOpen(false)}
+          onClose={handleCloseModal}
           onLoginSuccess={handleLoginSuccess}
         />
       )}
 
-      {isPostModalOpen && (
-        <PostListingModal
-          onClose={() => setIsPostModalOpen(false)}
-          onAddRoom={handleAddRoom}
-          onAddRoommate={handleAddRoommate}
-          initialTab={postModalInitialTab}
-        />
-      )}
+
     </div>
   );
 }
