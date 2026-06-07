@@ -642,6 +642,8 @@ export default function App() {
     setTimeout(() => setActiveTab("chat"), 50);
   };
 
+
+
   const startAgreementForm = async (roommateId: string) => {
     const isAuth = await requireAuth();
     if (!isAuth) return;
@@ -902,6 +904,15 @@ export default function App() {
           compatibilityDetails={getCompatibilityDetails(selectedRoommate)}
           onAddReview={handleAddReview}
           isOwnProfile={!!currentUser && ((selectedRoommate.postedBy === currentUser.id) || (currentUserProfile && selectedRoommate.name === currentUserProfile.name))}
+          onDeleteProfile={(id) => {
+            handleDeleteRoommate(id);
+            if (currentUserProfile && currentUserProfile.id === id) {
+              setCurrentUserProfile(null);
+              localStorage.removeItem("roomiematch_user_profile");
+            }
+            setSelectedRoommate(null);
+            alert("Đã xóa hồ sơ thành công!");
+          }}
         />
       )}
 
@@ -913,6 +924,11 @@ export default function App() {
           onInquire={handleRoomInquiry}
           onAddReview={handleAddRoomReview}
           isOwnProfile={!!currentUser && ((selectedRoom.postedBy === currentUser.id) || (currentUserProfile && selectedRoom.hostName === currentUserProfile.name))}
+          onDeleteRoom={(id) => {
+            handleDeleteRoom(id);
+            setSelectedRoom(null);
+            alert("Đã xóa tin đăng thành công!");
+          }}
         />
       )}
 

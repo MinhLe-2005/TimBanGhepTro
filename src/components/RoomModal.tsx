@@ -8,9 +8,10 @@ interface RoomModalProps {
   onAddReview?: (roomId: string, review: { reviewerName: string; rating: number; comment: string; images: string[] }) => void | boolean | Promise<boolean>;
   roommates?: Roommate[];
   isOwnProfile?: boolean;
+  onDeleteRoom?: (id: string) => void;
 }
 
-export default function RoomModal({ room, onClose, onInquire, onAddReview, roommates = [], isOwnProfile = false }: RoomModalProps) {
+export default function RoomModal({ room, onClose, onInquire, onAddReview, roommates = [], isOwnProfile = false, onDeleteRoom }: RoomModalProps) {
   if (!room) return null;
 
   const hostRoommate = roommates.find(
@@ -641,12 +642,24 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
               </button>
             </>
           ) : (
-            <button
-              onClick={onClose}
-              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-4 px-6 rounded-[16px] font-black active:scale-95 duration-200 text-center cursor-pointer text-[15px] border border-slate-200"
-            >
-              Đóng tin đăng
-            </button>
+            <div className="grid grid-cols-2 gap-3 w-full sm:w-auto mt-4 sm:mt-0">
+              <button
+                onClick={() => {
+                  if (onDeleteRoom && window.confirm("Bạn có chắc chắn muốn xóa tin đăng này? Hành động này không thể hoàn tác.")) {
+                    onDeleteRoom(room.id);
+                  }
+                }}
+                className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-3.5 px-8 rounded-[16px] font-black active:scale-95 duration-200 cursor-pointer border border-red-100 text-[15px]"
+              >
+                Xóa tin đăng
+              </button>
+              <button
+                onClick={onClose}
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3.5 px-8 rounded-[16px] font-black active:scale-95 duration-200 cursor-pointer border border-slate-200 text-[15px]"
+              >
+                Đóng
+              </button>
+            </div>
           )}
         </div>
             </div>
