@@ -238,7 +238,7 @@ export default function App() {
       if (import.meta.env.VITE_SUPABASE_URL) {
         const { reviews, ...dbRoom } = updatedRoom;
         let { error } = await supabase.from('rooms').update(dbRoom).eq('id', editingListingData.id);
-        if (error && error.code === 'PGRST204') {
+        if (error && (error.code === 'PGRST204' || error.code === '42703')) {
           const { postedBy, ...dbRoomFallback } = dbRoom;
           error = (await supabase.from('rooms').update(dbRoomFallback).eq('id', editingListingData.id)).error;
         }
@@ -263,7 +263,7 @@ export default function App() {
     if (import.meta.env.VITE_SUPABASE_URL) {
       const { reviews, ...dbRoom } = roomWithOwner;
       let { error } = await supabase.from('rooms').insert(dbRoom);
-      if (error && error.code === 'PGRST204') {
+      if (error && (error.code === 'PGRST204' || error.code === '42703')) {
         const { postedBy, ...dbRoomFallback } = dbRoom;
         error = (await supabase.from('rooms').insert(dbRoomFallback)).error;
       }
@@ -293,7 +293,7 @@ export default function App() {
       if (import.meta.env.VITE_SUPABASE_URL) {
         const { reviews, ...dbRoommate } = updatedRoommate;
         let { error } = await supabase.from('roommates').update(dbRoommate).eq('id', editingListingData.id);
-        if (error && error.code === 'PGRST204') {
+        if (error && (error.code === 'PGRST204' || error.code === '42703')) {
           const { postedBy, ...dbRoommateFallback } = dbRoommate;
           error = (await supabase.from('roommates').update(dbRoommateFallback).eq('id', editingListingData.id)).error;
         }
@@ -318,7 +318,7 @@ export default function App() {
     if (import.meta.env.VITE_SUPABASE_URL) {
       const { reviews, ...dbRoommate } = roommateWithOwner;
       let { error } = await supabase.from('roommates').insert(dbRoommate);
-      if (error && error.code === 'PGRST204') {
+      if (error && (error.code === 'PGRST204' || error.code === '42703')) {
         const { postedBy, ...dbRoommateFallback } = dbRoommate;
         error = (await supabase.from('roommates').insert(dbRoommateFallback)).error;
       }

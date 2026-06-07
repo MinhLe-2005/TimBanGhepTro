@@ -242,7 +242,7 @@ export default function PostListingModal({
       isVerified: true,
       status: rmStatus,
       bio: rmBio || `Chào cả nhà! Mình tên là ${rmName}. Mình đang hoạt động tại khu vực ${rmDistrict} Đà Nẵng và rất mong muốn tìm được một người bạn ở ghép chia sẻ chi phí, có lối sống lành mạnh, sạch sẽ.`,
-      budget: Number(rmBudget),
+      budget: Number(String(rmBudget).replace(/\D/g, "")),
       gender: rmGender,
       majorKhoidoi: rmMajor,
       phoneNumber: rmPhone,
@@ -283,7 +283,7 @@ export default function PostListingModal({
     const newRoom: Room = {
       id: `room-${Date.now()}`,
       title: rTitle,
-      price: Number(rPrice),
+      price: Number(String(rPrice).replace(/\D/g, "")),
       location: `${rAddress}, Quận ${rDistrict}, Đà Nẵng`,
       district: rDistrict,
       type: rType,
