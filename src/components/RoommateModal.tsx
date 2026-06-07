@@ -13,8 +13,8 @@ interface RoommateModalProps {
     smokeMatch: boolean;
     cookMatch: boolean;
     neatMatch: boolean;
-  };
   onAddReview: (roommateId: string, review: { reviewerName: string; rating: number; comment: string; imageUrl?: string }) => void | boolean | Promise<boolean>;
+  isOwnProfile?: boolean;
 }
 
 export default function RoommateModal({
@@ -24,6 +24,7 @@ export default function RoommateModal({
   onStartAgreement,
   compatibilityDetails = { sleepMatch: true, petsMatch: true, smokeMatch: true, cookMatch: true, neatMatch: true },
   onAddReview,
+  isOwnProfile = false,
 }: RoommateModalProps) {
   if (!roommate) return null;
 
@@ -385,6 +386,7 @@ export default function RoommateModal({
             </div>
 
             {/* Submit new Review form */}
+            {(!isOwnProfile) && (
             <form onSubmit={handleReviewSubmit} className="bg-gradient-to-br from-slate-50 to-white border border-slate-200 p-6 rounded-[24px] shadow-[0_2px_12px_rgba(0,0,0,0.02)] space-y-5">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
@@ -465,35 +467,47 @@ export default function RoommateModal({
                 </button>
               </div>
             </form>
+            )}
           </div>
         </div>
 
         {/* Action Button Row */}
         <div className="flex flex-col gap-3 mt-8">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <a
-              href={`tel:${(roommate.phoneNumber || "0987123456").replace(/\s/g, "")}`}
-              className="flex-1 bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 py-3.5 px-6 rounded-2xl font-black transition-all duration-200 flex items-center justify-center gap-2 text-[15px]"
-            >
-              📞 Gọi điện
-            </a>
+          {!isOwnProfile ? (
+            <>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <a
+                  href={`tel:${(roommate.phoneNumber || "0987123456").replace(/\s/g, "")}`}
+                  className="flex-1 bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 py-3.5 px-6 rounded-2xl font-black transition-all duration-200 flex items-center justify-center gap-2 text-[15px]"
+                >
+                  📞 Gọi điện
+                </a>
 
+                <button
+                  onClick={() => onStartChat(roommate.id)}
+                  className="flex-1 bg-[#006590] hover:bg-[#005176] text-white py-3.5 px-6 rounded-2xl font-black shadow-lg shadow-sky-900/20 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 text-[15px]"
+                >
+                  <MessageSquare className="h-5 w-5" />
+                  Nhắn tin ngay
+                </button>
+              </div>
+
+              <button
+                onClick={() => onStartAgreement(roommate.id)}
+                className="w-full bg-[#f6fafe] hover:bg-sky-100/80 text-[#006590] border border-sky-100 py-3.5 px-6 rounded-2xl font-bold active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 text-[15px]"
+              >
+                <FileText className="h-5 w-5" />
+                Tạo thỏa thuận sống chung
+              </button>
+            </>
+          ) : (
             <button
-              onClick={() => onStartChat(roommate.id)}
-              className="flex-1 bg-[#006590] hover:bg-[#005176] text-white py-3.5 px-6 rounded-2xl font-black shadow-lg shadow-sky-900/20 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 text-[15px]"
+              onClick={onClose}
+              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-4 px-6 rounded-[16px] font-black active:scale-95 duration-200 text-center cursor-pointer text-[15px] border border-slate-200"
             >
-              <MessageSquare className="h-5 w-5" />
-              Nhắn tin ngay
+              Đóng hồ sơ
             </button>
-          </div>
-
-          <button
-            onClick={() => onStartAgreement(roommate.id)}
-            className="w-full bg-[#f6fafe] hover:bg-sky-100/80 text-[#006590] border border-sky-100 py-3.5 px-6 rounded-2xl font-bold active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 text-[15px]"
-          >
-            <FileText className="h-5 w-5" />
-            Tạo thỏa thuận sống chung
-          </button>
+          )}
         </div>
         </div>
         </div>

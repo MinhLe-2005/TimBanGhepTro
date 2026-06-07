@@ -5,12 +5,12 @@ import { Room, Roommate } from "../types";
 interface RoomModalProps {
   room: Room | null;
   onClose: () => void;
-  onInquire: (hostName: string) => void;
   onAddReview?: (roomId: string, review: { reviewerName: string; rating: number; comment: string; images: string[] }) => void | boolean | Promise<boolean>;
   roommates?: Roommate[];
+  isOwnProfile?: boolean;
 }
 
-export default function RoomModal({ room, onClose, onInquire, onAddReview, roommates = [] }: RoomModalProps) {
+export default function RoomModal({ room, onClose, onInquire, onAddReview, roommates = [], isOwnProfile = false }: RoomModalProps) {
   if (!room) return null;
 
   const hostRoommate = roommates.find(
@@ -493,7 +493,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
             </div>
 
             {/* Create review input form matching instructions */}
-            {onAddReview && (
+            {(onAddReview && !isOwnProfile) && (
               <div className="bg-white border-2 border-slate-100 rounded-3xl p-5 sm:p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-5">
                 <h5 className="text-[13px] font-black text-[#006590] uppercase tracking-wider flex items-center gap-2">
                   <Star className="h-4 w-4" />
@@ -614,29 +614,40 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
 
         {/* Inquire buttons row */}
         <div className="flex flex-col gap-3 pt-6 mt-2 border-t-2 border-slate-100">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <a
-              href={`tel:${(room.phoneNumber || "0987123456").replace(/\s/g, "")}`}
-              className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-4 px-6 rounded-[16px] font-black shadow-[0_6px_20px_rgba(16,185,129,0.3)] hover:shadow-[0_8px_25px_rgba(16,185,129,0.4)] active:scale-95 duration-200 flex items-center justify-center gap-2.5 cursor-pointer text-center text-[15px]"
-            >
-              <Phone className="h-5 w-5" /> Gọi điện: {room.phoneNumber || "0987 123 456"}
-            </a>
+          {!isOwnProfile ? (
+            <>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <a
+                  href={`tel:${(room.phoneNumber || "0987123456").replace(/\s/g, "")}`}
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-4 px-6 rounded-[16px] font-black shadow-[0_6px_20px_rgba(16,185,129,0.3)] hover:shadow-[0_8px_25px_rgba(16,185,129,0.4)] active:scale-95 duration-200 flex items-center justify-center gap-2.5 cursor-pointer text-center text-[15px]"
+                >
+                  <Phone className="h-5 w-5" /> Gọi điện: {room.phoneNumber || "0987 123 456"}
+                </a>
 
+                <button
+                  onClick={() => onInquire(room.hostName)}
+                  className="flex-1 bg-[#006590] hover:bg-[#004e70] text-white py-4 px-6 rounded-[16px] font-black shadow-[0_6px_20px_rgba(0,101,144,0.3)] hover:shadow-[0_8px_25px_rgba(0,101,144,0.4)] active:scale-95 duration-200 flex items-center justify-center gap-2.5 cursor-pointer text-[15px]"
+                >
+                  <MessageSquare className="h-5 w-5" />
+                  Liên hệ hỏi thông tin
+                </button>
+              </div>
+
+              <button
+                onClick={onClose}
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-4 px-6 rounded-[16px] font-black active:scale-95 duration-200 text-center cursor-pointer text-[15px] border border-slate-200"
+              >
+                Quay lại
+              </button>
+            </>
+          ) : (
             <button
-              onClick={() => onInquire(room.hostName)}
-              className="flex-1 bg-[#006590] hover:bg-[#004e70] text-white py-4 px-6 rounded-[16px] font-black shadow-[0_6px_20px_rgba(0,101,144,0.3)] hover:shadow-[0_8px_25px_rgba(0,101,144,0.4)] active:scale-95 duration-200 flex items-center justify-center gap-2.5 cursor-pointer text-[15px]"
+              onClick={onClose}
+              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-4 px-6 rounded-[16px] font-black active:scale-95 duration-200 text-center cursor-pointer text-[15px] border border-slate-200"
             >
-              <MessageSquare className="h-5 w-5" />
-              Liên hệ hỏi thông tin
+              Đóng tin đăng
             </button>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-4 px-6 rounded-[16px] font-black active:scale-95 duration-200 text-center cursor-pointer text-[15px] border border-slate-200"
-          >
-            Quay lại
-          </button>
+          )}
         </div>
             </div>
           </div>

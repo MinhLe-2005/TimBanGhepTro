@@ -875,16 +875,18 @@ export default function App() {
           onStartAgreement={startAgreementForm}
           compatibilityDetails={getCompatibilityDetails(selectedRoommate)}
           onAddReview={handleAddReview}
+          isOwnProfile={!!currentUser && ((selectedRoommate.postedBy === currentUser.id) || (currentUserProfile && selectedRoommate.name === currentUserProfile.name))}
         />
       )}
 
       {selectedRoom && (
         <RoomModal
           room={selectedRoom}
+          roommates={roommates}
           onClose={handleCloseModal}
           onInquire={handleRoomInquiry}
           onAddReview={handleAddRoomReview}
-          roommates={roommates}
+          isOwnProfile={!!currentUser && ((selectedRoom.postedBy === currentUser.id) || (currentUserProfile && selectedRoom.hostName === currentUserProfile.name))}
         />
       )}
 
