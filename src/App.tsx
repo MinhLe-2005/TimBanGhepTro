@@ -215,8 +215,12 @@ export default function App() {
 
       // Supabase Update
       if (import.meta.env.VITE_SUPABASE_URL) {
-        const { reviews, postedBy, ...dbRoom } = updatedRoom;
-        const { error } = await supabase.from('rooms').update(dbRoom).eq('id', editingListingData.id);
+        const { reviews, ...dbRoom } = updatedRoom;
+        let { error } = await supabase.from('rooms').update(dbRoom).eq('id', editingListingData.id);
+        if (error && error.code === 'PGRST204') {
+          const { postedBy, ...dbRoomFallback } = dbRoom;
+          error = (await supabase.from('rooms').update(dbRoomFallback).eq('id', editingListingData.id)).error;
+        }
         if (error) console.error("Error updating room to Supabase:", error);
       }
       setEditingListingData(null);
@@ -236,8 +240,12 @@ export default function App() {
 
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
-      const { reviews, postedBy, ...dbRoom } = roomWithOwner;
-      const { error } = await supabase.from('rooms').insert(dbRoom);
+      const { reviews, ...dbRoom } = roomWithOwner;
+      let { error } = await supabase.from('rooms').insert(dbRoom);
+      if (error && error.code === 'PGRST204') {
+        const { postedBy, ...dbRoomFallback } = dbRoom;
+        error = (await supabase.from('rooms').insert(dbRoomFallback)).error;
+      }
       if (error) console.error("Error inserting room to Supabase:", error);
     }
   };
@@ -259,8 +267,12 @@ export default function App() {
 
       // Supabase Update
       if (import.meta.env.VITE_SUPABASE_URL) {
-        const { reviews, postedBy, ...dbRoommate } = updatedRoommate;
-        const { error } = await supabase.from('roommates').update(dbRoommate).eq('id', editingListingData.id);
+        const { reviews, ...dbRoommate } = updatedRoommate;
+        let { error } = await supabase.from('roommates').update(dbRoommate).eq('id', editingListingData.id);
+        if (error && error.code === 'PGRST204') {
+          const { postedBy, ...dbRoommateFallback } = dbRoommate;
+          error = (await supabase.from('roommates').update(dbRoommateFallback).eq('id', editingListingData.id)).error;
+        }
         if (error) console.error("Error updating roommate to Supabase:", error);
       }
       setEditingListingData(null);
@@ -280,8 +292,12 @@ export default function App() {
 
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
-      const { reviews, postedBy, ...dbRoommate } = roommateWithOwner;
-      const { error } = await supabase.from('roommates').insert(dbRoommate);
+      const { reviews, ...dbRoommate } = roommateWithOwner;
+      let { error } = await supabase.from('roommates').insert(dbRoommate);
+      if (error && error.code === 'PGRST204') {
+        const { postedBy, ...dbRoommateFallback } = dbRoommate;
+        error = (await supabase.from('roommates').insert(dbRoommateFallback)).error;
+      }
       if (error) console.error("Error inserting roommate to Supabase:", error);
     }
   };
@@ -491,7 +507,14 @@ export default function App() {
     const initialIds = INITIAL_ROOMMATES.map(r => r.id);
     const filteredSupabase = supabaseRoommates.filter(r => !initialIds.includes(r.id));
     
-    const allCandidates = [...customOnes, ...filteredSupabase, ...INITIAL_ROOMMATES];
+    const allCandidatesRaw = [...customOnes, ...filteredSupabase, ...INITIAL_ROOMMATES];
+    const uniqueCandidatesMap = new Map();
+    allCandidatesRaw.forEach(r => {
+      if (!uniqueCandidatesMap.has(r.id)) {
+        uniqueCandidatesMap.set(r.id, r);
+      }
+    });
+    const allCandidates = Array.from(uniqueCandidatesMap.values());
 
     if (currentUserProfile) {
       const updated = allCandidates.map((r) => {
@@ -589,7 +612,14 @@ export default function App() {
     const initialRoomIds = INITIAL_ROOMS.map(r => r.id);
     const filteredSupabaseRooms = supabaseRooms.filter(r => !initialRoomIds.includes(r.id));
     
-    let allRooms = [...parsed, ...filteredSupabaseRooms, ...INITIAL_ROOMS];
+    const allRoomsRaw = [...parsed, ...filteredSupabaseRooms, ...INITIAL_ROOMS];
+    const uniqueRoomsMap = new Map();
+    allRoomsRaw.forEach(r => {
+      if (!uniqueRoomsMap.has(r.id)) {
+        uniqueRoomsMap.set(r.id, r);
+      }
+    });
+    let allRooms = Array.from(uniqueRoomsMap.values());
 
     if (currentUserProfile) {
       allRooms = allRooms.map(r => {
