@@ -368,10 +368,10 @@ export default function App() {
         setIsLoginModalOpen(false);
         wasModalOpen.current = false;
       }
-      // Sync active tab with hash
-      const hash = window.location.hash.split("?")[0].replace("#", "");
-      if (hash && ["home", "roommates", "rooms", "chat", "agreement", "info"].includes(hash)) {
-        setActiveTab(hash);
+      // Sync active tab with pathname
+      const path = window.location.pathname.replace(/^\/+/, "");
+      if (path && ["home", "roommates", "rooms", "chat", "agreement", "history", "info"].includes(path)) {
+        setActiveTab(path);
       } else {
         setActiveTab("home");
       }
@@ -380,12 +380,12 @@ export default function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  // Update URL hash when activeTab changes
+  // Update URL pathname when activeTab changes
   useEffect(() => {
-    const currentHash = window.location.hash.split("?")[0].replace("#", "");
-    const targetHash = activeTab === "home" ? "" : activeTab;
-    if (currentHash !== targetHash) {
-      window.history.pushState({ tab: activeTab }, "", activeTab === "home" ? window.location.pathname : `#${activeTab}`);
+    const currentPath = window.location.pathname.replace(/^\/+/, "");
+    const targetPath = activeTab === "home" ? "" : activeTab;
+    if (currentPath !== targetPath) {
+      window.history.pushState({ tab: activeTab }, "", `/${targetPath}`);
     }
   }, [activeTab]);
 
@@ -398,7 +398,7 @@ export default function App() {
   useEffect(() => {
     const isAnyModalOpen = !!(selectedRoommate || selectedRoom || isPostModalOpen || isProfileModalOpen || isLoginModalOpen);
     if (isAnyModalOpen && !wasModalOpen.current) {
-      window.history.pushState({ modal: true, tab: activeTab }, "", window.location.hash || window.location.pathname);
+      window.history.pushState({ modal: true, tab: activeTab }, "", window.location.pathname);
       wasModalOpen.current = true;
     } else if (!isAnyModalOpen && wasModalOpen.current) {
       wasModalOpen.current = false;
