@@ -117,8 +117,21 @@ export default function App() {
 
   // Auto-sync profile when logging in or refreshing
   useEffect(() => {
-    if (currentUser && !currentUserProfile && supabaseRoommates.length > 0) {
-      const myProfile = supabaseRoommates.find((r: any) => r.postedBy === currentUser.id);
+    if (currentUser && !currentUserProfile) {
+      let myProfile = null;
+      if (supabaseRoommates.length > 0) {
+        myProfile = supabaseRoommates.find((r: any) => r.postedBy === currentUser.id);
+      }
+      if (!myProfile) {
+        try {
+          const mapStr = localStorage.getItem("roomiematch_profiles_map") || "{}";
+          const map = JSON.parse(mapStr);
+          if (map[currentUser.id]) {
+            myProfile = map[currentUser.id];
+          }
+        } catch(e) {}
+      }
+      
       if (myProfile) {
         setCurrentUserProfile(myProfile);
         localStorage.setItem("roomiematch_user_profile", JSON.stringify(myProfile));
@@ -637,6 +650,16 @@ export default function App() {
   const handleSaveProfile = (profile: any) => {
     setCurrentUserProfile(profile);
     localStorage.setItem("roomiematch_user_profile", JSON.stringify(profile));
+    
+    // Save to a persistent map by user ID as a fallback if Supabase postedBy is missing
+    if (currentUser?.id) {
+       try {
+         const mapStr = localStorage.getItem("roomiematch_profiles_map") || "{}";
+         const map = JSON.parse(mapStr);
+         map[currentUser.id] = profile;
+         localStorage.setItem("roomiematch_profiles_map", JSON.stringify(map));
+       } catch(e) {}
+    }
   };
 
   const handleLoginSuccess = async (user: any) => {
@@ -644,11 +667,23 @@ export default function App() {
     
     let hasProfile = false;
     if (user && user.id) {
+      // 1. Try Supabase
       const { data } = await supabase.from('roommates').select('*').eq('postedBy', user.id).maybeSingle();
       if (data) {
         hasProfile = true;
         setCurrentUserProfile(data);
         localStorage.setItem("roomiematch_user_profile", JSON.stringify(data));
+      } else {
+        // 2. Try Local Fallback
+        try {
+          const mapStr = localStorage.getItem("roomiematch_profiles_map") || "{}";
+          const map = JSON.parse(mapStr);
+          if (map[user.id]) {
+            hasProfile = true;
+            setCurrentUserProfile(map[user.id]);
+            localStorage.setItem("roomiematch_user_profile", JSON.stringify(map[user.id]));
+          }
+        } catch(e) {}
       }
     }
 
