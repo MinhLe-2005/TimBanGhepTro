@@ -834,6 +834,8 @@ export default function App() {
             onRequireAuth={requireAuth}
             onRequireProfile={() => setIsProfileModalOpen(true)}
             onNavigateToTab={setActiveTab}
+            onStartAgreement={startAgreementForm}
+            onViewProfile={(id) => setSelectedRoommate(roommates.find(r => r.id === id) || null)}
           />
         )}
 

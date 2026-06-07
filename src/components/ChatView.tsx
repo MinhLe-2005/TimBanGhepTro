@@ -13,6 +13,8 @@ interface ChatViewProps {
   onRequireAuth?: () => void;
   onRequireProfile?: () => void;
   onNavigateToTab?: (tabId: string) => void;
+  onStartAgreement?: (roommateId: string) => void;
+  onViewProfile?: (roommateId: string) => void;
 }
 
 export default function ChatView({
@@ -25,6 +27,8 @@ export default function ChatView({
   onRequireAuth,
   onRequireProfile,
   onNavigateToTab,
+  onStartAgreement,
+  onViewProfile,
 }: ChatViewProps) {
   // Chat records list
   const [chats, setChats] = useState<{ [roommateId: string]: Message[] }>(() => {
@@ -185,6 +189,8 @@ export default function ChatView({
              const ids = msg.chat_id.split('_');
              const partnerId = ids[0] === currentUserProfile.id ? ids[1] : ids[0];
              
+             if (partnerId === currentUserProfile.id) return; // Ignore self chats
+
              if (!conversationMap.has(partnerId)) {
                 const partner = roommates.find(r => r.id === partnerId) || {
                    id: partnerId,
@@ -420,7 +426,7 @@ export default function ChatView({
                   <FileText className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => onNavigateToTab && onNavigateToTab('agreement')}
+                  onClick={() => onStartAgreement ? onStartAgreement(activeRoommate.id) : (onNavigateToTab && onNavigateToTab('agreement'))}
                   className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#006590] to-sky-600 hover:shadow-lg hover:-translate-y-0.5 text-white text-[13px] font-bold transition-all duration-300 cursor-pointer flex items-center gap-2"
                 >
                   <BadgeCheck className="h-4 w-4" />
@@ -586,7 +592,16 @@ export default function ChatView({
                 <img src={activeRoommate.avatar} alt={activeRoommate.name} className="w-full h-full object-cover" />
               </div>
               <h4 className="text-[18px] font-black text-[#0f172a] tracking-tight">{activeRoommate.name}</h4>
-              <p className="text-[12px] text-sky-600 font-extrabold uppercase tracking-widest mt-1 bg-sky-50 inline-block px-3 py-1 rounded-full">{activeRoommate.role}</p>
+              <p className="text-[12px] text-sky-600 font-extrabold uppercase tracking-widest mt-1 bg-sky-50 inline-block px-3 py-1 rounded-full mb-3">{activeRoommate.role}</p>
+              
+              {onViewProfile && (
+                <button 
+                  onClick={() => onViewProfile(activeRoommate.id)}
+                  className="w-full bg-slate-900 hover:bg-[#006590] text-white text-[13px] font-bold py-2.5 rounded-xl transition-colors duration-200 shadow-md cursor-pointer"
+                >
+                  Xem hồ sơ chi tiết
+                </button>
+              )}
             </div>
 
             {/* Private Notes form */}
