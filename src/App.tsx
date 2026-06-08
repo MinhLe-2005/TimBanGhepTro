@@ -79,7 +79,34 @@ export default function App() {
         // 2. Luôn đồng bộ với Supabase roommates table để người khác thấy
         if (import.meta.env.VITE_SUPABASE_URL) {
           try {
-            const { data: profileData, error } = await supabase.from('roommates').select('*').eq('user_id', user.id).maybeSingle();
+            // Try multiple strategies to find profile
+            let profileData = null;
+            let error = null;
+            
+            // Strategy 1: Find by user_id (most reliable)
+            const result1 = await supabase.from('roommates').select('*').eq('user_id', user.id).eq('is_listing', false).maybeSingle();
+            if (result1.data) {
+              profileData = result1.data;
+              console.log('[Auth] Found profile by user_id');
+            }
+            
+            // Strategy 2: Find by id (if profile ID == auth ID)
+            if (!profileData) {
+              const result2 = await supabase.from('roommates').select('*').eq('id', user.id).eq('is_listing', false).maybeSingle();
+              if (result2.data) {
+                profileData = result2.data;
+                console.log('[Auth] Found profile by id');
+              }
+            }
+            
+            // Strategy 3: Find by postedBy (legacy)
+            if (!profileData) {
+              const result3 = await supabase.from('roommates').select('*').eq('postedBy', user.id).eq('is_listing', false).maybeSingle();
+              if (result3.data) {
+                profileData = result3.data;
+                console.log('[Auth] Found profile by postedBy');
+              }
+            }
             
             if (profileData) {
               console.log('[Auth] Loaded profile from Supabase roommates:', profileData.name);
@@ -87,8 +114,11 @@ export default function App() {
               localStorage.setItem("roomiematch_user_profile", JSON.stringify(profileData));
             } else {
               console.log('[Auth] No profile found in Supabase roommates for user:', user.id, '-> User needs to create profile');
+              // Clear stale localStorage profile
+              localStorage.removeItem("roomiematch_user_profile");
+              setCurrentUserProfile(null);
               // DO NOT auto-create! Let user create their own profile
-              // Modal will open automatically via useEffect in lines 190-205
+              // Modal will open automatically via useEffect
             }
           } catch(e) {
             console.error('[Auth] Error syncing profile with Supabase:', e);
