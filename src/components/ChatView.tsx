@@ -109,7 +109,13 @@ export default function ChatView({
     ? (roommates.find((r) => r.id === activeRoommateId || r.user_id === activeRoommateId) || conversations.find(c => c.partner.id === activeRoommateId || c.partner.user_id === activeRoommateId)?.partner)
     : conversations[0]?.partner;
   
-  console.log('[Chat] Active roommate:', activeRoommate?.id, activeRoommate?.name, 'from', activeRoommateId);
+  console.log('[Chat] Active roommate:', {
+    id: activeRoommate?.id,
+    name: activeRoommate?.name,
+    budget: activeRoommate?.budget,
+    lifestyle: activeRoommate?.lifestyle,
+    hasFullData: !!(activeRoommate?.budget && activeRoommate?.lifestyle?.sleep !== 'Bình thường')
+  });
   
   const activeMessages = activeRoommate ? (chats[activeRoommateId!] || chats[activeRoommate.id] || []) : [];
 
@@ -209,6 +215,7 @@ export default function ChatView({
           
           // Map roommates first (priority - has full lifestyle, bio, etc.)
           [...(roommatesById.data || []), ...(roommatesByUserId.data || [])].forEach(r => {
+            console.log('[Chat] Roommate from DB:', r.id, r.name, 'budget:', r.budget, 'lifestyle:', r.lifestyle);
             if (!dbPartnerMap.has(r.id)) dbPartnerMap.set(r.id, r);
             if (r.user_id && !dbPartnerMap.has(r.user_id)) dbPartnerMap.set(r.user_id, r);
           });
