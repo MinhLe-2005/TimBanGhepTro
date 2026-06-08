@@ -278,6 +278,12 @@ export default function App() {
   // Merge local roommates with Supabase roommates (deduplicate by id)
   const allRoommates = useMemo(() => {
     const combined = [...supabaseRoommates, ...roommates];
+    console.log('[App] Merging roommates:', {
+      supabaseCount: supabaseRoommates.length,
+      localCount: roommates.length,
+      combinedCount: combined.length
+    });
+    
     const uniqueMap = new Map();
     combined.forEach(rm => {
       const existing = uniqueMap.get(rm.id);
@@ -286,7 +292,15 @@ export default function App() {
         uniqueMap.set(rm.id, rm);
       }
     });
-    return Array.from(uniqueMap.values());
+    
+    const result = Array.from(uniqueMap.values());
+    console.log('[App] After merge:', {
+      uniqueCount: result.length,
+      listingsCount: result.filter(r => r.is_listing).length,
+      profilesCount: result.filter(r => !r.is_listing).length
+    });
+    
+    return result;
   }, [supabaseRoommates, roommates]);
 
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
