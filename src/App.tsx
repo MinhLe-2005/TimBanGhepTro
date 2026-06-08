@@ -480,7 +480,14 @@ export default function App() {
 
       // Supabase Update
       if (import.meta.env.VITE_SUPABASE_URL) {
-        const { reviews, ...dbRoom } = updatedRoom;
+        const validRoomKeys = ['title', 'price', 'location', 'district', 'type', 'images', 'features', 'isHot', 'status', 'isVerifiedRoom', 'bedrooms', 'wc', 'kitchen', 'hostName', 'hostAvatar', 'description', 'phoneNumber', 'pets', 'gender', 'postedBy', 'user_id', 'createdAt'];
+        const dbRoom: any = {};
+        for (const key of validRoomKeys) {
+          if (updatedRoom[key as keyof Room] !== undefined) {
+            dbRoom[key] = updatedRoom[key as keyof Room];
+          }
+        }
+
         let { error } = await supabase.from('rooms').update(dbRoom).eq('id', editingListingData.id);
         if (error && (error.code === 'PGRST204' || error.code === '42703')) {
           const { postedBy, ...dbRoomFallback } = dbRoom;
@@ -505,7 +512,15 @@ export default function App() {
 
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
-      const { reviews, ...dbRoom } = roomWithOwner;
+      // ✅ Only send columns that actually exist in Supabase table
+      const validRoomKeys = ['id', 'title', 'price', 'location', 'district', 'type', 'images', 'features', 'isHot', 'status', 'isVerifiedRoom', 'bedrooms', 'wc', 'kitchen', 'hostName', 'hostAvatar', 'description', 'phoneNumber', 'pets', 'gender', 'postedBy', 'user_id', 'createdAt'];
+      const dbRoom: any = {};
+      for (const key of validRoomKeys) {
+        if (roomWithOwner[key as keyof Room] !== undefined) {
+          dbRoom[key] = roomWithOwner[key as keyof Room];
+        }
+      }
+
       let { error, data } = await supabase.from('rooms').insert(dbRoom).select();
       if (error && (error.code === 'PGRST204' || error.code === '42703')) {
         const { postedBy, ...dbRoomFallback } = dbRoom;
@@ -517,7 +532,6 @@ export default function App() {
         console.error("Error inserting room to Supabase:", error);
       } else if (data && data.length > 0) {
         console.log("[App] Successfully inserted room to Supabase:", data[0]);
-        // Update Supabase state after successful insert
         setSupabaseRooms((prev) => [data[0], ...prev]);
       }
     }
@@ -549,7 +563,14 @@ export default function App() {
 
       // Supabase Update
       if (import.meta.env.VITE_SUPABASE_URL) {
-        const { reviews, ...dbRoommate } = updatedRoommate;
+        const validRoommateKeys = ['name', 'age', 'role', 'phoneNumber', 'avatar', 'status', 'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags', 'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id', 'is_listing', 'createdAt'];
+        const dbRoommate: any = {};
+        for (const key of validRoommateKeys) {
+          if (updatedRoommate[key as keyof Roommate] !== undefined) {
+            dbRoommate[key] = updatedRoommate[key as keyof Roommate];
+          }
+        }
+
         let { error } = await supabase.from('roommates').update(dbRoommate).eq('id', editingListingData.id);
         if (error && (error.code === 'PGRST204' || error.code === '42703')) {
           const { postedBy, ...dbRoommateFallback } = dbRoommate;
@@ -568,9 +589,16 @@ export default function App() {
 
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
-      const { reviews, ...dbRoommate } = roommateWithOwner;
-      // ✅ Force is_listing = true so it always shows in Tim Ban tab
-      dbRoommate.is_listing = true;
+      // ✅ Only send columns that actually exist in Supabase table
+      const validRoommateKeys = ['id', 'name', 'age', 'role', 'phoneNumber', 'avatar', 'status', 'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags', 'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id', 'is_listing', 'createdAt'];
+      const dbRoommate: any = {};
+      for (const key of validRoommateKeys) {
+        if (roommateWithOwner[key as keyof Roommate] !== undefined) {
+          dbRoommate[key] = roommateWithOwner[key as keyof Roommate];
+        }
+      }
+      dbRoommate.is_listing = true; // Force true for listings
+
       let { error, data } = await supabase.from('roommates').insert(dbRoommate).select();
       if (error && (error.code === 'PGRST204' || error.code === '42703')) {
         const { postedBy, ...dbRoommateFallback } = dbRoommate;
@@ -582,7 +610,6 @@ export default function App() {
         console.error("Error inserting roommate to Supabase:", error);
       } else if (data && data.length > 0) {
         console.log("[App] Successfully inserted roommate to Supabase:", data[0]);
-        // Update Supabase state after successful insert
         setSupabaseRoommates((prev) => [data[0], ...prev]);
       }
     }
@@ -972,13 +999,21 @@ export default function App() {
        // Also sync to Supabase so avatar + changes persist on reload
        if (import.meta.env.VITE_SUPABASE_URL) {
          try {
-           const { reviews, ...dbProfile } = profile as any;
-           const upsertData = {
-             ...dbProfile,
-             user_id: currentUser.id,
-             postedBy: currentUser.id,
-             is_listing: false,
-           };
+           const validRoommateKeys = ['id', 'name', 'age', 'role', 'phoneNumber', 'avatar', 'status', 'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags', 'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id', 'is_listing', 'createdAt'];
+           const upsertData: any = {};
+           for (const key of validRoommateKeys) {
+             if (profile[key as keyof Roommate] !== undefined) {
+               upsertData[key] = profile[key as keyof Roommate];
+             }
+           }
+           upsertData.user_id = currentUser.id;
+           upsertData.postedBy = currentUser.id;
+           upsertData.is_listing = false;
+           // Fallback to current user ID if profile id is missing or 'me'
+           if (!upsertData.id || upsertData.id === 'me') {
+               upsertData.id = currentUser.id;
+           }
+
            await supabase.from('roommates').upsert(upsertData);
            console.log('[Profile] Synced profile update to Supabase');
          } catch(e) {
