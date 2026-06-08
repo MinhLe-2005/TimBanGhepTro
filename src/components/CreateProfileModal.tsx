@@ -102,6 +102,7 @@ export default function CreateProfileModal({
       isVerified: false,
       status,
       matchScore: 100, // Self is 100% matched
+      reputationScore: 0, // FIX: Add missing reputationScore (required by database)
       tags: [sleep, neatness, smoke],
       lifestyle: {
         sleep,
@@ -111,6 +112,7 @@ export default function CreateProfileModal({
         interaction,
         neatness,
       },
+      createdAt: new Date().toISOString(), // FIX: Add createdAt timestamp
     };
 
     // Lưu vào Supabase roommates table (PRIMARY - vì App.tsx query từ đây)
