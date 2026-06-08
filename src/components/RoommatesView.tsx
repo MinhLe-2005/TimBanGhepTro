@@ -33,7 +33,7 @@ export default function RoommatesView({
   initialFilters,
 }: RoommatesViewProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [genderFilter, setGenderFilter] = useState<"Tất cả" | "Nam" | "Nữ" | "LGBT" | "Khác">("Tất cả");
+  const [genderFilter, setGenderFilter] = useState<"Tất cả" | "Nam" | "Nữ" | "Khác">("Tất cả");
   const [sleepFilter, setSleepFilter] = useState("Tất cả");
   const [petsFilter, setPetsFilter] = useState("Tất cả");
   const [districtFilter, setDistrictFilter] = useState("Tất cả");
@@ -241,7 +241,7 @@ export default function RoommatesView({
 
             {/* Gender Filter Tab group */}
             <div className="flex bg-slate-100 border border-slate-200/60 rounded-2xl p-1.5 gap-1 overflow-x-auto shrink-0">
-              {(["Tất cả", "Nam", "Nữ", "LGBT", "Khác"] as const).map((genderVal) => (
+              {(["Tất cả", "Nam", "Nữ", "Khác"] as const).map((genderVal) => (
                 <button
                   key={genderVal}
                   onClick={() => setGenderFilter(genderVal)}

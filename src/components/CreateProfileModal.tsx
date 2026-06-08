@@ -142,16 +142,22 @@ export default function CreateProfileModal({
         if (currentUser?.id) {
           dbProfile.user_id = currentUser.id;
         }
+        
+        // Mark as user profile (NOT a listing that can be deleted)
+        dbProfile.is_listing = false;
 
         const { error: roommatesError } = await supabase.from('roommates').upsert(dbProfile);
         
         if (roommatesError) {
           console.error('[Profile] Error saving to roommates table:', roommatesError);
+          console.warn('[Profile] Continuing without roommates table sync - profile saved to profiles table');
+          // Don't block the flow - profile is already saved to profiles table
         } else {
-          console.log('[Profile] Also saved to roommates table for compatibility');
+          console.log('[Profile] Also saved to roommates table for compatibility (is_listing=false)');
         }
       } catch (err) {
         console.error('[Profile] Exception saving to roommates table:', err);
+        console.warn('[Profile] Continuing without roommates table sync');
       }
     }
 

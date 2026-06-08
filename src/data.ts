@@ -388,7 +388,7 @@ export const INITIAL_ROOMMATES: Roommate[] = [
     isVerified: false,
     bio: "Nhiếp ảnh gia tự do, thường đi săn ảnh ngoại tỉnh cả tuần, khi ở nhà thì thức đêm hậu kỳ ảnh. Tìm roommate nam nghệ sĩ tính, sòng phẳng, thoải mái chuyện nhà cửa.",
     budget: 3200000,
-    gender: "LGBT",
+    gender: "Khác",
     lifestyle: {
       sleep: "Cú đêm",
       pets: "Thoải mái",

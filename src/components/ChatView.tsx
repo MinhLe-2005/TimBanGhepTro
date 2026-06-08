@@ -210,8 +210,8 @@ export default function ChatView({
           
           console.log('[Chat] Fetching profiles for partners:', partnerArr);
           
-          // Batch fetch from all tables simultaneously for speed
-          // Priority: roommates (full data) > profiles (basic data)
+          // Batch fetch ALL fields from roommates table (has full data)
+          // Priority: roommates (full data with budget, lifestyle, bio) > profiles (basic data only)
           const [roommatesById, roommatesByUserId, profilesById, profilesByAuthId] = await Promise.all([
             supabase.from('roommates').select('*').in('id', partnerArr),
             supabase.from('roommates').select('*').in('user_id', partnerArr),
@@ -226,9 +226,16 @@ export default function ChatView({
             profilesByAuthId: profilesByAuthId.data?.length
           });
           
-          // Map roommates first (priority - has full lifestyle, bio, etc.)
+          // Map roommates first (priority - has full lifestyle, bio, budget, etc.)
           [...(roommatesById.data || []), ...(roommatesByUserId.data || [])].forEach(r => {
-            console.log('[Chat] Roommate from DB:', r.id, r.name, 'user_id:', r.user_id);
+            console.log('[Chat] Roommate from DB:', {
+              id: r.id,
+              name: r.name,
+              user_id: r.user_id,
+              budget: r.budget,
+              hasLifestyle: !!r.lifestyle,
+              bio: r.bio?.substring(0, 30)
+            });
             if (!dbPartnerMap.has(r.id)) dbPartnerMap.set(r.id, r);
             if (r.user_id && !dbPartnerMap.has(r.user_id)) dbPartnerMap.set(r.user_id, r);
           });
@@ -259,19 +266,31 @@ export default function ChatView({
           }
           
           if (!partner) {
-            // Default fallback
+            console.warn('[Chat] Partner not found in any table, using fallback for:', partnerId);
+            // Default fallback (should rarely happen)
             partner = { 
               id: partnerId, 
               name: 'Người dùng', 
               avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop', 
               role: 'Thành viên', 
               isVerified: false, 
-              matchScore: 0 
+              matchScore: 0,
+              budget: 0,
+              bio: '',
+              lifestyle: {
+                sleep: 'Bình thường',
+                pets: 'Thoải mái',
+                smoke: 'Không hút thuốc',
+                cook: 'Đôi khi nấu',
+                interaction: 'Cân bằng',
+                neatness: 'Sạch sẽ'
+              }
             };
           }
           
-          // Ensure partner has lifestyle object (required for compatibility)
+          // Ensure partner has complete data structure (defensive coding)
           if (!partner.lifestyle) {
+            console.warn('[Chat] Partner missing lifestyle data, adding defaults for:', partner.name);
             partner.lifestyle = {
               sleep: 'Bình thường',
               pets: 'Thoải mái',
@@ -280,6 +299,15 @@ export default function ChatView({
               interaction: 'Cân bằng',
               neatness: 'Sạch sẽ'
             };
+          }
+          
+          if (!partner.budget) {
+            console.warn('[Chat] Partner missing budget, setting to 0 for:', partner.name);
+            partner.budget = 0;
+          }
+          
+          if (!partner.bio) {
+            partner.bio = '';
           }
           
           // Use auth_id as unique key to prevent duplicates
@@ -311,8 +339,9 @@ export default function ChatView({
           let partner = roommates.find(r => r.id === activeRoommateId || r.user_id === activeRoommateId)
             || dbPartnerMap.get(activeRoommateId);
           if (partner) {
-            // Ensure partner has lifestyle object
+            // Ensure partner has complete data structure
             if (!partner.lifestyle) {
+              console.warn('[Chat] Active partner missing lifestyle, adding defaults');
               partner.lifestyle = {
                 sleep: 'Bình thường',
                 pets: 'Thoải mái',
@@ -321,6 +350,13 @@ export default function ChatView({
                 interaction: 'Cân bằng',
                 neatness: 'Sạch sẽ'
               };
+            }
+            if (!partner.budget) {
+              console.warn('[Chat] Active partner missing budget');
+              partner.budget = 0;
+            }
+            if (!partner.bio) {
+              partner.bio = '';
             }
             
             conversationMap.set(activeRoommateId, {

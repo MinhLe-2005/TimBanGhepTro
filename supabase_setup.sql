@@ -129,3 +129,16 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.reviews;
 
 -- DONE! ✅
 
+
+
+-- ============================================
+-- FIX: Separate user profile from roommate listings
+-- ============================================
+-- Add is_listing field to distinguish between user profiles and roommate listings
+-- is_listing = false → User profile (CANNOT be deleted from listing page)
+-- is_listing = true → Roommate listing (CAN be deleted)
+ALTER TABLE public.roommates ADD COLUMN IF NOT EXISTS is_listing BOOLEAN DEFAULT true;
+
+-- Update existing profiles to mark as user profiles (not listings)
+-- Run this after adding the column to fix existing data
+-- UPDATE roommates SET is_listing = false WHERE user_id IS NOT NULL;

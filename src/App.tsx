@@ -335,7 +335,12 @@ export default function App() {
   };
 
   const handleAddRoommate = async (newRoommate: Roommate) => {
-    const roommateWithOwner = { ...newRoommate, postedBy: currentUser?.id || "", user_id: currentUser?.id || "" };
+    const roommateWithOwner = { 
+      ...newRoommate, 
+      postedBy: currentUser?.id || "", 
+      user_id: currentUser?.id || "",
+      is_listing: true  // Mark as roommate listing (can be deleted)
+    };
     
     if (editingListingData) {
       // Optimistic UI Update for Edit
@@ -416,20 +421,31 @@ export default function App() {
   };
 
   const handleDeleteRoommate = async (id: string) => {
-    // 1. Remove from local fallback
+    // 1. Check if this is a user profile (is_listing = false) - should not be deleted
+    if (import.meta.env.VITE_SUPABASE_URL) {
+      const { data: roommateData } = await supabase.from('roommates').select('is_listing, user_id').eq('id', id).single();
+      
+      if (roommateData && roommateData.is_listing === false) {
+        alert('Không thể xóa hồ sơ cá nhân từ trang này. Hồ sơ cá nhân chỉ có thể chỉnh sửa, không thể xóa.');
+        return;
+      }
+    }
+    
+    // 2. Remove from local fallback
     const saved = localStorage.getItem("roomiematch_posted_roommates");
     if (saved) {
       const parsed = JSON.parse(saved).filter((r: any) => r.id !== id);
       localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(parsed));
     }
 
-    // 2. Remove from Supabase state optimistically
+    // 3. Remove from Supabase state optimistically
     setSupabaseRoommates((prev) => prev.filter((r) => r.id !== id));
 
-    // 3. Supabase Delete
+    // 4. Supabase Delete (only delete if is_listing = true)
     if (import.meta.env.VITE_SUPABASE_URL) {
-      const { error } = await supabase.from('roommates').delete().eq('id', id);
-      if (error) console.error("Error deleting roommate from Supabase:", error);
+      const { error } = await supabase.from('roommates').delete().eq('id', id).eq('is_listing', true);
+      if (error) console.error("Error deleting roommate listing from Supabase:", error);
+      else console.log('[App] Deleted roommate listing (is_listing=true):', id);
     }
   };
 

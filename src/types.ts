@@ -32,7 +32,7 @@ export interface Roommate {
   status?: "Đã có phòng" | "Chưa có phòng";
   bio: string;
   budget: number;
-  gender: "Nam" | "Nữ" | "LGBT" | "Khác";
+  gender: "Nam" | "Nữ" | "Khác";
   majorKhoidoi?: "Khối Kinh tế" | "Khối Kỹ thuật" | "Khối Sư phạm" | "Khối Y Dược" | "Khối Nghệ thuật";
   phoneNumber?: string;
   postedBy?: string; // user ID who posted this listing
@@ -67,7 +67,7 @@ export interface Room {
   description: string;
   phoneNumber?: string;
   pets?: "thoải mái" | "không cho nuôi";
-  gender?: "Nam" | "Nữ" | "LGBT" | "Khác" | "Tất cả";
+  gender?: "Nam" | "Nữ" | "Khác" | "Tất cả";
   reviews?: RoomReview[];
   electricity?: string;
   water?: string;

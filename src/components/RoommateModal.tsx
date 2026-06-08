@@ -92,7 +92,8 @@ export default function RoommateModal({
   const [newImageUrl, setNewImageUrl] = useState("");
   const [formError, setFormError] = useState("");
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number | undefined) => {
+    if (!price || price === 0) return "Chưa cập nhật";
     return (price / 1000000).toFixed(1) + " triệu";
   };
 
@@ -127,6 +128,8 @@ export default function RoommateModal({
   const averageRating = roommate.reviews && roommate.reviews.length > 0
     ? (roommate.reviews.reduce((sum, r) => sum + r.rating, 0) / roommate.reviews.length).toFixed(1)
     : "5.0";
+  
+  const reputationScore = roommate.reputationScore || 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -204,7 +207,9 @@ export default function RoommateModal({
                 <span className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 text-base">🛡️</span>
                 <div className="flex flex-col items-start pr-2">
                   <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider">Mức uy tín</span>
-                  <span className="text-[14px] font-black text-emerald-600 leading-tight mt-0.5">{roommate.reputationScore}% Tốt</span>
+                  <span className="text-[14px] font-black text-emerald-600 leading-tight mt-0.5">
+                    {reputationScore > 0 ? `${reputationScore}% Tốt` : "Chưa đánh giá"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -220,7 +225,13 @@ export default function RoommateModal({
                 GIỚI THIỆU & TIÊU CHÍ
               </div>
               <p className="text-[15px] font-bold text-slate-700 leading-relaxed italic pt-1">
-                "{roommate.bio || `Xin chào! Mình là ${roommate.name}. Mình đang tìm kiếm một người bạn ở ghép có lối sống lành mạnh, sạch sẽ và tôn trọng không gian riêng tư của nhau.`}"
+                {roommate.bio && roommate.bio.trim() ? (
+                  `"${roommate.bio}"`
+                ) : (
+                  <span className="text-slate-400">
+                    Người dùng chưa cập nhật phần giới thiệu cá nhân.
+                  </span>
+                )}
               </p>
             </div>
           </div>

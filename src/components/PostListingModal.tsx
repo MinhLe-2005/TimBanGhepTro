@@ -80,7 +80,7 @@ export default function PostListingModal({
   // ==========================================
   const [rmName, setRmName] = useState("");
   const [rmAge, setRmAge] = useState(21);
-  const [rmGender, setRmGender] = useState<"Nam" | "Nữ" | "LGBT" | "Khác">("Nữ");
+  const [rmGender, setRmGender] = useState<"Nam" | "Nữ" | "Khác">("Nữ");
   const [rmRole, setRmRole] = useState("Sinh viên");
   const [rmMajor, setRmMajor] = useState<"Khối Kinh tế" | "Khối Kỹ thuật" | "Khối Sư phạm" | "Khối Y Dược" | "Khối Nghệ thuật">("Khối Kinh tế");
   const [rmDistrict, setRmDistrict] = useState("Hải Châu");
@@ -117,7 +117,7 @@ export default function PostListingModal({
   const [rPriceElectricity, setRPriceElectricity] = useState("3.500đ/kWh");
   const [rPriceWater, setRPriceWater] = useState("10.000đ/m3");
   const [rPets, setRPets] = useState<"thoải mái" | "không cho nuôi">("thoải mái");
-  const [rGenderTarget, setRGenderTarget] = useState<"Nam" | "Nữ" | "LGBT" | "Khác" | "Tất cả">("Tất cả");
+  const [rGenderTarget, setRGenderTarget] = useState<"Nam" | "Nữ" | "Khác" | "Tất cả">("Tất cả");
   const [rPhone, setRPhone] = useState("");
   const [rDescription, setRDescription] = useState("");
   const [rHostName, setRHostName] = useState("");
