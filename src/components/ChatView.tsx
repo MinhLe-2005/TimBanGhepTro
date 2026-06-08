@@ -195,50 +195,29 @@ export default function ChatView({
           
           console.log('[Chat] Fetching profiles for partners:', partnerArr);
           
-          // 1. Try profiles table first (new system)
-          const { data: profilesData } = await supabase
-            .from('profiles')
-            .select('*')
-            .in('id', partnerArr);
+          // Batch fetch from both tables simultaneously for speed
+          const [profilesById, profilesByAuthId, roommatesById, roommatesByUserId] = await Promise.all([
+            supabase.from('profiles').select('*').in('id', partnerArr),
+            supabase.from('profiles').select('*').in('auth_id', partnerArr),
+            supabase.from('roommates').select('*').in('id', partnerArr),
+            supabase.from('roommates').select('*').in('user_id', partnerArr)
+          ]);
           
-          // Also try with auth_id for backwards compatibility
-          const { data: profilesByAuthId } = await supabase
-            .from('profiles')
-            .select('*')
-            .in('auth_id', partnerArr);
-          
-          [...(profilesData || []), ...(profilesByAuthId || [])].forEach(p => {
-            // Map both by id and auth_id so lookup always works
-            dbPartnerMap.set(p.id, p);
-            if (p.auth_id) dbPartnerMap.set(p.auth_id, p);
+          // Map profiles (priority: profiles table)
+          [...(profilesById.data || []), ...(profilesByAuthId.data || [])].forEach(p => {
+            if (!dbPartnerMap.has(p.id)) dbPartnerMap.set(p.id, p);
+            if (p.auth_id && !dbPartnerMap.has(p.auth_id)) dbPartnerMap.set(p.auth_id, p);
           });
           
           console.log('[Chat] Found in profiles table:', dbPartnerMap.size);
           
-          // 2. Fallback to roommates table for missing partners (old system)
-          const missingPartnerIds = partnerArr.filter(id => !dbPartnerMap.has(id));
-          if (missingPartnerIds.length > 0) {
-            console.log('[Chat] Fetching missing partners from roommates table:', missingPartnerIds);
-            
-            // Try both id and user_id
-            const { data: roommatesById } = await supabase
-              .from('roommates')
-              .select('*')
-              .in('id', missingPartnerIds);
-            
-            const { data: roommatesByUserId } = await supabase
-              .from('roommates')
-              .select('*')
-              .in('user_id', missingPartnerIds);
-            
-            [...(roommatesById || []), ...(roommatesByUserId || [])].forEach(r => {
-              // Map by both id and user_id
-              if (!dbPartnerMap.has(r.id)) dbPartnerMap.set(r.id, r);
-              if (r.user_id && !dbPartnerMap.has(r.user_id)) dbPartnerMap.set(r.user_id, r);
-            });
-            
-            console.log('[Chat] Total profiles after roommates fallback:', dbPartnerMap.size);
-          }
+          // Fallback to roommates for missing
+          [...(roommatesById.data || []), ...(roommatesByUserId.data || [])].forEach(r => {
+            if (!dbPartnerMap.has(r.id)) dbPartnerMap.set(r.id, r);
+            if (r.user_id && !dbPartnerMap.has(r.user_id)) dbPartnerMap.set(r.user_id, r);
+          });
+          
+          console.log('[Chat] Total profiles loaded:', dbPartnerMap.size);
         }
 
         data.forEach(msg => {
@@ -247,9 +226,25 @@ export default function ChatView({
           if (partnerId === myAuthId) return;
 
           if (!conversationMap.has(partnerId)) {
-            const partner = roommates.find(r => r.id === partnerId || r.user_id === partnerId)
-              || dbPartnerMap.get(partnerId)
-              || { id: partnerId, name: 'Người dùng', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop', role: 'Thành viên', isVerified: false, matchScore: 0 };
+            // Try to get partner from: 1. roommates list, 2. Supabase profiles/roommates, 3. default
+            let partner = roommates.find(r => r.id === partnerId || r.user_id === partnerId);
+            
+            if (!partner) {
+              partner = dbPartnerMap.get(partnerId);
+            }
+            
+            if (!partner) {
+              // Default fallback
+              partner = { 
+                id: partnerId, 
+                name: 'Người dùng', 
+                avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop', 
+                role: 'Thành viên', 
+                isVerified: false, 
+                matchScore: 0 
+              };
+            }
+            
             conversationMap.set(partnerId, {
               partner,
               lastMessage: msg.text || 'Đã gửi đính kèm',
@@ -727,7 +722,10 @@ export default function ChatView({
               
               {onViewProfile && (
                 <button 
-                  onClick={() => onViewProfile(activeRoommate.id)}
+                  onClick={() => {
+                    console.log('[Chat] View profile clicked for:', activeRoommate.id, activeRoommate.name);
+                    onViewProfile(activeRoommate.id);
+                  }}
                   className="w-full bg-slate-900 hover:bg-[#006590] text-white text-[13px] font-bold py-2.5 rounded-xl transition-colors duration-200 shadow-md cursor-pointer"
                 >
                   Xem hồ sơ chi tiết
