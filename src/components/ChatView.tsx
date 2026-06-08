@@ -14,7 +14,7 @@ interface ChatViewProps {
   onRequireProfile?: () => void;
   onNavigateToTab?: (tabId: string) => void;
   onStartAgreement?: (roommateId: string) => void;
-  onViewProfile?: (roommateId: string) => void;
+  onViewProfile?: (roommate: any) => void;
 }
 
 export default function ChatView({
@@ -108,6 +108,9 @@ export default function ChatView({
   const activeRoommate = activeRoommateId 
     ? (roommates.find((r) => r.id === activeRoommateId || r.user_id === activeRoommateId) || conversations.find(c => c.partner.id === activeRoommateId || c.partner.user_id === activeRoommateId)?.partner)
     : conversations[0]?.partner;
+  
+  console.log('[Chat] Active roommate:', activeRoommate?.id, activeRoommate?.name, 'from', activeRoommateId);
+  
   const activeMessages = activeRoommate ? (chats[activeRoommateId!] || chats[activeRoommate.id] || []) : [];
 
   
@@ -720,11 +723,12 @@ export default function ChatView({
               <h4 className="text-[18px] font-black text-[#0f172a] tracking-tight">{activeRoommate.name}</h4>
               <p className="text-[12px] text-sky-600 font-extrabold uppercase tracking-widest mt-1 bg-sky-50 inline-block px-3 py-1 rounded-full mb-3">{activeRoommate.role}</p>
               
-              {onViewProfile && (
+              {onViewProfile && activeRoommate && (
                 <button 
                   onClick={() => {
                     console.log('[Chat] View profile clicked for:', activeRoommate.id, activeRoommate.name);
-                    onViewProfile(activeRoommate.id);
+                    // Pass the full activeRoommate object instead of just ID
+                    onViewProfile(activeRoommate);
                   }}
                   className="w-full bg-slate-900 hover:bg-[#006590] text-white text-[13px] font-bold py-2.5 rounded-xl transition-colors duration-200 shadow-md cursor-pointer"
                 >
