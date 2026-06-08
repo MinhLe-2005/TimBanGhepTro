@@ -37,10 +37,14 @@ export default function RoommateModal({
     name: roommate.name,
     budget: roommate.budget,
     bio: roommate.bio,
+    phoneNumber: roommate.phoneNumber,
     lifestyle: roommate.lifestyle,
+    is_listing: roommate.is_listing,
+    postedBy: roommate.postedBy,
     hasBudget: !!roommate.budget,
     hasBio: !!roommate.bio,
-    hasLifestyle: !!roommate.lifestyle
+    hasLifestyle: !!roommate.lifestyle,
+    hasPhone: !!roommate.phoneNumber
   });
 
   const renderStars = (rating: number, sizeClass: string = "h-4 w-4") => {

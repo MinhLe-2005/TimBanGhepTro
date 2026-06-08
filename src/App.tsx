@@ -280,8 +280,9 @@ export default function App() {
     const combined = [...supabaseRoommates, ...roommates];
     const uniqueMap = new Map();
     combined.forEach(rm => {
-      if (!uniqueMap.has(rm.id) || rm.is_listing) {
-        // Prioritize listings over profiles for same ID
+      const existing = uniqueMap.get(rm.id);
+      // Prioritize listings over profiles: always replace if new record is listing
+      if (!existing || (rm.is_listing && !existing.is_listing)) {
         uniqueMap.set(rm.id, rm);
       }
     });
