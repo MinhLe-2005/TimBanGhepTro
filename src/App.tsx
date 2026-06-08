@@ -323,6 +323,7 @@ export default function App() {
   const isAdmin = currentUser?.email === adminEmail || currentUser?.email === "quanly@roomiematch.com" || currentUser?.id === "7a1b28ab-058f-49b6-85bb-3cb61406db31";
 
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
+  const [hasPendingAgreement, setHasPendingAgreement] = useState(false);
   const activeTabRef = useRef(activeTab);
 
   useEffect(() => {
@@ -330,9 +331,12 @@ export default function App() {
     if (activeTab === 'chat') {
       setHasUnreadMessages(false);
     }
+    if (activeTab === 'agreement') {
+      setHasPendingAgreement(false);
+    }
   }, [activeTab]);
 
-  // Listen for unread messages
+  // Listen for unread messages and incoming agreement drafts
   useEffect(() => {
     const myChatId = currentUser?.id || currentUserProfile?.id;
     if (!myChatId) return;
@@ -341,8 +345,16 @@ export default function App() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         const newMessage = payload.new;
         if (newMessage.sender_id !== myChatId && newMessage.chat_id.includes(myChatId)) {
+          // Unread message badge for Tin Nhắn
           if (activeTabRef.current !== 'chat') {
             setHasUnreadMessages(true);
+          }
+          // Pending agreement badge for Thỏa Thuận
+          if (
+            newMessage.text?.startsWith('[AGREEMENT_DRAFT]') &&
+            activeTabRef.current !== 'agreement'
+          ) {
+            setHasPendingAgreement(true);
           }
         }
       })
@@ -1288,6 +1300,7 @@ export default function App() {
         onOpenLogin={() => setIsLoginModalOpen(true)}
         onLogout={handleLogout}
         hasUnreadMessages={hasUnreadMessages}
+        hasPendingAgreement={hasPendingAgreement}
       />
 
       {/* 2. Primary Tab Contents Display Body */}

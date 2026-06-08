@@ -17,6 +17,7 @@ interface HeaderProps {
   onOpenLogin: () => void;
   onLogout: () => void;
   hasUnreadMessages?: boolean;
+  hasPendingAgreement?: boolean;
 }
 
 export default function Header({
@@ -28,6 +29,7 @@ export default function Header({
   onOpenLogin,
   onLogout,
   hasUnreadMessages = false,
+  hasPendingAgreement = false,
 }: HeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -153,6 +155,11 @@ export default function Header({
                     {item.label}
                     {item.id === "chat" && hasUnreadMessages && (
                       <span className="absolute -top-1 -right-2.5 w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
+                    )}
+                    {item.id === "agreement" && hasPendingAgreement && (
+                      <span className="absolute -top-1 -right-2.5 flex items-center justify-center">
+                        <span className="w-4 h-4 bg-rose-500 rounded-full animate-pulse text-white text-[8px] font-black flex items-center justify-center">!</span>
+                      </span>
                     )}
                   </div>
                   <span
@@ -335,6 +342,9 @@ export default function Header({
                   <item.icon className="h-5 w-5" />
                   {item.id === "chat" && hasUnreadMessages && (
                     <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full" />
+                  )}
+                  {item.id === "agreement" && hasPendingAgreement && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full text-white text-[8px] font-black flex items-center justify-center">!</span>
                   )}
                 </div>
                 {item.label}
