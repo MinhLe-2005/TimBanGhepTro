@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Sparkles, Mail, Facebook, CheckCircle2, ArrowRight } from "lucide-react";
+import { X, Sparkles, Mail, Facebook, CheckCircle2, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="w-5 h-5">
@@ -27,6 +27,8 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
   const [nameInput, setNameInput] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleProviderSelect = async (provider: "google" | "facebook") => {
     try {
@@ -210,25 +212,45 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
                 
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-2">Mật khẩu</label>
-                  <input
-                    type="password"
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:border-[#006590] focus:ring-4 focus:ring-[#006590]/10 transition-all text-slate-800 font-bold tracking-widest placeholder:text-slate-400/80"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 pr-12 text-sm outline-none focus:bg-white focus:border-[#006590] focus:ring-4 focus:ring-[#006590]/10 transition-all text-slate-800 font-bold tracking-widest placeholder:text-slate-400/80"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer p-1"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                    </button>
+                  </div>
                 </div>
 
                 {activeTab === "register" && (
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-2">Xác nhận mật khẩu</label>
-                    <input
-                      type="password"
-                      value={confirmPasswordInput}
-                      onChange={(e) => setConfirmPasswordInput(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:border-[#006590] focus:ring-4 focus:ring-[#006590]/10 transition-all text-slate-800 font-bold tracking-widest placeholder:text-slate-400/80"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPasswordInput}
+                        onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 pr-12 text-sm outline-none focus:bg-white focus:border-[#006590] focus:ring-4 focus:ring-[#006590]/10 transition-all text-slate-800 font-bold tracking-widest placeholder:text-slate-400/80"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer p-1"
+                        tabIndex={-1}
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                      </button>
+                    </div>
                   </div>
                 )}
 

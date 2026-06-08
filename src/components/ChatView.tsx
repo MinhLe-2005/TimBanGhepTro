@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, CheckCircle2, AlertCircle, Sparkles, MessageSquare, PhoneCall, Image, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck } from "lucide-react";
+import { Send, CheckCircle2, AlertCircle, Sparkles, MessageSquare, PhoneCall, Image, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck, Ban, AlertOctagon } from "lucide-react";
 import { Roommate, Message } from "../types";
 import { supabase } from "../lib/supabase";
 
@@ -55,6 +55,84 @@ export default function ChatView({
   const [chatPrivateNote, setChatPrivateNote] = useState("");
   const [isSavingChatNote, setIsSavingChatNote] = useState(false);
   const [showMobileNote, setShowMobileNote] = useState(false);
+
+  // Block state
+  const [blockedUsers, setBlockedUsers] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('roomiematch_blocked_users') || '[]');
+    } catch { return []; }
+  });
+
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportImageUrl, setReportImageUrl] = useState("");
+
+  const handleSendReport = async () => {
+    if (!reportReason.trim() || !reportImageUrl.trim()) {
+      alert("Vui lòng nhập lý do và đính kèm ảnh minh chứng (URL) để báo cáo.");
+      return;
+    }
+    const myId = currentUser?.id || currentUserProfile?.id;
+    if (myId && activeRoommateId && import.meta.env.VITE_SUPABASE_URL) {
+       // Anti-spam check: Did this user already report this target?
+       const { data: existingReports } = await supabase
+         .from('messages')
+         .select('text')
+         .eq('chat_id', 'SYSTEM_REPORTS')
+         .eq('sender_id', myId);
+       
+       if (existingReports && existingReports.length > 0) {
+         const hasReported = existingReports.some(msg => {
+           try {
+             const payload = JSON.parse(msg.text.replace('[REPORT]', '').trim());
+             return payload.target_id === activeRoommateId;
+           } catch { return false; }
+         });
+         
+         if (hasReported) {
+           alert("Bạn đã báo cáo người dùng này rồi. Vui lòng chờ Ban quản trị xử lý!");
+           return;
+         }
+       }
+
+       const payload = {
+         target_id: activeRoommateId,
+         reason: reportReason,
+         image: reportImageUrl
+       };
+       await supabase.from('messages').insert({
+         id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+         chat_id: 'SYSTEM_REPORTS',
+         sender_id: myId,
+         text: `[REPORT] ${JSON.stringify(payload)}`
+       });
+       alert("Báo cáo của bạn đã được gửi đến ban quản trị.");
+       setIsReportModalOpen(false);
+       setReportReason("");
+       setReportImageUrl("");
+    } else {
+       alert("Lỗi hệ thống, không thể gửi báo cáo lúc này.");
+    }
+  };
+
+  const isActiveUserBlocked = activeRoommateId ? blockedUsers.includes(activeRoommateId) : false;
+
+  const handleUnblock = async (userId: string) => {
+    const updated = blockedUsers.filter(id => id !== userId);
+    setBlockedUsers(updated);
+    localStorage.setItem('roomiematch_blocked_users', JSON.stringify(updated));
+
+    const myId = currentUser?.id || currentUserProfile?.id;
+    if (myId && import.meta.env.VITE_SUPABASE_URL) {
+      const chatId = [myId, userId].sort().join('_');
+      await supabase.from('messages').insert({
+        id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        chat_id: chatId,
+        sender_id: myId,
+        text: "[SYSTEM_UNBLOCK]"
+      });
+    }
+  };
 
   useEffect(() => {
     if (activeRoommateId) {
@@ -119,7 +197,11 @@ export default function ChatView({
   
   const activeMessages = activeRoommate ? (chats[activeRoommateId!] || chats[activeRoommate.id] || []) : [];
 
-  
+  // Check if partner has blocked us via system message
+  const myTempId = currentUser?.id || currentUserProfile?.id;
+  const partnerBlockMsgs = activeMessages.filter(m => m.senderId !== "me" && m.senderId !== myTempId && (m.text === "[SYSTEM_BLOCK]" || m.text === "[SYSTEM_UNBLOCK]"));
+  const lastPartnerBlockMsg = partnerBlockMsgs[partnerBlockMsgs.length - 1];
+  const isBlockedByPartner = lastPartnerBlockMsg?.text === "[SYSTEM_BLOCK]";  
   // Auth UUID = ID cố định từ Google, không thay đổi dù đăng nhập máy nào
   const myAuthId = currentUser?.id;
   const myProfileId = currentUserProfile?.id;
@@ -415,6 +497,7 @@ export default function ChatView({
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!inputText.trim() && !attachedImage) || !activeRoommateId || !currentUserProfile) return;
+    if (isActiveUserBlocked || isBlockedByPartner) return;
 
     const userMessageText = inputText.trim();
     const sentImage = attachedImage;
@@ -560,6 +643,7 @@ export default function ChatView({
                         <h4 className="text-sm font-bold text-slate-800 leading-tight tracking-tight truncate flex items-center gap-1">
                           {r.name}
                           {r.isVerified && <CheckCircle2 className="h-3.5 w-3.5 text-sky-500 fill-sky-50 shrink-0" />}
+                          {blockedUsers.includes(r.id) && <Ban className="h-3 w-3 text-red-400 shrink-0" title="Đã chặn" />}
                         </h4>
                         {r.matchScore > 0 && (
                           <span className="text-[10px] font-bold text-sky-700 bg-white border border-sky-100 px-1.5 py-0.5 rounded-full">
@@ -638,8 +722,22 @@ export default function ChatView({
                   <BadgeCheck className="h-4 w-4" />
                   <span className="hidden sm:inline">Lập Thỏa Thuận</span>
                 </button>
+                <button
+                  onClick={() => setIsReportModalOpen(true)}
+                  className="px-3.5 py-2.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 transition-colors duration-200 cursor-pointer flex items-center gap-2 font-bold text-[13px]"
+                  title="Báo cáo người dùng"
+                >
+                  <AlertOctagon className="h-4 w-4" />
+                </button>
               </div>
             </div>
+
+            {activeMessages.some(m => m.text?.startsWith('[AGREEMENT_SIGNED]')) && (
+              <div className="bg-emerald-50 text-emerald-700 px-6 py-3 border-b border-emerald-100 flex items-center justify-center gap-2 shadow-sm shrink-0 font-bold text-[13px] animate-fade-in z-10">
+                <BadgeCheck className="w-5 h-5 text-emerald-600" />
+                🎉 Hai bạn đã ký thỏa thuận sống chung thành công!
+              </div>
+            )}
 
             {/* Message bubbles wrapper container */}
             <div ref={scrollContainerRef} className="flex-grow p-6 overflow-y-auto space-y-4 scroll-smooth">
@@ -677,6 +775,9 @@ export default function ChatView({
                   }
                   
                   const isSpecialMessage = isAgreementDraft || isAgreementSigned || isAgreementCancelled;
+
+                  const isSystemBlock = msg.text === "[SYSTEM_BLOCK]" || msg.text === "[SYSTEM_UNBLOCK]";
+                  if (isSystemBlock) return null;
 
                   return (
                     <div
@@ -781,8 +882,32 @@ export default function ChatView({
               </div>
             )}
 
+            {/* Blocked banner */}
+            {isActiveUserBlocked && (
+              <div className="mx-4 mb-2 bg-red-50 border border-red-200 rounded-2xl px-5 py-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Ban className="h-5 w-5 text-red-500 shrink-0" />
+                  <p className="text-sm font-bold text-red-700">Bạn đã chặn người dùng này</p>
+                </div>
+                <button
+                  onClick={() => activeRoommateId && handleUnblock(activeRoommateId)}
+                  className="text-xs font-bold bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl transition-colors shrink-0"
+                >
+                  Hủy chặn
+                </button>
+              </div>
+            )}
+
+            {/* Blocked banner (if partner blocked you) */}
+            {isBlockedByPartner && (
+              <div className="mx-4 mb-2 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 flex items-center justify-center gap-3">
+                <Ban className="h-5 w-5 text-slate-400 shrink-0" />
+                <p className="text-sm font-bold text-slate-600">Người dùng này đã chặn bạn</p>
+              </div>
+            )}
+
             {/* Text Send Form area with image sending */}
-            <form onSubmit={handleSend} className="p-4 border-t border-slate-100 bg-white shrink-0 space-y-2">
+            <form onSubmit={handleSend} className={`p-4 border-t border-slate-100 bg-white shrink-0 space-y-2 ${isBlockedByPartner ? 'opacity-50 pointer-events-none' : ''}`}>
               {attachedImage && (
                 <div className="p-2.5 bg-slate-50 border border-slate-150 rounded-xl flex items-center justify-between animate-fade-in">
                   <div className="flex items-center gap-2.5">
@@ -811,7 +936,7 @@ export default function ChatView({
                 />
                 <label
                   htmlFor="chat-image-input"
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-[#006590] w-12 h-12 rounded-full duration-150 flex items-center justify-center cursor-pointer transition-all shrink-0"
+                  className={`bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-[#006590] w-12 h-12 rounded-full duration-150 flex items-center justify-center cursor-pointer transition-all shrink-0 ${isActiveUserBlocked ? 'opacity-40 pointer-events-none' : ''}`}
                   title="Gửi hình ảnh"
                 >
                   <Image className="h-5 w-5" />
@@ -821,16 +946,28 @@ export default function ChatView({
                   type="text"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder={`Nhắn tin cùng ${activeRoommate.name}...`}
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-5 py-3.5 text-sm outline-none focus:border-sky-500/50 focus:bg-white transition-all shadow-inner"
+                  placeholder={isActiveUserBlocked ? 'Bạn đã chặn người dùng này' : `Nhắn tin cùng ${activeRoommate.name}...`}
+                  disabled={isActiveUserBlocked}
+                  className={`flex-1 bg-slate-50 border border-slate-200 rounded-full px-5 py-3.5 text-sm outline-none focus:border-sky-500/50 focus:bg-white transition-all shadow-inner ${isActiveUserBlocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                 />
-                <button
-                  type="submit"
-                  disabled={(!inputText.trim() && !attachedImage) || isTyping}
-                  className="bg-gradient-to-r from-sky-500 to-[#006590] text-white w-12 h-12 rounded-full hover:shadow-lg disabled:opacity-50 disabled:from-slate-300 disabled:to-slate-400 duration-150 flex items-center justify-center cursor-pointer transition-all hover:scale-105 shrink-0"
-                >
-                  <Send className="h-5 w-5 -ml-0.5 mt-0.5" />
-                </button>
+                {isActiveUserBlocked ? (
+                  <button
+                    type="button"
+                    onClick={() => activeRoommateId && handleUnblock(activeRoommateId)}
+                    className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 h-12 rounded-full hover:shadow-lg duration-150 flex items-center justify-center cursor-pointer transition-all hover:scale-105 shrink-0 text-xs font-bold gap-1"
+                  >
+                    <Ban className="h-4 w-4" />
+                    Hủy chặn
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={(!inputText.trim() && !attachedImage) || isTyping}
+                    className="bg-gradient-to-r from-sky-500 to-[#006590] text-white w-12 h-12 rounded-full hover:shadow-lg disabled:opacity-50 disabled:from-slate-300 disabled:to-slate-400 duration-150 flex items-center justify-center cursor-pointer transition-all hover:scale-105 shrink-0"
+                  >
+                    <Send className="h-5 w-5 -ml-0.5 mt-0.5" />
+                  </button>
+                )}
               </div>
             </form>
           </>
@@ -929,6 +1066,51 @@ export default function ChatView({
           <div className="text-[11px] text-slate-400 font-bold px-4 py-3.5 bg-slate-100/50 rounded-2xl mt-6 leading-relaxed border border-slate-200/50 backdrop-blur-sm flex items-start gap-2.5">
             <ShieldCheck className="h-4 w-4 text-slate-400 shrink-0" />
             <span>Mọi ghi chú được lưu an toàn trên thiết bị của bạn.</span>
+          </div>
+        </div>
+      )}
+
+      {/* Report Modal */}
+      {isReportModalOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsReportModalOpen(false)} />
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md relative overflow-hidden animate-in fade-in zoom-in-95 p-6 space-y-5">
+             <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+               <h3 className="text-xl font-black text-rose-600 flex items-center gap-2">
+                 <AlertOctagon className="w-6 h-6" /> Báo cáo vi phạm
+               </h3>
+               <button onClick={() => setIsReportModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1">
+                 <X className="w-5 h-5" />
+               </button>
+             </div>
+             
+             <div className="space-y-4">
+               <div>
+                 <label className="block text-sm font-bold text-slate-700 mb-1.5">Lý do báo cáo <span className="text-rose-500">*</span></label>
+                 <textarea
+                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none transition-all h-28 resize-none"
+                   placeholder="Nhập lý do chi tiết..."
+                   value={reportReason}
+                   onChange={e => setReportReason(e.target.value)}
+                 />
+               </div>
+               <div>
+                 <label className="block text-sm font-bold text-slate-700 mb-1.5">Link ảnh minh chứng <span className="text-rose-500">*</span></label>
+                 <input
+                   type="text"
+                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none transition-all"
+                   placeholder="Dán link ảnh chụp màn hình (URL)..."
+                   value={reportImageUrl}
+                   onChange={e => setReportImageUrl(e.target.value)}
+                 />
+                 <p className="text-xs text-slate-500 mt-2 italic">* Tạm thời hệ thống chỉ hỗ trợ báo cáo qua link hình ảnh tĩnh.</p>
+               </div>
+             </div>
+
+             <div className="flex gap-3 pt-2">
+               <button onClick={() => setIsReportModalOpen(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">Hủy</button>
+               <button onClick={handleSendReport} className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition-colors">Gửi Báo Cáo</button>
+             </div>
           </div>
         </div>
       )}

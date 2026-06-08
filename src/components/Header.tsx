@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Menu, X, Sparkles, MessageSquare, FileText, Users, Home, Building, LogIn, LogOut, ChevronDown, Chrome, Facebook, User, Mail, Info } from "lucide-react";
+import { Menu, X, Sparkles, MessageSquare, FileText, Users, Home, Building, LogIn, LogOut, ChevronDown, Chrome, Facebook, User, Mail, Info, Shield } from "lucide-react";
 
 interface HeaderProps {
   activeTab: string;
@@ -39,6 +39,9 @@ export default function Header({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || "admin@roomiematch.com";
+  const isAdmin = currentUser?.email === adminEmail || currentUser?.email === "quanly@roomiematch.com" || currentUser?.id === "7a1b28ab-058f-49b6-85bb-3cb61406db31";
+
   const baseNavItems = [
     { id: "home", label: "Trang Chủ", icon: Home },
     { id: "roommates", label: "Tìm Bạn", icon: Users },
@@ -46,6 +49,7 @@ export default function Header({
     { id: "chat", label: "Tin Nhắn", icon: MessageSquare },
     { id: "agreement", label: "Thỏa Thuận", icon: FileText },
     { id: "history", label: "Quản Lý Hợp Đồng", icon: FileText },
+    ...(isAdmin ? [{ id: "admin", label: "Quản Trị (Admin)", icon: Shield }] : []),
     { 
       id: "info", 
       label: "Hỗ Trợ", 
@@ -81,27 +85,26 @@ export default function Header({
       }`}
     >
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className={`flex justify-between items-center transition-all duration-500 ${isScrolled ? "h-16" : "h-20"}`}>
+        {/* relative container: logo left, nav absolutely centered, buttons right */}
+        <div className={`relative flex items-center justify-between transition-all duration-500 ${isScrolled ? "h-16" : "h-20"}`}>
+
           {/* Logo */}
           <div className="flex items-center h-full cursor-pointer group" onClick={() => handleNavClick("home")}>
-            {/* Intersection Logo Icon */}
             <div className="relative flex items-center justify-center w-8 h-8 mr-2 transition-transform duration-300 group-hover:scale-105 group-active:scale-95">
               <div className="absolute left-0 w-5 h-5 rounded-full bg-rose-500 mix-blend-multiply opacity-90 shadow-sm" />
               <div className="absolute right-0 w-5 h-5 rounded-full bg-[#004e70] mix-blend-multiply opacity-90 shadow-sm" />
             </div>
-            
-            {/* Split Typography */}
             <span className="text-[26px] tracking-tight flex items-baseline">
               <span className="font-black text-slate-900">Roomie</span>
               <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-orange-400">Match</span>
             </span>
           </div>
 
-          {/* Desktop Navigation - Centered and Sleek */}
-          <nav className="hidden lg:flex items-center gap-4 xl:gap-8 h-full">
+          {/* Desktop Navigation - Absolutely centered on the full header */}
+          <nav className="hidden lg:absolute lg:left-1/2 lg:-translate-x-1/2 lg:flex items-center gap-6 h-full">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;
-              
+
               if (item.subItems) {
                 return (
                   <div key={item.id} className="group relative h-full">
@@ -113,13 +116,12 @@ export default function Header({
                     >
                       {item.label}
                       <ChevronDown className="h-4 w-4 opacity-70 group-hover:rotate-180 transition-transform duration-200" />
-                      <span 
-                        className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-[2.5px] bg-[#004e70] rounded-t-full shadow-[0_-1px_4px_rgba(0,78,112,0.15)] transition-all duration-300 ease-out ${
+                      <span
+                        className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-[2.5px] bg-[#004e70] rounded-t-full transition-all duration-300 ease-out ${
                           isActive ? "w-full opacity-100" : "w-0 opacity-0 group-hover:w-full group-hover:opacity-100"
-                        }`} 
+                        }`}
                       />
                     </button>
-                    {/* Dropdown Menu */}
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pt-2 z-50">
                       <div className="bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-slate-100 overflow-hidden flex flex-col py-2">
                         {item.subItems.map(subItem => (
@@ -142,9 +144,7 @@ export default function Header({
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
                   className={`group relative h-full flex items-center px-2 text-[15px] font-bold transition-colors duration-200 cursor-pointer whitespace-nowrap ${
-                    isActive
-                      ? "text-[#004e70]"
-                      : "text-slate-500 hover:text-[#004e70]"
+                    isActive ? "text-[#004e70]" : "text-slate-500 hover:text-[#004e70]"
                   }`}
                 >
                   <div className="relative">
@@ -153,11 +153,10 @@ export default function Header({
                       <span className="absolute -top-1 -right-2.5 w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
                     )}
                   </div>
-                  {/* The sleek underline for active and hovered items */}
-                  <span 
-                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-[2.5px] bg-[#004e70] rounded-t-full shadow-[0_-1px_4px_rgba(0,78,112,0.15)] transition-all duration-300 ease-out ${
+                  <span
+                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-[2.5px] bg-[#004e70] rounded-t-full transition-all duration-300 ease-out ${
                       isActive ? "w-full opacity-100" : "w-0 opacity-0 group-hover:w-full group-hover:opacity-100"
-                    }`} 
+                    }`}
                   />
                 </button>
               );
@@ -165,23 +164,23 @@ export default function Header({
           </nav>
 
           {/* Action Buttons & Profile */}
-          <div className="hidden lg:flex items-center gap-6 relative">
+          <div className="hidden lg:flex items-center gap-3 relative">
             {!currentUser ? (
               <>
-              <button
-                onClick={onOpenLogin}
-                className="flex items-center gap-2 text-[13px] font-bold text-[#004e70] border-2 border-[#004e70]/20 hover:border-[#004e70]/60 hover:bg-sky-50 px-5 py-2 rounded-full transition-all duration-200 cursor-pointer"
-              >
-                <User className="h-4 w-4" />
-                Tạo Hồ Sơ
-              </button>
-              <button
-                onClick={onOpenLogin}
-                className="bg-[#004e70] hover:bg-[#003852] text-white px-7 py-2.5 rounded-full text-[14px] font-bold shadow-md hover:shadow-lg active:scale-95 transition-all duration-200 cursor-pointer"
-              >
-                Đăng Nhập
-              </button>
-            </>
+                <button
+                  onClick={onOpenLogin}
+                  className="flex items-center gap-2 text-[13px] font-bold text-[#004e70] border-2 border-[#004e70]/20 hover:border-[#004e70]/60 hover:bg-sky-50 px-5 py-2 rounded-full transition-all duration-200 cursor-pointer"
+                >
+                  <User className="h-4 w-4" />
+                  Tạo Hồ Sơ
+                </button>
+                <button
+                  onClick={onOpenLogin}
+                  className="bg-[#004e70] hover:bg-[#003852] text-white px-7 py-2.5 rounded-full text-[14px] font-bold shadow-md hover:shadow-lg active:scale-95 transition-all duration-200 cursor-pointer"
+                >
+                  Đăng Nhập
+                </button>
+              </>
             ) : (
               <div className="flex items-center gap-4">
                 <button
@@ -191,19 +190,14 @@ export default function Header({
                   Hồ Sơ Của Tôi
                 </button>
 
-                {/* User Profile Avatar with dropdown */}
                 <div className="relative">
-                  <div 
-                    className="flex items-center gap-1.5 cursor-pointer select-none" 
+                  <div
+                    className="flex items-center gap-1.5 cursor-pointer select-none"
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   >
                     <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm overflow-hidden hover:border-sky-200 transition-colors duration-200">
                       <img
-                        src={
-                          currentUserProfile?.avatar ||
-                          currentUser?.avatar ||
-                          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop"
-                        }
+                        src={currentUserProfile?.avatar || currentUser?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop"}
                         alt="My Avatar"
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
@@ -211,16 +205,11 @@ export default function Header({
                     </div>
                   </div>
 
-                  {/* Account Dropdown panel */}
                   {isDropdownOpen && (
                     <div className="absolute right-0 mt-3 w-72 bg-white rounded-3xl shadow-xl border border-slate-100 py-4 px-4 z-50 animate-fade-in">
                       <div className="flex items-center gap-3 pb-3 border-b border-slate-150">
                         <img
-                          src={
-                            currentUserProfile?.avatar ||
-                            currentUser?.avatar ||
-                            "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop"
-                          }
+                          src={currentUserProfile?.avatar || currentUser?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop"}
                           alt=""
                           className="w-11 h-11 rounded-full object-cover border border-slate-100"
                           referrerPolicy="no-referrer"
@@ -235,47 +224,27 @@ export default function Header({
                         </div>
                       </div>
 
-                      {/* Auth Provider badge */}
                       {currentUser && (
                         <div className="mt-2.5 px-2 py-1.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-bold">
                           <span>Đăng nhập qua:</span>
                           <span className="flex items-center gap-1 text-[#006590]">
-                            {currentUser.provider === "google" && (
-                              <>
-                                <Chrome className="h-3 w-3 text-red-500" /> Google
-                              </>
-                            )}
-                            {currentUser.provider === "facebook" && (
-                              <>
-                                <Facebook className="h-3 w-3 text-[#1877F2]" /> Facebook
-                              </>
-                            )}
-                            {currentUser.provider === "email" && (
-                              <>
-                                <Mail className="h-3 w-3 text-emerald-500" /> Email
-                              </>
-                            )}
+                            {currentUser.provider === "google" && (<><Chrome className="h-3 w-3 text-red-500" /> Google</>)}
+                            {currentUser.provider === "facebook" && (<><Facebook className="h-3 w-3 text-[#1877F2]" /> Facebook</>)}
+                            {currentUser.provider === "email" && (<><Mail className="h-3 w-3 text-emerald-500" /> Email</>)}
                           </span>
                         </div>
                       )}
 
                       <div className="mt-3.5 space-y-1.5">
                         <button
-                          onClick={() => {
-                            onOpenCreateProfile();
-                            setIsDropdownOpen(false);
-                          }}
+                          onClick={() => { onOpenCreateProfile(); setIsDropdownOpen(false); }}
                           className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-slate-600 hover:text-[#006590] hover:bg-slate-50 duration-200 flex items-center gap-2 cursor-pointer"
                         >
                           <User className="h-4 w-4" />
                           Cập nhật hồ sơ ghép đôi
                         </button>
-
                         <button
-                          onClick={() => {
-                            onLogout();
-                            setIsDropdownOpen(false);
-                          }}
+                          onClick={() => { onLogout(); setIsDropdownOpen(false); }}
                           className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold text-red-600 hover:bg-red-50 duration-200 flex items-center gap-2 cursor-pointer border-t border-slate-100 mt-1"
                         >
                           <LogOut className="h-4 w-4" />
@@ -292,20 +261,15 @@ export default function Header({
           {/* Mobile menu button */}
           <div className="flex lg:hidden items-center gap-3">
             {currentUser && (
-            <div className="w-9 h-9 rounded-full border border-sky-200 overflow-hidden" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
-              <img
-                src={
-                  currentUser?.avatar ||
-                  currentUserProfile?.avatar ||
-                  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop"
-                }
-                alt="My Avatar"
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-            </div>
+              <div className="w-9 h-9 rounded-full border border-sky-200 overflow-hidden cursor-pointer" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+                <img
+                  src={currentUser?.avatar || currentUserProfile?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop"}
+                  alt="My Avatar"
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
             )}
-            
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="text-slate-600 hover:text-slate-900 p-2 rounded-lg hover:bg-slate-100 cursor-pointer"
@@ -313,6 +277,7 @@ export default function Header({
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
+
         </div>
       </div>
 
@@ -321,24 +286,19 @@ export default function Header({
         <div className="lg:hidden absolute top-full left-0 right-0 border-t border-gray-100 bg-white/95 backdrop-blur-md px-4 pt-2 pb-6 space-y-2 animate-fade-in shadow-xl">
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
-            
+
             if (item.subItems) {
               return (
                 <div key={item.id} className="flex flex-col">
                   <button
                     onClick={() => handleNavClick(item.id)}
                     className={`w-full text-left px-4 py-3.5 rounded-xl text-sm font-bold flex items-center justify-between transition-colors ${
-                      isActive
-                        ? "text-[#004e70] bg-sky-50"
-                        : "text-slate-600 hover:text-[#004e70] hover:bg-slate-50"
+                      isActive ? "text-[#004e70] bg-sky-50" : "text-slate-600 hover:text-[#004e70] hover:bg-slate-50"
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      {item.label}
-                    </div>
+                    <div className="flex items-center gap-3">{item.label}</div>
                     <ChevronDown className={`h-4 w-4 transition-transform ${isActive ? "rotate-180" : ""}`} />
                   </button>
-                  {/* Expanded SubItems on mobile */}
                   {isActive && (
                     <div className="pl-6 pr-4 py-2 space-y-1">
                       {item.subItems.map(subItem => (
@@ -362,9 +322,7 @@ export default function Header({
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
                 className={`w-full text-left px-4 py-3.5 rounded-xl text-sm font-bold flex items-center gap-3 transition-colors ${
-                  isActive
-                    ? "text-[#004e70] bg-sky-50"
-                    : "text-slate-600 hover:text-[#004e70] hover:bg-slate-50"
+                  isActive ? "text-[#004e70] bg-sky-50" : "text-slate-600 hover:text-[#004e70] hover:bg-slate-50"
                 }`}
               >
                 <div className="relative">
@@ -381,20 +339,14 @@ export default function Header({
             {!currentUser ? (
               <>
                 <button
-                  onClick={() => {
-                    onOpenLogin();
-                    setIsOpen(false);
-                  }}
+                  onClick={() => { onOpenLogin(); setIsOpen(false); }}
                   className="w-full bg-slate-50 border border-slate-200 text-[#004e70] px-5 py-3.5 rounded-xl text-center text-sm font-bold flex items-center justify-center gap-2 cursor-pointer hover:bg-slate-100"
                 >
                   <User className="h-4 w-4" />
                   Tạo Hồ Sơ
                 </button>
                 <button
-                  onClick={() => {
-                    onOpenLogin();
-                    setIsOpen(false);
-                  }}
+                  onClick={() => { onOpenLogin(); setIsOpen(false); }}
                   className="w-full bg-[#004e70] hover:bg-[#003852] text-white px-5 py-3.5 rounded-xl text-center text-sm font-extrabold shadow-md cursor-pointer"
                 >
                   Đăng Nhập
@@ -407,20 +359,14 @@ export default function Header({
                   <span className="text-xs font-extrabold text-slate-800">{currentUser.name}</span>
                 </div>
                 <button
-                  onClick={() => {
-                    onOpenCreateProfile();
-                    setIsOpen(false);
-                  }}
+                  onClick={() => { onOpenCreateProfile(); setIsOpen(false); }}
                   className="w-full bg-[#004e70] hover:bg-[#003852] text-white px-5 py-3 rounded-xl text-center text-xs font-extrabold shadow-sm cursor-pointer"
                 >
                   Hồ Sơ Của Tôi
                 </button>
                 <button
-                  onClick={() => {
-                    onLogout();
-                    setIsOpen(false);
-                  }}
-                  className="w-full bg-red-50 text-red-650 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                  onClick={() => { onLogout(); setIsOpen(false); }}
+                  className="w-full bg-red-50 text-red-600 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <LogOut className="h-4 w-4" /> Đăng xuất tài khoản
                 </button>

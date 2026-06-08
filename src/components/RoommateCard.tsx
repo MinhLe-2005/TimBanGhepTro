@@ -74,7 +74,7 @@ export default function RoommateCard({
         </button>
 
         {/* Owner actions */}
-        {currentUserId && roommate.postedBy === currentUserId && (
+        {currentUserId && (roommate.postedBy === currentUserId || roommate.user_id === currentUserId) && (
           <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
             {onEdit && (
               <button
@@ -119,21 +119,52 @@ export default function RoommateCard({
           </div>
         </div>
 
-        <div className="text-[13px] text-slate-500 mb-3 truncate" title={`${roommate.role} tại ${roommate.district || roommate.location.split(',')[0]}`}>
-          {roommate.role} <span className="mx-1.5 text-slate-300">•</span> {roommate.district || roommate.location.split(',')[0]}
+        <div className="text-[13px] text-slate-500 mb-2 truncate" title={`${roommate.role} tại ${roommate.district || roommate.location.split(',')[0]}`}>
+          <span className="font-semibold text-slate-700">{roommate.role}</span> <span className="mx-1.5 text-slate-300">•</span> {roommate.district || roommate.location.split(',')[0]}
+        </div>
+
+        {/* Detailed Info Grid */}
+        <div className="grid grid-cols-2 gap-y-1.5 gap-x-2 text-[12px] mb-3">
+          <div className="flex items-center gap-1.5 text-slate-600 truncate">
+            <span className="font-semibold text-slate-400 shrink-0">Giới tính:</span> {roommate.gender}
+          </div>
+          <div className="flex items-center gap-1.5 text-slate-600 truncate">
+            <span className="font-semibold text-slate-400 shrink-0">Trường:</span> {roommate.school || "Không rõ"}
+          </div>
+          <div className="flex items-center gap-1.5 text-slate-600 truncate">
+            <span className="font-semibold text-slate-400 shrink-0">Ngân sách:</span> <span className="font-bold text-[#006590]">{(roommate.budget / 1000000).toFixed(1)}tr</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-slate-600 truncate">
+            <span className="font-semibold text-slate-400 shrink-0">Loại hình:</span> {roommate.type}
+          </div>
+          <div className="flex items-center gap-1.5 text-slate-600 truncate col-span-2">
+            <span className="font-semibold text-slate-400 shrink-0">SĐT:</span> 
+            <span className="bg-slate-100 px-1.5 rounded text-slate-500 font-mono text-[10px] tracking-widest">{roommate.phoneNumber ? roommate.phoneNumber.replace(/\d{3}\s?\d{3}$/, '*** ***') : '09** *** ***'}</span>
+          </div>
+        </div>
+
+        {/* Short Bio */}
+        <div className="text-[11px] text-slate-500 italic line-clamp-2 mb-3 bg-slate-50 p-2 rounded-lg border border-slate-100 leading-relaxed">
+          "{roommate.bio}"
         </div>
 
         {/* Status Box */}
-        <div className={`mb-4 w-fit text-[11px] font-bold px-2.5 py-1 rounded-md flex items-center gap-2 ${
-          roommate.status === "Đã có phòng"
-            ? "bg-emerald-50/80 text-emerald-700 border border-emerald-100/50"
-            : "bg-indigo-50/80 text-indigo-700 border border-indigo-100/50"
+        <div className={`mb-3 w-fit text-[11px] font-bold px-2.5 py-1 rounded-md flex items-center gap-2 ${
+          roommate.status === "Đã tìm được"
+            ? "bg-red-50/80 text-red-700 border border-red-100/50"
+            : roommate.status === "Đang trao đổi"
+            ? "bg-amber-50/80 text-amber-700 border border-amber-100/50"
+            : "bg-emerald-50/80 text-emerald-700 border border-emerald-100/50"
         }`}>
           <span className="relative flex h-2 w-2">
-            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${roommate.status === "Đã có phòng" ? "bg-emerald-400" : "bg-indigo-400"}`}></span>
-            <span className={`relative inline-flex rounded-full h-2 w-2 ${roommate.status === "Đã có phòng" ? "bg-emerald-500" : "bg-indigo-500"}`}></span>
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+              roommate.status === "Đã tìm được" ? "bg-red-400" : roommate.status === "Đang trao đổi" ? "bg-amber-400" : "bg-emerald-400"
+            }`}></span>
+            <span className={`relative inline-flex rounded-full h-2 w-2 ${
+              roommate.status === "Đã tìm được" ? "bg-red-500" : roommate.status === "Đang trao đổi" ? "bg-amber-500" : "bg-emerald-500"
+            }`}></span>
           </span>
-          {roommate.status === "Đã có phòng" ? "Đã có phòng sẵn" : "Đang tìm phòng ghép"}
+          {roommate.status === "Đã tìm được" ? "🔴 Đã tìm được roommate" : roommate.status === "Đang trao đổi" ? "🟡 Đang trao đổi" : "🟢 Đang tìm roommate"}
         </div>
 
         {/* Lifestyle Tags - Compact */}

@@ -133,13 +133,13 @@ export default function RoommatesView({
 
     const matchesStatus = () => {
       if (statusFilter === "Tất cả") return true;
-      const currentStatus = roommate.status || "Chưa có phòng";
+      const currentStatus = roommate.status || "Đang tìm";
       return currentStatus === statusFilter;
     };
 
     const matchesRole = () => {
       if (roleFilter === "Tất cả") return true;
-      return roommate.majorKhoidoi === roleFilter;
+      return roommate.school === roleFilter;
     };
 
     const matchesAge = () => {
@@ -310,10 +310,10 @@ export default function RoommatesView({
               </select>
             </div>
 
-            {/* Ngành học */}
+            {/* Trường học */}
             <div className="space-y-2.5">
               <label className="flex items-center gap-1.5 text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">
-                <GraduationCap className="h-3.5 w-3.5" /> Ngành học
+                <GraduationCap className="h-3.5 w-3.5" /> Trường học
               </label>
               <select
                 value={roleFilter}
@@ -321,11 +321,14 @@ export default function RoommatesView({
                 className="w-full bg-white rounded-xl px-4 py-3 text-sm font-bold text-slate-800 border border-slate-200 shadow-sm outline-none hover:border-slate-300 focus:border-[#006590] focus:ring-4 focus:ring-sky-100 transition-all cursor-pointer"
               >
                 <option value="Tất cả">Tất cả</option>
-                <option value="Khối Kinh tế">Kinh tế</option>
-                <option value="Khối Kỹ thuật">Kỹ thuật</option>
-                <option value="Khối Sư phạm">Sư phạm</option>
-                <option value="Khối Y Dược">Y Dược</option>
-                <option value="Khối Nghệ thuật">Nghệ thuật</option>
+                <option value="ĐH Kinh Tế (Ngũ Hành Sơn)">ĐH Kinh Tế (Ngũ Hành Sơn)</option>
+                <option value="ĐH Bách Khoa (Liên Chiểu)">ĐH Bách Khoa (Liên Chiểu)</option>
+                <option value="ĐH Sư Phạm (Liên Chiểu)">ĐH Sư Phạm (Liên Chiểu)</option>
+                <option value="ĐH Ngoại Ngữ (Cẩm Lệ)">ĐH Ngoại Ngữ (Cẩm Lệ)</option>
+                <option value="ĐH Kiến Trúc (Hải Châu)">ĐH Kiến Trúc (Hải Châu)</option>
+                <option value="ĐH Duy Tân (Hải Châu)">ĐH Duy Tân (Hải Châu)</option>
+                <option value="ĐH Đông Á (Hải Châu)">ĐH Đông Á (Hải Châu)</option>
+                <option value="ĐH FPT (Ngũ Hành Sơn)">ĐH FPT (Ngũ Hành Sơn)</option>
               </select>
             </div>
 
@@ -394,8 +397,9 @@ export default function RoommatesView({
                 className="w-full bg-white rounded-xl px-4 py-3 text-sm font-bold text-slate-800 border border-slate-200 shadow-sm outline-none hover:border-slate-300 focus:border-[#006590] focus:ring-4 focus:ring-sky-100 transition-all cursor-pointer"
               >
                 <option value="Tất cả">Tất cả</option>
-                <option value="Chưa có phòng">Chưa có phòng</option>
-                <option value="Đã có phòng">Đã có phòng</option>
+                <option value="Đang tìm">🟢 Đang tìm</option>
+                <option value="Đang trao đổi">🟡 Đang trao đổi</option>
+                <option value="Đã tìm được">🔴 Đã tìm được</option>
               </select>
             </div>
           </div>

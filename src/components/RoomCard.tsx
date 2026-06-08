@@ -114,7 +114,7 @@ export default function RoomCard({
         </button>
 
         {/* Owner Actions */}
-        {currentUserId && room.postedBy === currentUserId && (
+        {currentUserId && (room.postedBy === currentUserId || room.user_id === currentUserId) && (
           <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
             {onEdit && (
               <button
@@ -175,10 +175,32 @@ export default function RoomCard({
           )}
         </div>
 
+        {/* Detailed Info Grid */}
+        <div className="grid grid-cols-2 gap-y-1.5 gap-x-2 text-[12px] mb-4">
+          <div className="flex items-center gap-1.5 text-slate-600 truncate">
+            <span className="font-semibold text-slate-400 shrink-0">Loại:</span> {room.type}
+          </div>
+          <div className="flex items-center gap-1.5 text-slate-600 truncate">
+            <span className="font-semibold text-slate-400 shrink-0">Phòng:</span> {room.bedrooms} PN
+          </div>
+          <div className="flex items-center gap-1.5 text-slate-600 truncate">
+            <span className="font-semibold text-slate-400 shrink-0">Điện:</span> {room.electricity || 'Giá NN'}
+          </div>
+          <div className="flex items-center gap-1.5 text-slate-600 truncate">
+            <span className="font-semibold text-slate-400 shrink-0">Nước:</span> {room.water || 'Giá NN'}
+          </div>
+          <div className="flex items-center gap-1.5 text-slate-600 truncate col-span-2">
+            <span className="font-semibold text-slate-400 shrink-0">SĐT:</span> 
+            <span className="bg-slate-100 px-1.5 rounded text-slate-500 font-mono text-[10px] tracking-widest">{room.phoneNumber ? room.phoneNumber.replace(/\d{3}\s?\d{3}$/, '*** ***') : '09** *** ***'}</span>
+          </div>
+        </div>
+
         {/* Feature Tags - Compact */}
         <div className="flex items-center flex-wrap gap-1.5 mb-4 text-[11px] font-medium text-slate-600">
           {room.gender && <span className="px-2 py-1 bg-slate-100 rounded-md">{room.gender}</span>}
-          {room.habits && room.habits.length > 0 && <span className="px-2 py-1 bg-slate-100 rounded-md">{room.habits[0]}</span>}
+          {room.features && room.features.slice(0, 2).map((f, i) => (
+             <span key={i} className="px-2 py-1 bg-slate-100 rounded-md">{f}</span>
+          ))}
           {room.pets && <span className="px-2 py-1 bg-slate-100 rounded-md">{room.pets === "thoải mái" ? "Pet OK" : "No Pet"}</span>}
         </div>
 

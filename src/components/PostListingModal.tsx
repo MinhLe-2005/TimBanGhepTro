@@ -82,7 +82,7 @@ export default function PostListingModal({
   const [rmAge, setRmAge] = useState(21);
   const [rmGender, setRmGender] = useState<"Nam" | "Nữ" | "Khác">("Nữ");
   const [rmRole, setRmRole] = useState("Sinh viên");
-  const [rmMajor, setRmMajor] = useState<"Khối Kinh tế" | "Khối Kỹ thuật" | "Khối Sư phạm" | "Khối Y Dược" | "Khối Nghệ thuật">("Khối Kinh tế");
+  const [rmSchool, setRmSchool] = useState<string>("ĐH Kinh Tế (Ngũ Hành Sơn)");
   const [rmDistrict, setRmDistrict] = useState("Hải Châu");
   const [rmAddress, setRmAddress] = useState("");
   const [rmBudget, setRmBudget] = useState("");
@@ -149,7 +149,7 @@ export default function PostListingModal({
         setRmAge(editingData.age || 21);
         setRmGender(editingData.gender || "Nữ");
         setRmRole(editingData.role || "Sinh viên");
-        setRmMajor(editingData.majorKhoidoi || "Khối Kinh tế");
+        setRmSchool(editingData.school || "ĐH Kinh Tế (Ngũ Hành Sơn)");
         setRmDistrict(editingData.district || "Hải Châu");
         setRmAddress(editingData.location ? editingData.location.split(", Quận")[0] : "");
         setRmBudget(editingData.budget?.toString() || "");
@@ -244,7 +244,7 @@ export default function PostListingModal({
       bio: rmBio || `Chào cả nhà! Mình tên là ${rmName}. Mình đang hoạt động tại khu vực ${rmDistrict} Đà Nẵng và rất mong muốn tìm được một người bạn ở ghép chia sẻ chi phí, có lối sống lành mạnh, sạch sẽ.`,
       budget: Number(String(rmBudget).replace(/\D/g, "")),
       gender: rmGender,
-      majorKhoidoi: rmMajor,
+      school: rmSchool,
       phoneNumber: rmPhone,
       is_listing: true, // ✅ CRITICAL: Mark as listing (can be deleted), not profile
       lifestyle: {
@@ -467,14 +467,17 @@ export default function PostListingModal({
                         className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="block text-[13px] font-semibold text-slate-700">Khối ngành</label>
-                      <select value={rmMajor} onChange={(e) => setRmMajor(e.target.value as any)}
+                      <label className="block text-[13px] font-semibold text-slate-700">Trường học</label>
+                      <select value={rmSchool} onChange={(e) => setRmSchool(e.target.value)}
                         className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all cursor-pointer">
-                        <option value="Khối Kinh tế">Khối Kinh tế</option>
-                        <option value="Khối Kỹ thuật">Khối Kỹ thuật</option>
-                        <option value="Khối Sư phạm">Khối Sư phạm</option>
-                        <option value="Khối Y Dược">Khối Y Dược</option>
-                        <option value="Khối Nghệ thuật">Khối Nghệ thuật</option>
+                        <option value="ĐH Kinh Tế (Ngũ Hành Sơn)">ĐH Kinh Tế (Ngũ Hành Sơn)</option>
+                        <option value="ĐH Bách Khoa (Liên Chiểu)">ĐH Bách Khoa (Liên Chiểu)</option>
+                        <option value="ĐH Sư Phạm (Liên Chiểu)">ĐH Sư Phạm (Liên Chiểu)</option>
+                        <option value="ĐH Ngoại Ngữ (Cẩm Lệ)">ĐH Ngoại Ngữ (Cẩm Lệ)</option>
+                        <option value="ĐH Kiến Trúc (Hải Châu)">ĐH Kiến Trúc (Hải Châu)</option>
+                        <option value="ĐH Duy Tân (Hải Châu)">ĐH Duy Tân (Hải Châu)</option>
+                        <option value="ĐH Đông Á (Hải Châu)">ĐH Đông Á (Hải Châu)</option>
+                        <option value="ĐH FPT (Ngũ Hành Sơn)">ĐH FPT (Ngũ Hành Sơn)</option>
                       </select>
                     </div>
                   </div>

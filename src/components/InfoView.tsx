@@ -221,7 +221,7 @@ export default function InfoView() {
                   1. Đăng tin trên RoomieMatch có mất phí không?
                 </h4>
                 <p className="text-sm text-slate-600 mt-3 ml-8 leading-relaxed">
-                  Việc đăng tin tìm bạn ở ghép và tìm phòng trọ cơ bản là hoàn toàn <strong className="text-emerald-600">miễn phí</strong>. Chúng tôi chỉ thu phí đối với các gói đẩy tin (Premium) dành cho chủ trọ muốn tiếp cận khách thuê nhanh hơn và nổi bật trên bản đồ.
+                  RoomieMatch là nền tảng hoàn toàn <strong className="text-emerald-600">miễn phí 100%</strong>. Mọi tính năng bao gồm đăng tin, ghép đôi, nhắn tin và tạo thỏa thuận đều không thu phí người dùng. Chúng tôi xây dựng cộng đồng này với mong muốn hỗ trợ tối đa việc tìm kiếm người bạn cùng phòng lý tưởng cho giới trẻ.
                 </p>
               </div>
               <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
@@ -313,20 +313,9 @@ export default function InfoView() {
               </div>
 
               <div>
-                <h3 className="font-bold text-slate-800 text-base mb-2">4. Chính sách thanh toán và hoàn tiền</h3>
-                <p className="mb-2">
-                  Đối với các giao dịch mua gói Premium (đẩy tin, làm nổi bật hồ sơ), RoomieMatch xử lý qua cổng thanh toán VNPay và Momo.
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Chúng tôi sẽ hoàn tiền 100% nếu hệ thống xảy ra lỗi kỹ thuật khiến gói dịch vụ không được kích hoạt thành công.</li>
-                  <li>Không hoàn tiền trong trường hợp tài khoản của bạn bị khóa do vi phạm các chính sách ở mục 1 và 3.</li>
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-slate-800 text-base mb-2">5. Bản quyền nội dung</h3>
+                <h3 className="font-bold text-slate-800 text-base mb-2">4. Bản quyền nội dung</h3>
                 <p>
-                  Tất cả hình ảnh đồ họa, logo, thuật toán ghép đôi, mã nguồn và giao diện người dùng thuộc sở hữu trí tuệ của RM Technology. Mọi hành vi sao chép thiết kế, cào dữ liệu tự động (data scraping) từ website mà không có sự cho phép bằng văn bản sẽ bị truy tố theo quy định của Luật Sở hữu trí tuệ Việt Nam.
+                  Tất cả hình ảnh đồ họa, logo, thuật toán ghép đôi, mã nguồn và giao diện người dùng thuộc sở hữu trí tuệ của nhóm phát triển RoomieMatch. Mọi hành vi sao chép thiết kế, cào dữ liệu tự động (data scraping) từ website mà không có sự cho phép bằng văn bản đều là vi phạm bản quyền.
                 </p>
               </div>
             </div>

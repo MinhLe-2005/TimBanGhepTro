@@ -90,13 +90,56 @@ export default function AgreementView({
     if (!import.meta.env.VITE_SUPABASE_URL || !currentUserProfile) return;
     
     const fetchAgreements = async () => {
+      // Fetch messages that contain AGREEMENT tags for the current user
       const { data, error } = await supabase
-        .from('agreements')
+        .from('messages')
         .select('*')
-        .or(`creator_id.eq.${currentUserProfile.id},partner_id.eq.${currentUserProfile.id}`);
+        .like('chat_id', `%${currentUserProfile.id}%`)
+        .like('text', '%[AGREEMENT_%');
       
       if (!error && data) {
-        setAgreements(data);
+        const aggrMap = new Map<string, any>();
+        
+        // Sort chronologically
+        data.sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        
+        data.forEach(msg => {
+          let payload: any = null;
+          try {
+            if (msg.text.startsWith('[AGREEMENT_DRAFT]')) payload = JSON.parse(msg.text.replace('[AGREEMENT_DRAFT]', '').trim());
+            if (msg.text.startsWith('[AGREEMENT_SIGNED]')) payload = JSON.parse(msg.text.replace('[AGREEMENT_SIGNED]', '').trim());
+            if (msg.text.startsWith('[AGREEMENT_CANCELLED]')) payload = JSON.parse(msg.text.replace('[AGREEMENT_CANCELLED]', '').trim());
+          } catch(e) {}
+
+          if (payload) {
+             const partner_id = msg.chat_id.replace(currentUserProfile.id, '').replace('_', '');
+             const isDraft = msg.text.startsWith('[AGREEMENT_DRAFT]');
+             
+             // Base structure
+             const existing = aggrMap.get(payload.id) || {};
+             const creatorId = isDraft ? msg.sender_id : (existing.creator_id || (msg.sender_id === currentUserProfile.id ? partner_id : msg.sender_id));
+             const partnerId = isDraft ? (msg.sender_id === currentUserProfile.id ? partner_id : currentUserProfile.id) : (existing.partner_id || (msg.sender_id === currentUserProfile.id ? currentUserProfile.id : partner_id));
+             
+             let currentStatus = payload.status;
+             if (currentStatus === 'pending') {
+               const createdTime = new Date(payload.timestamp || msg.created_at).getTime();
+               if (Date.now() - createdTime > 48 * 60 * 60 * 1000) {
+                 currentStatus = 'cancelled';
+               }
+             }
+             
+             aggrMap.set(payload.id, {
+                id: payload.id,
+                creator_id: creatorId,
+                partner_id: partnerId,
+                status: currentStatus,
+                rules: payload.rules,
+                created_at: payload.timestamp || msg.created_at
+             });
+          }
+        });
+        
+        setAgreements(Array.from(aggrMap.values()));
       }
     };
     
@@ -357,10 +400,12 @@ export default function AgreementView({
     let payload: any;
     let messagePrefix = "";
 
-    if (pendingAgreementPayload && pendingAgreementPayload.status === 'pending') {
+    const agreementToSign = pendingAgreementPayload || (activeAgreement?.status === 'pending' ? activeAgreement : null);
+
+    if (agreementToSign) {
       // Xác nhận hợp đồng nhận được
       payload = {
-        ...pendingAgreementPayload,
+        ...agreementToSign,
         status: 'signed',
         signedBy: currentUserProfile.id,
         timestamp: new Date().toISOString()
@@ -393,6 +438,9 @@ export default function AgreementView({
     });
 
     if (!error) {
+       if (messagePrefix === "[AGREEMENT_SIGNED]") {
+         await supabase.from('roommates').update({ status: 'Đã tìm được' }).in('id', [currentUserProfile.id, matchedRoommate.id]);
+       }
        setShowSuccessModal(true);
        setSignedDate(new Date().toLocaleDateString("vi-VN", {
          year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
@@ -406,8 +454,9 @@ export default function AgreementView({
   const handleCancelAgreement = async () => {
     if (confirm("Bạn có chắc chắn muốn Hủy / Từ chối hợp đồng này?")) {
       // Gửi tin nhắn hủy
-      if (pendingAgreementPayload && matchedRoommate) {
-        const payload = { ...pendingAgreementPayload, status: 'cancelled', timestamp: new Date().toISOString() };
+      const targetPayload = pendingAgreementPayload || activeAgreement;
+      if (targetPayload && matchedRoommate) {
+        const payload = { ...targetPayload, status: 'cancelled', timestamp: new Date().toISOString() };
         const chatId = [currentUserProfile.id, matchedRoommate.id].sort().join('_');
         await supabase.from('messages').insert({
           chat_id: chatId,
@@ -908,7 +957,12 @@ export default function AgreementView({
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  disabled={isSigned}
+                  disabled={
+                    (activeAgreement?.status === 'signed') || 
+                    (activeAgreement?.status === 'pending' && activeAgreement.creator_id === currentUserProfile.id) ||
+                    (pendingAgreementPayload?.status === 'signed') ||
+                    (pendingAgreementPayload?.status === 'pending' && pendingAgreementPayload.sender_id === currentUserProfile.id)
+                  }
                   placeholder="Nhập họ tên đầy đủ để ký số..."
                   className="w-full bg-white border border-emerald-200 rounded-xl px-4 py-3.5 text-[14px] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-slate-800 font-bold placeholder-slate-400 disabled:opacity-70 disabled:bg-slate-50 transition-all duration-200"
                 />
@@ -1042,7 +1096,8 @@ export default function AgreementView({
               </div>
             </div>
 
-            {pendingAgreementPayload?.status === 'pending' && pendingAgreementPayload.sender_id !== currentUserProfile.id && (
+            {((pendingAgreementPayload?.status === 'pending' && pendingAgreementPayload.sender_id !== currentUserProfile.id) ||
+              (activeAgreement?.status === 'pending' && activeAgreement.creator_id !== currentUserProfile.id)) && (
               <div className="mt-4 space-y-3">
                 <button
                   type="button"

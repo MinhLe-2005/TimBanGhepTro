@@ -29,11 +29,11 @@ export interface Roommate {
   reputationScore: number;
   tags: string[];
   isVerified: boolean;
-  status?: "Đã có phòng" | "Chưa có phòng";
+  status?: "Đang tìm" | "Đang trao đổi" | "Đã tìm được";
   bio: string;
   budget: number;
   gender: "Nam" | "Nữ" | "Khác";
-  majorKhoidoi?: "Khối Kinh tế" | "Khối Kỹ thuật" | "Khối Sư phạm" | "Khối Y Dược" | "Khối Nghệ thuật";
+  school?: string;
   phoneNumber?: string;
   postedBy?: string; // user ID who posted this listing
   lifestyle: {

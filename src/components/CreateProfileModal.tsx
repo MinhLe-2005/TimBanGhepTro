@@ -58,8 +58,8 @@ export default function CreateProfileModal({
     "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop",
   ];
   const [selectedAvatar, setSelectedAvatar] = useState(currentProfile?.avatar || avatars[4]);
-  const [status, setStatus] = useState<"chưa tìm được bạn" | "đã tìm được bạn">(
-    currentProfile?.status || "chưa tìm được bạn"
+  const [status, setStatus] = useState<"Đang tìm" | "Đang trao đổi" | "Đã tìm được">(
+    currentProfile?.status || "Đang tìm"
   );
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -354,8 +354,9 @@ export default function CreateProfileModal({
                 <label className="block text-[13px] font-semibold text-slate-700">Trạng thái ghép đôi</label>
                 <select value={status} onChange={(e: any) => setStatus(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] text-slate-800 outline-none transition-all cursor-pointer">
-                  <option value="chưa tìm được bạn">Chưa tìm được bạn</option>
-                  <option value="đã tìm được bạn">Đã tìm được bạn</option>
+                  <option value="Đang tìm">🟢 Đang tìm roommate</option>
+                  <option value="Đang trao đổi">🟡 Đang trao đổi với ai đó</option>
+                  <option value="Đã tìm được">🔴 Đã tìm được roommate</option>
                 </select>
               </div>
 

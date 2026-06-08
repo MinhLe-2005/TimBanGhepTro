@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, CheckCircle2, MessageSquare, FileText, Heart, ShieldAlert, Sparkles, Smile, Bed, Dog, Shield, ChefHat, Moon, Compass, Star, MapPin } from "lucide-react";
+import { X, CheckCircle2, MessageSquare, FileText, Heart, ShieldAlert, Sparkles, Smile, Bed, Dog, Shield, ChefHat, Moon, Compass, Star, MapPin, Ban, Eye, EyeOff } from "lucide-react";
 import { Roommate } from "../types";
 import { supabase } from "../lib/supabase";
 
@@ -18,6 +18,7 @@ interface RoommateModalProps {
   onAddReview: (roommateId: string, review: { reviewerName: string; rating: number; comment: string; imageUrl?: string }) => void | boolean | Promise<boolean>;
   isOwnProfile?: boolean;
   onDeleteProfile?: (id: string) => void;
+  hasChatWithRoommate?: boolean;
 }
 
 export default function RoommateModal({
@@ -29,6 +30,7 @@ export default function RoommateModal({
   onAddReview,
   isOwnProfile = false,
   onDeleteProfile,
+  hasChatWithRoommate = false,
 }: RoommateModalProps) {
   if (!roommate) return null;
   
@@ -82,9 +84,23 @@ export default function RoommateModal({
   const [privateNote, setPrivateNote] = useState("");
   const [isSavingNote, setIsSavingNote] = useState(false);
 
+  // Block state
+  const [isBlocked, setIsBlocked] = useState(false);
+  // Phone reveal state
+  const [phoneRevealed, setPhoneRevealed] = useState(false);
+  const [showPhoneHint, setShowPhoneHint] = useState(false);
+
   useEffect(() => {
     if (roommate) {
       setPrivateNote(localStorage.getItem(`roommate_notes_${roommate.id}`) || "");
+      // Load block state
+      try {
+        const blocked: string[] = JSON.parse(localStorage.getItem('roomiematch_blocked_users') || '[]');
+        setIsBlocked(blocked.includes(roommate.id));
+      } catch { setIsBlocked(false); }
+      // Reset phone reveal on open
+      setPhoneRevealed(false);
+      setShowPhoneHint(false);
     }
   }, [roommate?.id]);
 
@@ -229,8 +245,10 @@ export default function RoommateModal({
               />
             </div>
             {/* Status indicator badge on the avatar */}
-            <div className={`absolute bottom-1 right-2 w-7 h-7 rounded-full border-[3px] border-white flex items-center justify-center shadow-sm ${roommate.status === "Đã có phòng" ? "bg-emerald-500" : "bg-blue-500"}`} title={roommate.status === "Đã có phòng" ? "Đã có phòng" : "Chưa có phòng"}>
-               {roommate.status === "Đã có phòng" ? <CheckCircle2 className="w-3.5 h-3.5 text-white" /> : <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse" />}
+            <div className={`absolute bottom-1 right-2 w-7 h-7 rounded-full border-[3px] border-white flex items-center justify-center shadow-sm ${
+              roommate.status === "Đã tìm được" ? "bg-red-500" : roommate.status === "Đang trao đổi" ? "bg-amber-500" : "bg-emerald-500"
+            }`} title={roommate.status === "Đã tìm được" ? "Đã tìm được roommate" : roommate.status === "Đang trao đổi" ? "Đang trao đổi" : "Đang tìm roommate"}>
+               {roommate.status === "Đã tìm được" ? <CheckCircle2 className="w-3.5 h-3.5 text-white" /> : roommate.status === "Đang trao đổi" ? <span className="text-[10px] font-black text-white">⇄</span> : <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse" />}
             </div>
           </div>
 
@@ -592,14 +610,42 @@ export default function RoommateModal({
         <div className="flex flex-col gap-3 mt-8">
           {!isOwnProfile ? (
             <>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <a
-                  href={`tel:${(roommate.phoneNumber || "0987123456").replace(/\s/g, "")}`}
-                  className="flex-1 bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 py-3.5 px-6 rounded-2xl font-black transition-all duration-200 flex items-center justify-center gap-2 text-[15px]"
-                >
-                  📞 Gọi điện
-                </a>
+              {/* Phone number reveal button */}
+              <div className="relative">
+                {phoneRevealed ? (
+                  <a
+                    href={`tel:${(roommate.phoneNumber || "0987123456").replace(/\s/g, "")}`}
+                    className="w-full bg-emerald-50 border-2 border-emerald-200 hover:border-emerald-300 hover:bg-emerald-100 text-emerald-700 py-3.5 px-6 rounded-2xl font-black transition-all duration-300 flex items-center justify-center gap-2 text-[15px] animate-fade-in"
+                  >
+                    📞 {roommate.phoneNumber || "0987 123 456"}
+                  </a>
+                ) : (
+                  <button
+                    onClick={() => {
+                      if (hasChatWithRoommate) {
+                        setPhoneRevealed(true);
+                        setShowPhoneHint(false);
+                      } else {
+                        setShowPhoneHint(true);
+                        setTimeout(() => setShowPhoneHint(false), 3000);
+                      }
+                    }}
+                    className="w-full bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 py-3.5 px-6 rounded-2xl font-black transition-all duration-200 flex items-center justify-center gap-2 text-[15px] relative overflow-hidden"
+                  >
+                    <Eye className="h-5 w-5" />
+                    <span>Xem số điện thoại</span>
+                    <span className="ml-2 text-slate-400 text-sm font-medium blur-sm select-none pointer-events-none">0987 *** ***</span>
+                  </button>
+                )}
+                {showPhoneHint && (
+                  <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl whitespace-nowrap shadow-lg animate-fade-in z-50">
+                    💬 Nhắn tin với {roommate.name} trước để xem số điện thoại
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                  </div>
+                )}
+              </div>
 
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => onStartChat(roommate.id)}
                   className="flex-1 bg-[#006590] hover:bg-[#005176] text-white py-3.5 px-6 rounded-2xl font-black shadow-lg shadow-sky-900/20 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 text-[15px]"
@@ -615,6 +661,48 @@ export default function RoommateModal({
               >
                 <FileText className="h-5 w-5" />
                 Tạo thỏa thuận sống chung
+              </button>
+
+              {/* Block / Unblock button */}
+              <button
+                onClick={async () => {
+                  try {
+                    const blocked: string[] = JSON.parse(localStorage.getItem('roomiematch_blocked_users') || '[]');
+                    let updated: string[];
+                    const willBlock = !isBlocked;
+                    if (!willBlock) {
+                      updated = blocked.filter(id => id !== roommate.id);
+                    } else {
+                      updated = [...blocked, roommate.id];
+                    }
+                    localStorage.setItem('roomiematch_blocked_users', JSON.stringify(updated));
+                    setIsBlocked(!isBlocked);
+                    
+                    // Sync to Supabase chat so the partner knows
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const myId = session?.user?.id;
+                    if (myId) {
+                      const partnerId = roommate.user_id || roommate.id;
+                      const chatId = [myId, partnerId].sort().join('_');
+                      await supabase.from('messages').insert({
+                        id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                        chat_id: chatId,
+                        sender_id: myId,
+                        text: willBlock ? "[SYSTEM_BLOCK]" : "[SYSTEM_UNBLOCK]"
+                      });
+                    }
+                  } catch (e) {
+                     console.error('Lỗi khi thao tác chặn', e);
+                  }
+                }}
+                className={`w-full py-3 px-6 rounded-2xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 border ${
+                  isBlocked
+                    ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                    : 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100'
+                }`}
+              >
+                <Ban className="h-4 w-4" />
+                {isBlocked ? 'Hủy chặn người dùng này' : `Chặn ${roommate.name}`}
               </button>
             </>
           ) : (

@@ -11,6 +11,7 @@ import ChatView from "./components/ChatView";
 import AgreementView from "./components/AgreementView";
 import HistoryView from "./components/HistoryView";
 import InfoView from "./components/InfoView";
+import AdminDashboard from "./components/AdminDashboard";
 
 import RoommateModal from "./components/RoommateModal";
 import RoomModal from "./components/RoomModal";
@@ -21,11 +22,11 @@ import PostListingModal from "./components/PostListingModal";
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>(() => {
     const path = window.location.pathname.replace(/^\/+/, "");
-    if (path && ["home", "roommates", "rooms", "chat", "agreement", "info"].includes(path)) {
+    if (path && ["home", "roommates", "rooms", "chat", "agreement", "info", "admin"].includes(path)) {
       return path;
     }
     const hash = window.location.hash.replace("#", "").split("?")[0];
-    return hash && ["home", "roommates", "rooms", "chat", "agreement", "info"].includes(hash) ? hash : "home";
+    return hash && ["home", "roommates", "rooms", "chat", "agreement", "info", "admin"].includes(hash) ? hash : "home";
   });
   
   useEffect(() => {
@@ -43,6 +44,7 @@ export default function App() {
   
   // Authentication states
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isBanned, setIsBanned] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -152,7 +154,7 @@ export default function App() {
 
       try {
         // Fetch Roommates
-        const { data: roommatesData } = await supabase.from('roommates').select('*');
+        const { data: roommatesData } = await supabase.from('roommates').select('*').order('createdAt', { ascending: false });
         if (roommatesData && roommatesData.length > 0) {
           const { data: reviewsData } = await supabase.from('reviews').select('*');
           const enhancedRoommates = roommatesData.map((rm: any) => ({
@@ -163,9 +165,19 @@ export default function App() {
         }
 
         // Fetch Rooms
-        const { data: roomsData } = await supabase.from('rooms').select('*');
+        const { data: roomsData } = await supabase.from('rooms').select('*').order('createdAt', { ascending: false });
         if (roomsData && roomsData.length > 0) {
           setSupabaseRooms(roomsData);
+        }
+
+        // Fetch Banned list
+        const { data: bansData } = await supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS');
+        if (bansData && bansData.length > 0) {
+          const bannedIds = bansData.map((m: any) => m.text.replace('[BAN]', '').trim());
+          if (currentUser?.id && bannedIds.includes(currentUser.id)) setIsBanned(true);
+          // Note: we can't check currentUserProfile.id perfectly here if it's not loaded, 
+          // but we'll re-check when currentUserProfile changes.
+          setSupabaseBannedIds(bannedIds);
         }
       } catch (err) {
         console.error("Error fetching from Supabase:", err);
@@ -173,7 +185,8 @@ export default function App() {
     };
 
     fetchSupabaseData();
-  }, []);
+  }, [currentUser?.id]);
+
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRequireProfileAlertOpen, setIsRequireProfileAlertOpen] = useState(false);
@@ -215,10 +228,16 @@ export default function App() {
             setCurrentUserProfile(data);
             localStorage.setItem("roomiematch_user_profile", JSON.stringify(data));
           } else {
-            console.log('[App] No profile found in Supabase, opening profile creation modal for new user');
-            setTimeout(() => {
-              setIsProfileModalOpen(true);
-            }, 500);
+            console.log('[App] No profile found in Supabase, checking if we already prompted...');
+            const hasPrompted = localStorage.getItem(`prompted_profile_${currentUser.id}`);
+            if (!hasPrompted) {
+              localStorage.setItem(`prompted_profile_${currentUser.id}`, "true");
+              setTimeout(() => {
+                setIsProfileModalOpen(true);
+              }, 500);
+            } else {
+              console.log('[App] Already prompted this user before. Skipping auto-open.');
+            }
           }
         } catch (err) {
           console.error('[App] Error fetching profile:', err);
@@ -229,11 +248,12 @@ export default function App() {
       
     } else if (currentUser && currentUserProfile && currentUserProfile.id === "me") {
       // Migrate "me" ID to actual Supabase UUID to prevent shared chats
-      const updatedProfile = { ...currentUserProfile, id: currentUser.id };
-      setCurrentUserProfile(updatedProfile);
-      localStorage.setItem("roomiematch_user_profile", JSON.stringify(updatedProfile));
+      setCurrentUserProfile({ ...currentUserProfile, id: currentUser.id });
     }
   }, [currentUser, currentUserProfile]);
+
+  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || "admin@roomiematch.com";
+  const isAdmin = currentUser?.email === adminEmail || currentUser?.email === "quanly@roomiematch.com" || currentUser?.id === "7a1b28ab-058f-49b6-85bb-3cb61406db31";
 
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const activeTabRef = useRef(activeTab);
@@ -795,6 +815,7 @@ export default function App() {
           reviews: [...dbReviews, ...(r.reviews || [])],
           avatar: isOwner ? currentUserProfile.avatar : r.avatar,
           name: isOwner ? currentUserProfile.name : r.name,
+          postedBy: isOwner && currentUser ? currentUser.id : r.postedBy,
         };
       });
 
@@ -849,6 +870,7 @@ export default function App() {
           price: r.price || 0,
           hostAvatar: isOwner ? currentUserProfile.avatar : r.hostAvatar,
           hostName: isOwner ? currentUserProfile.name : r.hostName,
+          postedBy: isOwner && currentUser ? currentUser.id : (r.postedBy || r.user_id),
         };
       });
     }
@@ -939,6 +961,7 @@ export default function App() {
     setCurrentUser(null);
     setCurrentUserProfile(null);
     localStorage.removeItem("roomiematch_user_profile");
+    setActiveTab("home");
   };
 
   const startChatConversation = async (roommateId: string) => {
@@ -1076,6 +1099,13 @@ export default function App() {
     return true;
   };
 
+  const [supabaseBannedIds, setSupabaseBannedIds] = useState<string[]>([]);
+  useEffect(() => {
+    if (currentUserProfile?.id && supabaseBannedIds.includes(currentUserProfile.id)) {
+      setIsBanned(true);
+    }
+  }, [currentUserProfile, supabaseBannedIds]);
+
   // Helper calculating specific category matching details for modal displays
   const getCompatibilityDetails = (roommate: Roommate | null) => {
     if (!roommate || !currentUserProfile) {
@@ -1091,10 +1121,27 @@ export default function App() {
       sleepMatch: currentUserProfile.lifestyle.sleep === roommate.lifestyle.sleep,
       petsMatch: currentUserProfile.lifestyle.pets === roommate.lifestyle.pets || roommate.lifestyle.pets === "Thoải mái",
       smokeMatch: currentUserProfile.lifestyle.smoke === roommate.lifestyle.smoke,
-      cookMatch: currentUserProfile.lifestyle.cook === roommate.lifestyle.cook,
+      cookMatch: currentUserProfile.lifestyle.smoke === roommate.lifestyle.smoke,
       neatMatch: currentUserProfile.lifestyle.neatness === roommate.lifestyle.neatness,
     };
   };
+
+  if (isBanned) {
+    return (
+      <div className="min-h-screen bg-rose-50 flex items-center justify-center p-4">
+        <div className="bg-white p-10 rounded-3xl max-w-md text-center shadow-xl border border-rose-100">
+          <div className="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-6">
+             <span className="text-4xl">⛔</span>
+          </div>
+          <h2 className="text-2xl font-black text-rose-600 mb-3">Tài khoản đã bị khóa</h2>
+          <p className="text-slate-600">
+            Tài khoản của bạn đã bị khóa do vi phạm tiêu chuẩn cộng đồng của RoomieMatch. 
+            Bạn không thể tiếp tục sử dụng dịch vụ. Nếu có thắc mắc, vui lòng liên hệ admin@roomiematch.com.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f0f4f8] relative overflow-x-hidden flex flex-col justify-between">
@@ -1112,6 +1159,7 @@ export default function App() {
         onOpenCreateProfile={() => setIsProfileModalOpen(true)}
         currentUserProfile={currentUserProfile}
         currentUser={currentUser}
+        isAdmin={isAdmin}
         onOpenLogin={() => setIsLoginModalOpen(true)}
         onLogout={handleLogout}
         hasUnreadMessages={hasUnreadMessages}
@@ -1216,6 +1264,26 @@ export default function App() {
         {activeTab === "info" && (
           <InfoView />
         )}
+
+        {activeTab === "admin" && (
+          isAdmin ? (
+            <AdminDashboard 
+              currentUser={currentUser}
+              roommates={allRoommates}
+              rooms={rooms}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 px-4 min-h-[60vh] animate-fade-in">
+              <div className="bg-white p-10 rounded-[32px] shadow-sm border border-slate-100 max-w-md text-center">
+                <h3 className="text-2xl font-black text-rose-600 mb-3 tracking-tight">Từ chối truy cập</h3>
+                <p className="text-slate-500 mb-8 leading-relaxed">Bạn không có quyền quản trị viên để truy cập trang này.</p>
+                <button onClick={() => setActiveTab("home")} className="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl transition-all duration-200">
+                  Về Trang Chủ
+                </button>
+              </div>
+            </div>
+          )
+        )}
       </main>
 
       {/* 3. Footer Bar Section */}
@@ -1231,6 +1299,15 @@ export default function App() {
           compatibilityDetails={getCompatibilityDetails(selectedRoommate)}
           onAddReview={handleAddReview}
           isOwnProfile={!!currentUser && ((selectedRoommate.postedBy === currentUser.id) || (currentUserProfile && selectedRoommate.name === currentUserProfile.name))}
+          hasChatWithRoommate={(() => {
+            // Check if there's any chat history with this roommate via localStorage chat notes
+            const chatNote = localStorage.getItem(`chat_notes_${selectedRoommate.id}`) || '';
+            const roommateNote = localStorage.getItem(`roommate_notes_${selectedRoommate.id}`) || '';
+            // Also check if there are any messages stored for this chat pair
+            const myId = currentUser?.id || currentUserProfile?.id;
+            const chatKey = myId && selectedRoommate.id ? [myId, selectedRoommate.id].sort().join('_') : null;
+            return chatNote.length > 0 || roommateNote.length > 0 || !!chatKey;
+          })()}
           onDeleteProfile={(id) => {
             handleDeleteRoommate(id);
             if (currentUserProfile && currentUserProfile.id === id) {

@@ -25,7 +25,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
     name: room.hostName || "Chủ phòng",
     age: 21,
     role: room.hostRole || "Sinh viên / Thành viên",
-    majorKhoidoi: "Khối Kinh tế",
+    school: "ĐH Kinh Tế (Ngũ Hành Sơn)",
     phoneNumber: room.phoneNumber || "0987 123 456",
     avatar: room.hostAvatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop",
     status: "Đã có phòng",
@@ -279,7 +279,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                       </span>
                     </div>
                     <p className="text-xs font-bold text-[#006590] uppercase tracking-wider">
-                      {resolvedRoommate.role} • {resolvedRoommate.majorKhoidoi || "Khối Kinh tế"}
+                      {resolvedRoommate.role} • {resolvedRoommate.school || "ĐH Kinh Tế (Ngũ Hành Sơn)"}
                     </p>
                     <p className="text-[11px] text-slate-500 font-semibold">
                       📍 Khu vực tìm: {resolvedRoommate.location}
