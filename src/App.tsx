@@ -569,6 +569,8 @@ export default function App() {
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
       const { reviews, ...dbRoommate } = roommateWithOwner;
+      // ✅ Force is_listing = true so it always shows in Tim Ban tab
+      dbRoommate.is_listing = true;
       let { error, data } = await supabase.from('roommates').insert(dbRoommate).select();
       if (error && (error.code === 'PGRST204' || error.code === '42703')) {
         const { postedBy, ...dbRoommateFallback } = dbRoommate;
