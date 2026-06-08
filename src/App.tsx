@@ -465,12 +465,18 @@ export default function App() {
   const handleDeleteRoommate = async (id: string) => {
     // 1. Check if this is a user profile (is_listing = false) - should not be deleted
     if (import.meta.env.VITE_SUPABASE_URL) {
-      const { data: roommateData } = await supabase.from('roommates').select('is_listing, user_id').eq('id', id).single();
+      const { data: roommateData, error: fetchError } = await supabase.from('roommates').select('is_listing, user_id, name').eq('id', id).single();
       
+      console.log('[Delete] Checking record:', { id, data: roommateData, error: fetchError });
+      
+      // Only block deletion if is_listing is explicitly FALSE (user profile)
+      // Allow deletion if is_listing is TRUE or NULL (listings)
       if (roommateData && roommateData.is_listing === false) {
         alert('Không thể xóa hồ sơ cá nhân từ trang này. Hồ sơ cá nhân chỉ có thể chỉnh sửa, không thể xóa.');
         return;
       }
+      
+      console.log('[Delete] Allowed to delete - is_listing:', roommateData?.is_listing);
     }
     
     // 2. Remove from local fallback
@@ -483,11 +489,14 @@ export default function App() {
     // 3. Remove from Supabase state optimistically
     setSupabaseRoommates((prev) => prev.filter((r) => r.id !== id));
 
-    // 4. Supabase Delete (only delete if is_listing = true)
+    // 4. Supabase Delete - delete the record
     if (import.meta.env.VITE_SUPABASE_URL) {
-      const { error } = await supabase.from('roommates').delete().eq('id', id).eq('is_listing', true);
-      if (error) console.error("Error deleting roommate listing from Supabase:", error);
-      else console.log('[App] Deleted roommate listing (is_listing=true):', id);
+      const { error } = await supabase.from('roommates').delete().eq('id', id);
+      if (error) {
+        console.error("[App] Error deleting roommate listing from Supabase:", error);
+      } else {
+        console.log('[App] Successfully deleted roommate listing:', id);
+      }
     }
   };
 
