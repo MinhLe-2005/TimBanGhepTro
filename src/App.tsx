@@ -84,27 +84,33 @@ export default function App() {
             let error = null;
             
             // Strategy 1: Find by user_id (most reliable)
+            console.log('[Auth] Strategy 1: Searching by user_id:', user.id);
             const result1 = await supabase.from('roommates').select('*').eq('user_id', user.id).maybeSingle();
+            console.log('[Auth] Strategy 1 result:', result1);
             if (result1.data) {
               profileData = result1.data;
-              console.log('[Auth] Found profile by user_id');
+              console.log('[Auth] ✅ Found profile by user_id');
             }
             
             // Strategy 2: Find by id (if profile ID == auth ID)
             if (!profileData) {
+              console.log('[Auth] Strategy 2: Searching by id:', user.id);
               const result2 = await supabase.from('roommates').select('*').eq('id', user.id).maybeSingle();
+              console.log('[Auth] Strategy 2 result:', result2);
               if (result2.data) {
                 profileData = result2.data;
-                console.log('[Auth] Found profile by id');
+                console.log('[Auth] ✅ Found profile by id');
               }
             }
             
             // Strategy 3: Find by postedBy (legacy)
             if (!profileData) {
+              console.log('[Auth] Strategy 3: Searching by postedBy:', user.id);
               const result3 = await supabase.from('roommates').select('*').eq('postedBy', user.id).maybeSingle();
+              console.log('[Auth] Strategy 3 result:', result3);
               if (result3.data) {
                 profileData = result3.data;
-                console.log('[Auth] Found profile by postedBy');
+                console.log('[Auth] ✅ Found profile by postedBy');
               }
             }
             
