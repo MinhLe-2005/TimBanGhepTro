@@ -69,7 +69,9 @@ export default function AgreementView({
   roommates,
   currentUserProfile,
   preSelectedRoommateId = null,
+  currentUser,
   onRequireAuth,
+  onRequireProfile,
   pendingAgreementPayload
 }: AgreementViewProps) {
   const [roommateName, setRoommateName] = useState("");
@@ -79,6 +81,27 @@ export default function AgreementView({
   const [billsText, setBillsText] = useState("");
   const [petsText, setPetsText] = useState("");
   const [otherNotesText, setOtherNotesText] = useState("");
+  
+  // Fetch agreements from Supabase
+  const [agreements, setAgreements] = useState<any[]>([]);
+
+  // Fetch agreements when component mounts
+  useEffect(() => {
+    if (!import.meta.env.VITE_SUPABASE_URL || !currentUserProfile) return;
+    
+    const fetchAgreements = async () => {
+      const { data, error } = await supabase
+        .from('agreements')
+        .select('*')
+        .or(`creator_id.eq.${currentUserProfile.id},partner_id.eq.${currentUserProfile.id}`);
+      
+      if (!error && data) {
+        setAgreements(data);
+      }
+    };
+    
+    fetchAgreements();
+  }, [currentUserProfile]);
 
   // Radioactive option ids and local input states
   const [quietOption, setQuietOption] = useState("chuan");
