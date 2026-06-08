@@ -246,6 +246,7 @@ export default function PostListingModal({
       gender: rmGender,
       majorKhoidoi: rmMajor,
       phoneNumber: rmPhone,
+      is_listing: true, // ✅ CRITICAL: Mark as listing (can be deleted), not profile
       lifestyle: {
         sleep: rmSleep,
         pets: rmPets,

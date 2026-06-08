@@ -275,7 +275,7 @@ export default function App() {
     return [...parsed, ...INITIAL_ROOMS];
   });
 
-  // Merge local roommates with Supabase roommates (deduplicate by id)
+  // Merge local roommates with Supabase roommates (deduplicate by id AND name)
   const allRoommates = useMemo(() => {
     const combined = [...supabaseRoommates, ...roommates];
     console.log('[App] Merging roommates:', {
@@ -284,20 +284,45 @@ export default function App() {
       combinedCount: combined.length
     });
     
-    const uniqueMap = new Map();
+    const uniqueByIdMap = new Map();
+    const uniqueByNameMap = new Map();
+    
     combined.forEach(rm => {
-      const existing = uniqueMap.get(rm.id);
-      // Prioritize listings over profiles: always replace if new record is listing
-      if (!existing || (rm.is_listing && !existing.is_listing)) {
-        uniqueMap.set(rm.id, rm);
+      // Strategy 1: Deduplicate by ID
+      const existingById = uniqueByIdMap.get(rm.id);
+      if (!existingById || (rm.is_listing && !existingById.is_listing)) {
+        uniqueByIdMap.set(rm.id, rm);
+      }
+      
+      // Strategy 2: Deduplicate by NAME (case-insensitive)
+      // Always prioritize listings over profiles with same name
+      const normalizedName = rm.name.toUpperCase().trim();
+      const existingByName = uniqueByNameMap.get(normalizedName);
+      
+      if (!existingByName) {
+        uniqueByNameMap.set(normalizedName, rm);
+      } else {
+        // If new record is a listing and existing is a profile, replace it
+        if (rm.is_listing === true && existingByName.is_listing !== true) {
+          uniqueByNameMap.set(normalizedName, rm);
+          // Also remove the old profile from ID map
+          uniqueByIdMap.delete(existingByName.id);
+          uniqueByIdMap.set(rm.id, rm);
+        }
+        // If new record is a profile and existing is a listing, keep the listing
+        else if (rm.is_listing !== true && existingByName.is_listing === true) {
+          // Keep existing listing, ignore new profile
+          uniqueByIdMap.delete(rm.id);
+        }
       }
     });
     
-    const result = Array.from(uniqueMap.values());
+    const result = Array.from(uniqueByIdMap.values());
     console.log('[App] After merge:', {
       uniqueCount: result.length,
-      listingsCount: result.filter(r => r.is_listing).length,
-      profilesCount: result.filter(r => !r.is_listing).length
+      listingsCount: result.filter(r => r.is_listing === true).length,
+      profilesCount: result.filter(r => r.is_listing !== true).length,
+      byName: result.map(r => ({ name: r.name, is_listing: r.is_listing, id: r.id }))
     });
     
     return result;
