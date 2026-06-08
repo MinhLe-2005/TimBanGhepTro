@@ -108,7 +108,8 @@ export default function RoommatesView({
 
   // Filter roommates list
   // CRITICAL: Filter out user profiles (is_listing=false) - only show listings in "Tìm Bạn" tab
-  const listingsOnly = roommates.filter(r => r.is_listing !== false);
+  // MUST use === true to avoid showing profiles with undefined is_listing
+  const listingsOnly = roommates.filter(r => r.is_listing === true);
   
   // Apply filters on top of listings-only data
   const filteredRoommates = listingsOnly.filter((roommate) => {
