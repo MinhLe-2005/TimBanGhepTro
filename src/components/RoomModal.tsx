@@ -279,7 +279,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                         Đã xác minh
                       </span>
                     </div>
-                    <p className="text-xs font-bold text-[#006590] uppercase tracking-wider">
+                    <p className="text-xs font-bold text-[#006590] uppercase tracking-wider line-clamp-2">
                       {resolvedRoommate.role} • {resolvedRoommate.school || (resolvedRoommate as any).majorKhoidoi || "Chưa cập nhật trường"}
                     </p>
                     <p className="text-[11px] text-slate-500 font-semibold">

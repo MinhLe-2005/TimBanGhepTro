@@ -301,7 +301,7 @@ export default function RoommateModal({
                 <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 text-base">🏫</span>
                 <div className="flex flex-col items-start pr-2">
                   <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider">Trường học</span>
-                  <span className="text-[13px] font-black text-slate-800 leading-tight mt-0.5 truncate max-w-[150px]">{roommate.school || (roommate as any).majorKhoidoi || "Không rõ"}</span>
+                  <span className="text-[13px] font-black text-slate-800 leading-tight mt-0.5">{roommate.school || (roommate as any).majorKhoidoi || "Không rõ"}</span>
                 </div>
               </div>
               <div className="bg-white px-4 py-2.5 rounded-2xl border-2 border-slate-100 shadow-sm flex items-center gap-3">

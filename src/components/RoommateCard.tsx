@@ -128,8 +128,8 @@ export default function RoommateCard({
           <div className="flex items-center gap-1.5 text-slate-600 truncate">
             <span className="font-semibold text-slate-400 shrink-0">Giới tính:</span> {roommate.gender}
           </div>
-          <div className="flex items-center gap-1.5 text-slate-600 truncate">
-            <span className="font-semibold text-slate-400 shrink-0">Trường:</span> {roommate.school || (roommate as any).majorKhoidoi || "Không rõ"}
+          <div className="flex items-start gap-1.5 text-slate-600">
+            <span className="font-semibold text-slate-400 shrink-0">Trường:</span> <span className="line-clamp-2">{roommate.school || (roommate as any).majorKhoidoi || "Không rõ"}</span>
           </div>
           <div className="flex items-center gap-1.5 text-slate-600 truncate">
             <span className="font-semibold text-slate-400 shrink-0">Ngân sách:</span> <span className="font-bold text-[#006590]">{(roommate.budget / 1000000).toFixed(1)}tr</span>
