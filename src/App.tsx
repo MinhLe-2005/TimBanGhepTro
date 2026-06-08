@@ -84,7 +84,7 @@ export default function App() {
             let error = null;
             
             // Strategy 1: Find by user_id (most reliable)
-            const result1 = await supabase.from('roommates').select('*').eq('user_id', user.id).eq('is_listing', false).maybeSingle();
+            const result1 = await supabase.from('roommates').select('*').eq('user_id', user.id).maybeSingle();
             if (result1.data) {
               profileData = result1.data;
               console.log('[Auth] Found profile by user_id');
@@ -92,7 +92,7 @@ export default function App() {
             
             // Strategy 2: Find by id (if profile ID == auth ID)
             if (!profileData) {
-              const result2 = await supabase.from('roommates').select('*').eq('id', user.id).eq('is_listing', false).maybeSingle();
+              const result2 = await supabase.from('roommates').select('*').eq('id', user.id).maybeSingle();
               if (result2.data) {
                 profileData = result2.data;
                 console.log('[Auth] Found profile by id');
@@ -101,7 +101,7 @@ export default function App() {
             
             // Strategy 3: Find by postedBy (legacy)
             if (!profileData) {
-              const result3 = await supabase.from('roommates').select('*').eq('postedBy', user.id).eq('is_listing', false).maybeSingle();
+              const result3 = await supabase.from('roommates').select('*').eq('postedBy', user.id).maybeSingle();
               if (result3.data) {
                 profileData = result3.data;
                 console.log('[Auth] Found profile by postedBy');
