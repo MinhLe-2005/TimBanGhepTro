@@ -372,39 +372,12 @@ export default function App() {
     });
     
     const uniqueByIdMap = new Map();
-    const uniqueByNameMap = new Map();
     
     combined.forEach(rm => {
-      // Strategy 1: Deduplicate by ID
       const existingById = uniqueByIdMap.get(rm.id);
+      // If same ID appears twice, prefer the listing version over profile
       if (!existingById || (rm.is_listing && !existingById.is_listing)) {
         uniqueByIdMap.set(rm.id, rm);
-      }
-      
-      // Strategy 2: Deduplicate by NAME (case-insensitive)
-      // Always prioritize listings over profiles with same name
-      const normalizedName = rm.name.toUpperCase().trim();
-      const existingByName = uniqueByNameMap.get(normalizedName);
-      
-      if (!existingByName) {
-        uniqueByNameMap.set(normalizedName, rm);
-      } else if (rm.id !== existingByName.id) {
-        // If new record is a listing and existing is a profile, replace it
-        if (rm.is_listing === true && existingByName.is_listing !== true) {
-          uniqueByNameMap.set(normalizedName, rm);
-          // Also remove the old profile from ID map
-          uniqueByIdMap.delete(existingByName.id);
-          uniqueByIdMap.set(rm.id, rm);
-        }
-        // If new record is a profile and existing is a listing, keep the listing
-        else if (rm.is_listing !== true && existingByName.is_listing === true) {
-          // Keep existing listing, ignore new profile
-          uniqueByIdMap.delete(rm.id);
-        }
-        else {
-          // both are profiles or both are listings. Delete the new one from ID map to only keep one
-          uniqueByIdMap.delete(rm.id);
-        }
       }
     });
     
