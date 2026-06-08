@@ -3,6 +3,23 @@
 -- Chạy trên Supabase SQL Editor
 -- ============================================
 
+-- 0. TẠO BẢNG PROFILES (LƯU THÔNG TIN USER)
+DROP TABLE IF EXISTS public.profiles CASCADE;
+CREATE TABLE public.profiles (
+    id TEXT PRIMARY KEY,  -- rm-xxx hoặc auth UUID
+    auth_id UUID,  -- Link tới Supabase Auth user
+    name TEXT NOT NULL,
+    email TEXT,
+    avatar TEXT,
+    role TEXT DEFAULT 'Thành viên',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index cho profiles
+CREATE INDEX IF NOT EXISTS idx_profiles_auth_id ON public.profiles(auth_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email);
+
 -- 1. TẠO BẢNG MESSAGES CHO CHAT REAL-TIME
 DROP TABLE IF EXISTS public.messages CASCADE;
 CREATE TABLE public.messages (
@@ -41,6 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_agreements_status ON public.agreements(status);
 
 -- 3. TẮT RLS TẠM THỜI ĐỂ TESTING (CHO PHÉP TẤT CẢ TRUY CẬP)
 -- ⚠️ LƯU Ý: NẾU LÊN PRODUCTION, CẦN BẬT LẠI VÀ THIẾT LẬP POLICY CHO ĐÚNG!
+ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.agreements DISABLE ROW LEVEL SECURITY;
 

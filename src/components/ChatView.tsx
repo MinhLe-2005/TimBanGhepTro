@@ -223,24 +223,54 @@ export default function ChatView({
         .order('timestamp', { ascending: false });
 
       if (!error && data) {
+         console.log('[Chat] Fetched inbox messages:', data.length);
          const conversationMap = new Map();
+         
+         // Collect all unique partner IDs first
+         const partnerIds = new Set<string>();
          data.forEach(msg => {
              const ids = msg.chat_id.split('_');
-             // Determine which side of the chat_id is the partner
+             const isMyId = (id: string) => id === myAuthId || id === myProfileId;
+             const partnerId = isMyId(ids[0]) ? ids[1] : ids[0];
+             if (!isMyId(partnerId)) {
+               partnerIds.add(partnerId);
+             }
+         });
+
+         // Fetch partner profiles from Supabase if available
+         const partnerProfiles = new Map();
+         if (partnerIds.size > 0 && import.meta.env.VITE_SUPABASE_URL) {
+           const { data: profilesData } = await supabase
+             .from('profiles')
+             .select('*')
+             .in('id', Array.from(partnerIds));
+           
+           if (profilesData) {
+             profilesData.forEach(p => partnerProfiles.set(p.id, p));
+           }
+         }
+         
+         data.forEach(msg => {
+             const ids = msg.chat_id.split('_');
              const isMyId = (id: string) => id === myAuthId || id === myProfileId;
              const partnerId = isMyId(ids[0]) ? ids[1] : ids[0];
              
              if (isMyId(partnerId)) return; // Ignore self chats
 
              if (!conversationMap.has(partnerId)) {
-                const partner = roommates.find(r => r.id === partnerId) || {
-                   id: partnerId,
-                   name: "Người dùng ẩn danh",
-                   avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop",
-                   role: "Thành viên",
-                   isVerified: false,
-                   matchScore: 0
-                };
+                // Try to find partner in multiple sources
+                const partner = roommates.find(r => r.id === partnerId) || 
+                               partnerProfiles.get(partnerId) || 
+                               {
+                                 id: partnerId,
+                                 name: partnerId.startsWith('rm-') ? partnerId.replace('rm-', '').toUpperCase() : "Người dùng",
+                                 avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop",
+                                 role: "Thành viên",
+                                 isVerified: false,
+                                 matchScore: 0
+                               };
+                
+                console.log('[Chat] Adding conversation with partner:', partner.name, partnerId);
                 conversationMap.set(partnerId, {
                    partner,
                    lastMessage: msg.text || "Đã gửi đính kèm",
@@ -263,6 +293,7 @@ export default function ChatView({
             }
          }
 
+         console.log('[Chat] Total conversations:', conversationMap.size);
          setConversations(Array.from(conversationMap.values()).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
       }
     };
