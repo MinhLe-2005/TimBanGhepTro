@@ -56,24 +56,41 @@ export default function App() {
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[Auth] State changed:', event, session?.user?.email);
+      
       if (session?.user) {
         const user = session.user;
+        console.log('[Auth] User logged in:', user.email, user.id);
+        
         setCurrentUser({
           id: user.id,
           email: user.email,
           name: user.user_metadata?.full_name || "Thành viên Roomie",
           avatar: user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop",
         });
+        
         // Also try to restore profile on session restore (e.g. page reload)
         const savedProfile = localStorage.getItem("roomiematch_user_profile");
         if (savedProfile) {
-          try { setCurrentUserProfile(JSON.parse(savedProfile)); } catch(e) {}
+          try { 
+            setCurrentUserProfile(JSON.parse(savedProfile)); 
+            console.log('[Auth] Loaded profile from localStorage');
+          } catch(e) {
+            console.error('[Auth] Error parsing saved profile:', e);
+          }
         } else {
+          console.log('[Auth] No saved profile, fetching from Supabase...');
           // Try loading from Supabase profiles table by auth_id
           try {
-            const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+            const { data: profileData, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+            
+            if (error) {
+              console.error('[Auth] Error fetching profile:', error);
+            }
+            
             if (profileData) {
+              console.log('[Auth] Loaded profile from Supabase:', profileData.name);
               // Convert profile format to match app's expected structure
               const fullProfile = {
                 id: profileData.id,
@@ -103,12 +120,15 @@ export default function App() {
               };
               setCurrentUserProfile(fullProfile);
               localStorage.setItem("roomiematch_user_profile", JSON.stringify(fullProfile));
+            } else {
+              console.log('[Auth] No profile found in Supabase for user:', user.id);
             }
           } catch(e) {
             console.error('[Auth] Error loading profile from Supabase:', e);
           }
         }
       } else {
+        console.log('[Auth] User logged out or no session');
         setCurrentUser(null);
       }
     });
