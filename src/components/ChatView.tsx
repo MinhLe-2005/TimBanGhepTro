@@ -183,7 +183,12 @@ export default function ChatView({
         .ilike('chat_id', `%${myAuthId}%`)
         .order('timestamp', { ascending: false });
 
-      console.log('[Chat] Inbox query result:', { data: data?.length, error });
+      console.log('[Chat] Inbox query result:', { 
+        dataCount: data?.length, 
+        error,
+        myAuthId,
+        sampleChatIds: data?.slice(0, 3).map(m => m.chat_id)
+      });
 
       if (!error && data) {
         console.log('[Chat] Found', data.length, 'messages in inbox');
