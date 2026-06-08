@@ -224,6 +224,13 @@ export default function AgreementView({
   const [signedDate, setSignedDate] = useState<string>("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
+  // Sync prop to local state so we can clear it when user clicks "Tạo mới"
+  // IMPORTANT: must be declared before ANY useEffect that references localPendingPayload
+  const [localPendingPayload, setLocalPendingPayload] = useState<any>(null);
+  useEffect(() => {
+    setLocalPendingPayload(pendingAgreementPayload);
+  }, [pendingAgreementPayload]);
+
   useEffect(() => {
     if (localPendingPayload) {
       applyLoadedFields(localPendingPayload.rules);
@@ -321,12 +328,6 @@ export default function AgreementView({
       setPetsOther(fields.pets);
     }
   };
-
-  // Sync prop to local state so we can clear it when user clicks "Tạo mới"
-  const [localPendingPayload, setLocalPendingPayload] = useState<any>(null);
-  useEffect(() => {
-    setLocalPendingPayload(pendingAgreementPayload);
-  }, [pendingAgreementPayload]);
 
   const matchedRoommate = roommateName ? (roommates.find((r) => r.name.toLowerCase() === roommateName.toLowerCase()) || 
                           roommates.find((r) => r.name.toLowerCase().includes(roommateName.toLowerCase()))) : null;
