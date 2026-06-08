@@ -369,13 +369,20 @@ export default function App() {
     });
     
     const result = Array.from(uniqueByIdMap.values());
-    console.log('[App] After merge:', {
-      uniqueCount: result.length,
-      listingsCount: result.filter(r => r.is_listing === true).length,
-      profilesCount: result.filter(r => r.is_listing !== true).length,
-      byName: result.map(r => ({ name: r.name, is_listing: r.is_listing, id: r.id }))
+
+    // Sort: newest listings on top. Sample data (fixed IDs) gets timestamp 0 → goes to bottom
+    result.sort((a, b) => {
+      const getTs = (r: any): number => {
+        if (r.createdAt) {
+          const d = new Date(r.createdAt);
+          if (!isNaN(d.getTime())) return d.getTime();
+        }
+        const match = String(r.id).match(/rm-(\d+)/);
+        return match ? parseInt(match[1]) : 0;
+      };
+      return getTs(b) - getTs(a);
     });
-    
+
     return result;
   }, [supabaseRoommates, roommates]);
 
@@ -485,7 +492,8 @@ export default function App() {
       ...newRoommate, 
       postedBy: currentUser?.id || "", 
       user_id: currentUser?.id || "",
-      is_listing: true  // Mark as roommate listing (can be deleted)
+      is_listing: true,  // Mark as roommate listing (can be deleted)
+      createdAt: new Date().toISOString(), // So it sorts to the top
     };
     
     if (editingListingData) {
