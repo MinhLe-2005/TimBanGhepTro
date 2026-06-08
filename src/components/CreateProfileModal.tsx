@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { X, Sparkles, Camera, CheckCircle2 } from "lucide-react";
+import { supabase } from "../lib/supabase";
 
 interface CreateProfileModalProps {
   onClose: () => void;
@@ -75,40 +76,64 @@ export default function CreateProfileModal({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
     setIsSaving(true);
 
+    // Tạo profile object
+    const profileId = currentUser?.id || currentProfile?.id || `rm-${Date.now()}`;
+    const updatedProfile = {
+      id: profileId,
+      name,
+      age: Number(age),
+      role,
+      avatar: selectedAvatar,
+      location,
+      district,
+      type,
+      budget: Number(budget),
+      bio,
+      gender,
+      isVerified: false,
+      status,
+      matchScore: 100, // Self is 100% matched
+      tags: [sleep, neatness, smoke],
+      lifestyle: {
+        sleep,
+        pets,
+        smoke,
+        cook,
+        interaction,
+        neatness,
+      },
+    };
+
+    // Lưu vào Supabase profiles table
+    if (import.meta.env.VITE_SUPABASE_URL) {
+      try {
+        const { error } = await supabase.from('profiles').upsert({
+          id: profileId,
+          auth_id: currentUser?.id,
+          name,
+          avatar: selectedAvatar,
+          role,
+          created_at: new Date().toISOString(),
+        });
+        
+        if (error) {
+          console.error('[Profile] Error saving to Supabase:', error);
+        } else {
+          console.log('[Profile] Saved to Supabase successfully');
+        }
+      } catch (err) {
+        console.error('[Profile] Exception saving to Supabase:', err);
+      }
+    }
+
     // Giả lập thời gian lưu để có UX tốt hơn
     setTimeout(() => {
-      const updatedProfile = {
-        id: currentUser?.id || currentProfile?.id || "me",
-        name,
-        age: Number(age),
-        role,
-        avatar: selectedAvatar,
-        location,
-        district,
-        type,
-        budget: Number(budget),
-        bio,
-        gender,
-        isVerified: false,
-        status,
-        matchScore: 100, // Self is 100% matched
-        tags: [sleep, neatness, smoke],
-        lifestyle: {
-          sleep,
-          pets,
-          smoke,
-          cook,
-          interaction,
-          neatness,
-        },
-      };
-      
       onSave(updatedProfile);
       setIsSaving(false);
       setSaveSuccess(true);
