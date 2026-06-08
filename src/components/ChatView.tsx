@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, CheckCircle2, AlertCircle, Sparkles, MessageSquare, PhoneCall, Image, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck, Ban, AlertOctagon, UploadCloud } from "lucide-react";
+import { Send, CheckCircle2, AlertCircle, Sparkles, MessageSquare, PhoneCall, Image as ImageIcon, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck, Ban, AlertOctagon, UploadCloud } from "lucide-react";
 import { Roommate, Message } from "../types";
 import { supabase } from "../lib/supabase";
 
@@ -991,7 +991,7 @@ export default function ChatView({
                   className={`bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-[#006590] w-12 h-12 rounded-full duration-150 flex items-center justify-center cursor-pointer transition-all shrink-0 ${isActiveUserBlocked ? 'opacity-40 pointer-events-none' : ''}`}
                   title="Gửi hình ảnh"
                 >
-                  <Image className="h-5 w-5" />
+                  <ImageIcon className="h-5 w-5" />
                 </label>
 
                 <input
