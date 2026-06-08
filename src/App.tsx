@@ -620,6 +620,19 @@ export default function App() {
       }
     };
     fetchReviews();
+    
+    // Real-time subscription for new reviews
+    const reviewsChannel = supabase
+      .channel('reviews_realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reviews' }, (payload) => {
+        console.log('[App] New review received:', payload.new);
+        setSupabaseReviews(prev => [payload.new as any, ...prev]);
+      })
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(reviewsChannel);
+    };
   }, []);
 
   useEffect(() => {

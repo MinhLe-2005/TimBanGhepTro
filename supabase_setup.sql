@@ -56,11 +56,30 @@ CREATE INDEX IF NOT EXISTS idx_agreements_creator ON public.agreements(creator_i
 CREATE INDEX IF NOT EXISTS idx_agreements_partner ON public.agreements(partner_id);
 CREATE INDEX IF NOT EXISTS idx_agreements_status ON public.agreements(status);
 
+-- 2.5. TẠO BẢNG REVIEWS (ĐÁNH GIÁ)
+DROP TABLE IF EXISTS public.reviews CASCADE;
+CREATE TABLE public.reviews (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    roommate_id TEXT NOT NULL,
+    reviewer_name TEXT NOT NULL,
+    reviewer_avatar TEXT,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT NOT NULL,
+    image_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index cho reviews
+CREATE INDEX IF NOT EXISTS idx_reviews_roommate ON public.reviews(roommate_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_created ON public.reviews(created_at DESC);
+
 -- 3. TẮT RLS TẠM THỜI ĐỂ TESTING (CHO PHÉP TẤT CẢ TRUY CẬP)
 -- ⚠️ LƯU Ý: NẾU LÊN PRODUCTION, CẦN BẬT LẠI VÀ THIẾT LẬP POLICY CHO ĐÚNG!
 ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.agreements DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reviews DISABLE ROW LEVEL SECURITY;
 
 -- NẾU BẠN MUỐN BẬT RLS NHƯNG CHO PHÉP TẤT CẢ (DEMO MODE):
 -- ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
@@ -86,11 +105,18 @@ BEGIN
         ALTER PUBLICATION supabase_realtime DROP TABLE public.agreements;
     EXCEPTION WHEN OTHERS THEN NULL;
     END;
+    
+    -- Thử xóa reviews khỏi publication (bỏ qua nếu chưa có)
+    BEGIN
+        ALTER PUBLICATION supabase_realtime DROP TABLE public.reviews;
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END;
 END $$;
 
 -- Thêm vào publication
 ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.agreements;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.reviews;
 
 -- 5. KIỂM TRA XEM REALTIME ĐÃ ĐƯỢC BẬT CHƯA
 -- Chạy query này để verify:
