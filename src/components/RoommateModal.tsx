@@ -530,13 +530,16 @@ export default function RoommateModal({
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => {
-                  if (onDeleteProfile && window.confirm("Bạn có chắc chắn muốn xóa hồ sơ này? Hành động này không thể hoàn tác.")) {
+                  const confirmMessage = roommate.is_listing 
+                    ? "Bạn có chắc chắn muốn xóa tin đăng này? Hành động này không thể hoàn tác."
+                    : "Bạn có chắc chắn muốn xóa hồ sơ này? Hành động này không thể hoàn tác.";
+                  if (onDeleteProfile && window.confirm(confirmMessage)) {
                     onDeleteProfile(roommate.id);
                   }
                 }}
                 className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-4 px-6 rounded-[16px] font-black active:scale-95 duration-200 text-center cursor-pointer text-[15px] border border-red-100"
               >
-                Xóa hồ sơ
+                {roommate.is_listing ? 'Xóa tin đăng' : 'Xóa hồ sơ'}
               </button>
               <button
                 onClick={onClose}

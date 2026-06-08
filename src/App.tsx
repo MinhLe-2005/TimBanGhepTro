@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { INITIAL_ROOMMATES, INITIAL_ROOMS, SUGGGESTED_CHATS } from "./data";
 import { Roommate, Room } from "./types";
 import { supabase } from "./lib/supabase";
@@ -274,6 +274,19 @@ export default function App() {
     const parsed = saved ? JSON.parse(saved) : [];
     return [...parsed, ...INITIAL_ROOMS];
   });
+
+  // Merge local roommates with Supabase roommates (deduplicate by id)
+  const allRoommates = useMemo(() => {
+    const combined = [...supabaseRoommates, ...roommates];
+    const uniqueMap = new Map();
+    combined.forEach(rm => {
+      if (!uniqueMap.has(rm.id) || rm.is_listing) {
+        // Prioritize listings over profiles for same ID
+        uniqueMap.set(rm.id, rm);
+      }
+    });
+    return Array.from(uniqueMap.values());
+  }, [supabaseRoommates, roommates]);
 
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [postModalInitialTab, setPostModalInitialTab] = useState<"roommate" | "room">("roommate");
@@ -1068,7 +1081,7 @@ export default function App() {
       <main className="max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 pt-28 pb-12 flex-grow">
         {activeTab === "home" && (
           <HomeView
-            roommates={roommates}
+            roommates={allRoommates}
             rooms={rooms}
             likedRoommateIds={likedRoommateIds}
             likedRoomIds={likedRoomIds}
@@ -1089,7 +1102,7 @@ export default function App() {
 
         {activeTab === "roommates" && (
           <RoommatesView
-            roommates={roommates}
+            roommates={allRoommates}
             likedRoommateIds={likedRoommateIds}
             onLikeRoommate={handleLikeRoommate}
             onViewRoommate={setSelectedRoommate}
@@ -1121,7 +1134,7 @@ export default function App() {
 
         {activeTab === "chat" && (
           <ChatView
-            roommates={roommates}
+            roommates={allRoommates}
             initialChats={SUGGGESTED_CHATS}
             activeRoommateId={activeChatRoommateId}
             setActiveRoommateId={setActiveChatRoommateId}
@@ -1140,7 +1153,7 @@ export default function App() {
 
         {activeTab === "agreement" && (
           <AgreementView
-            roommates={roommates}
+            roommates={allRoommates}
             currentUserProfile={currentUserProfile}
             currentUser={currentUser}
             preSelectedRoommateId={activeChatRoommateId}
@@ -1154,7 +1167,7 @@ export default function App() {
           <HistoryView
             currentUserProfile={currentUserProfile}
             currentUser={currentUser}
-            roommates={roommates}
+            roommates={allRoommates}
             onRequireAuth={requireAuth}
             onRequireProfile={() => setIsProfileModalOpen(true)}
           />
@@ -1193,7 +1206,7 @@ export default function App() {
       {selectedRoom && (
         <RoomModal
           room={selectedRoom}
-          roommates={roommates}
+          roommates={allRoommates}
           onClose={handleCloseModal}
           onInquire={handleRoomInquiry}
           onAddReview={handleAddRoomReview}
