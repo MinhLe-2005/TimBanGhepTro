@@ -248,6 +248,18 @@ export default function ChatView({
               };
             }
             
+            // Ensure partner has lifestyle object (required for compatibility)
+            if (!partner.lifestyle) {
+              partner.lifestyle = {
+                sleep: 'Bình thường',
+                pets: 'Thoải mái',
+                smoke: 'Không hút thuốc',
+                cook: 'Đôi khi nấu',
+                interaction: 'Cân bằng',
+                neatness: 'Sạch sẽ'
+              };
+            }
+            
             conversationMap.set(partnerId, {
               partner,
               lastMessage: msg.text || 'Đã gửi đính kèm',
@@ -259,9 +271,21 @@ export default function ChatView({
 
         // Đảm bảo activeRoommateId luôn có trong list
         if (activeRoommateId && !conversationMap.has(activeRoommateId)) {
-          const partner = roommates.find(r => r.id === activeRoommateId || r.user_id === activeRoommateId)
+          let partner = roommates.find(r => r.id === activeRoommateId || r.user_id === activeRoommateId)
             || dbPartnerMap.get(activeRoommateId);
           if (partner) {
+            // Ensure partner has lifestyle object
+            if (!partner.lifestyle) {
+              partner.lifestyle = {
+                sleep: 'Bình thường',
+                pets: 'Thoải mái',
+                smoke: 'Không hút thuốc',
+                cook: 'Đôi khi nấu',
+                interaction: 'Cân bằng',
+                neatness: 'Sạch sẽ'
+              };
+            }
+            
             conversationMap.set(activeRoommateId, {
               partner,
               lastMessage: 'Bắt đầu cuộc trò chuyện...',
