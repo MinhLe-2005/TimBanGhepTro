@@ -40,6 +40,7 @@ export default function ChatView({
   });
 
   const [conversations, setConversations] = useState<any[]>([]);
+  const fetchInboxRef = useRef<(() => void) | null>(null);
 
   const [inputText, setInputText] = useState("");
   const [friendSearchQuery, setFriendSearchQuery] = useState("");
@@ -105,21 +106,21 @@ export default function ChatView({
   }, [chats, activeRoommateId, isTyping]);
 
   const activeRoommate = activeRoommateId 
-    ? (roommates.find((r) => r.id === activeRoommateId) || conversations.find(c => c.partner.id === activeRoommateId)?.partner)
+    ? (roommates.find((r) => r.id === activeRoommateId || r.user_id === activeRoommateId) || conversations.find(c => c.partner.id === activeRoommateId || c.partner.user_id === activeRoommateId)?.partner)
     : conversations[0]?.partner;
-  const activeMessages = activeRoommate ? (chats[activeRoommate.id] || []) : [];
+  const activeMessages = activeRoommate ? (chats[activeRoommateId!] || chats[activeRoommate.id] || []) : [];
+
   
-  // The user's auth UUID
+  // Auth UUID = ID cố định từ Google, không thay đổi dù đăng nhập máy nào
   const myAuthId = currentUser?.id;
-  // The user's roommate profile ID (rm-...) - prefer this for chat_id so inbox always findable by profile ID
   const myProfileId = currentUserProfile?.id;
-  // ALWAYS prefer profile ID for chat_id construction → inbox query by profile ID works reliably
-  const myChatId = myProfileId || myAuthId;
+  // Luôn dùng Auth UUID cho chat_id để đồng bộ mọi thiết bị
+  const myChatId = myAuthId || myProfileId;
   const chatId = myChatId && activeRoommateId ? [myChatId, activeRoommateId].sort().join("_") : null;
 
-  // Supabase Real-time Fetch & Subscribe
+  // Fetch messages & subscribe realtime
   useEffect(() => {
-    if (!chatId || !import.meta.env.VITE_SUPABASE_URL) return;
+    if (!chatId || !activeRoommateId || !import.meta.env.VITE_SUPABASE_URL) return;
 
     const fetchMessages = async () => {
       const { data, error } = await supabase
@@ -127,222 +128,134 @@ export default function ChatView({
         .select('*')
         .eq('chat_id', chatId)
         .order('timestamp', { ascending: true });
-        
       if (!error && data) {
-        console.log('[Chat] Fetched messages:', data.length);
         setChats(prev => ({
           ...prev,
           [activeRoommateId!]: data.map((d: any) => ({
-             id: d.id,
-             chatId: d.chat_id,
-             senderId: d.sender_id,
-             text: d.text,
-             imageUrl: d.image_url,
-             timestamp: d.timestamp
+            id: d.id, chatId: d.chat_id, senderId: d.sender_id,
+            text: d.text, imageUrl: d.image_url, timestamp: d.timestamp
           }))
         }));
-      } else if (error) {
-        console.error('[Chat] Error fetching messages:', error);
       }
     };
     fetchMessages();
 
-    // Subscribe to new messages
-    const channelName = `messages:${chatId}`;
-    console.log('[Chat] Subscribing to channel:', channelName);
-    
     const channel = supabase
-      .channel(channelName)
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: 'messages',
-        filter: `chat_id=eq.${chatId}`
-      }, (payload) => {
-        console.log('[Chat] Received realtime message:', payload.new);
-        const newMsg = payload.new;
-        
+      .channel(`messages:${chatId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` }, (payload) => {
+        const newMsg = payload.new as any;
         setChats(prev => {
-          const currentChats = prev[activeRoommateId!] || [];
-          // Check if message already exists
-          const exists = currentChats.some(m => m.id === newMsg.id);
-          
-          if (exists) {
-            console.log('[Chat] Message already exists, skipping:', newMsg.id);
-            return prev;
-          }
-          
-          console.log('[Chat] Adding new message to chat');
-          return {
-            ...prev,
-            [activeRoommateId!]: [...currentChats, {
-              id: newMsg.id,
-              chatId: newMsg.chat_id,
-              senderId: newMsg.sender_id,
-              text: newMsg.text,
-              imageUrl: newMsg.image_url,
-              timestamp: newMsg.timestamp
-            }]
-          };
+          const cur = prev[activeRoommateId!] || [];
+          if (cur.some(m => m.id === newMsg.id)) return prev;
+          return { ...prev, [activeRoommateId!]: [...cur, { id: newMsg.id, chatId: newMsg.chat_id, senderId: newMsg.sender_id, text: newMsg.text, imageUrl: newMsg.image_url, timestamp: newMsg.timestamp }] };
         });
       })
-      .subscribe((status) => {
-        console.log('[Chat] Subscription status:', status);
-      });
+      .subscribe();
 
-    return () => {
-      console.log('[Chat] Unsubscribing from channel:', channelName);
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [chatId, activeRoommateId]);
+
 
   // Fetch Inbox Conversations
   useEffect(() => {
     if (!import.meta.env.VITE_SUPABASE_URL) return;
-    // Need at least auth ID to search with
-    if (!myAuthId) {
-      console.log('[Chat] No auth ID, skipping inbox fetch');
-      return;
-    }
+    if (!myAuthId) return;
 
     const fetchInbox = async () => {
-      console.log('[Chat] Fetching inbox with authId:', myAuthId, 'profileId:', myProfileId);
-      
-      // Build OR filter: check both auth UUID and profile ID in chat_id and sender_id
-      // This ensures we fetch ALL messages for this user regardless of profile status
-      const filterParts: string[] = [];
-      
-      // Always search by auth UUID
-      filterParts.push(`chat_id.ilike.%${myAuthId}%`);
-      filterParts.push(`sender_id.eq.${myAuthId}`);
-      
-      // Also search by profile ID if exists and different from auth ID
-      if (myProfileId && myProfileId !== myAuthId) {
-        filterParts.push(`chat_id.ilike.%${myProfileId}%`);
-        filterParts.push(`sender_id.eq.${myProfileId}`);
-      }
-      
-      const orFilter = filterParts.join(',');
-      console.log('[Chat] Inbox filter:', orFilter);
-
+      // Chỉ cần tìm bằng Auth UUID - đơn giản, đáng tin cậy
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .or(orFilter)
+        .ilike('chat_id', `%${myAuthId}%`)
         .order('timestamp', { ascending: false });
 
       if (!error && data) {
-        console.log('[Chat] Fetched inbox messages:', data.length);
-         console.log('[Chat] Fetched inbox messages:', data.length);
-         const conversationMap = new Map();
-         
-         // Collect all unique partner IDs first
-         const partnerIds = new Set<string>();
-         data.forEach(msg => {
-             const ids = msg.chat_id.split('_');
-             const isMyId = (id: string) => id === myAuthId || id === myProfileId;
-             const partnerId = isMyId(ids[0]) ? ids[1] : ids[0];
-             if (!isMyId(partnerId)) {
-               partnerIds.add(partnerId);
-             }
-         });
+        const conversationMap = new Map();
 
-         // Fetch partner profiles from Supabase if available
-         const partnerProfiles = new Map();
-         if (partnerIds.size > 0 && import.meta.env.VITE_SUPABASE_URL) {
-           const { data: profilesData } = await supabase
-             .from('profiles')
-             .select('*')
-             .in('id', Array.from(partnerIds));
-           
-           if (profilesData) {
-             profilesData.forEach(p => partnerProfiles.set(p.id, p));
-           }
-           
-           // Auto-create missing profiles for new users - with placeholder prompting them to update
-           for (const partnerId of partnerIds) {
-             if (!partnerProfiles.has(partnerId)) {
-               console.log('[Chat] Partner profile not found, creating placeholder:', partnerId);
-               
-               // Try to get their info from auth users (if they have email)
-               const placeholderName = 'Chưa cập nhật tên';
-               
-               const { data: newProfile } = await supabase.from('profiles').insert({
-                 id: partnerId,
-                 name: placeholderName,
-                 avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop',
-                 role: 'Thành viên',
-               }).select().single();
-               
-               if (newProfile) {
-                 partnerProfiles.set(partnerId, newProfile);
-               }
-             }
-           }
-         }
-         
-         data.forEach(msg => {
-             const ids = msg.chat_id.split('_');
-             const isMyId = (id: string) => id === myAuthId || id === myProfileId;
-             const partnerId = isMyId(ids[0]) ? ids[1] : ids[0];
-             
-             if (isMyId(partnerId)) return; // Ignore self chats
+        // Collect all unique partner IDs
+        const partnerIds = new Set<string>();
+        data.forEach(msg => {
+          const ids = msg.chat_id.split('_');
+          const partnerId = ids[0] === myAuthId ? ids[1] : ids[0];
+          if (partnerId !== myAuthId) partnerIds.add(partnerId);
+        });
 
-             if (!conversationMap.has(partnerId)) {
-                // Try to find partner in multiple sources
-                const partner = roommates.find(r => r.id === partnerId) || 
-                               partnerProfiles.get(partnerId) || 
-                               {
-                                 id: partnerId,
-                                 name: partnerId.startsWith('rm-') ? partnerId.replace('rm-', '').toUpperCase() : "Người dùng",
-                                 avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop",
-                                 role: "Thành viên",
-                                 isVerified: false,
-                                 matchScore: 0
-                               };
-                
-                console.log('[Chat] Adding conversation with partner:', partner.name, partnerId);
-                conversationMap.set(partnerId, {
-                   partner,
-                   lastMessage: msg.text || "Đã gửi đính kèm",
-                   timestamp: msg.timestamp,
-                   chatId: msg.chat_id
-                });
-             }
-         });
+        // Fetch partner profiles from profiles table (real user data)
+        const dbPartnerMap = new Map();
+        if (partnerIds.size > 0) {
+          const partnerArr = Array.from(partnerIds);
+          
+          // Fetch from profiles table
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('*')
+            .in('id', partnerArr);
+          
+          // Also try with auth_id for backwards compatibility
+          const { data: profilesByAuthId } = await supabase
+            .from('profiles')
+            .select('*')
+            .in('auth_id', partnerArr);
+          
+          [...(profilesData || []), ...(profilesByAuthId || [])].forEach(p => {
+            // Map both by id and auth_id so lookup always works
+            dbPartnerMap.set(p.id, p);
+            if (p.auth_id) dbPartnerMap.set(p.auth_id, p);
+          });
+          
+          console.log('[Chat] Fetched profiles for partners:', dbPartnerMap.size);
+        }
 
-         // Ensure the explicitly selected activeRoommateId is in the list
-         if (activeRoommateId && !conversationMap.has(activeRoommateId)) {
-            const partner = roommates.find(r => r.id === activeRoommateId);
-            if (partner) {
-               conversationMap.set(activeRoommateId, {
-                  partner,
-                  lastMessage: "Bắt đầu cuộc trò chuyện...",
-                  timestamp: new Date().toISOString(),
-                  chatId: [myChatId, activeRoommateId].sort().join("_")
-               });
-            }
-         }
+        data.forEach(msg => {
+          const ids = msg.chat_id.split('_');
+          const partnerId = ids[0] === myAuthId ? ids[1] : ids[0];
+          if (partnerId === myAuthId) return;
 
-         console.log('[Chat] Total conversations:', conversationMap.size);
-         setConversations(Array.from(conversationMap.values()).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+          if (!conversationMap.has(partnerId)) {
+            const partner = roommates.find(r => r.id === partnerId || r.user_id === partnerId)
+              || dbPartnerMap.get(partnerId)
+              || { id: partnerId, name: 'Người dùng', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop', role: 'Thành viên', isVerified: false, matchScore: 0 };
+            conversationMap.set(partnerId, {
+              partner,
+              lastMessage: msg.text || 'Đã gửi đính kèm',
+              timestamp: msg.timestamp,
+              chatId: msg.chat_id
+            });
+          }
+        });
+
+        // Đảm bảo activeRoommateId luôn có trong list
+        if (activeRoommateId && !conversationMap.has(activeRoommateId)) {
+          const partner = roommates.find(r => r.id === activeRoommateId || r.user_id === activeRoommateId)
+            || dbPartnerMap.get(activeRoommateId);
+          if (partner) {
+            conversationMap.set(activeRoommateId, {
+              partner,
+              lastMessage: 'Bắt đầu cuộc trò chuyện...',
+              timestamp: new Date().toISOString(),
+              chatId: [myAuthId, activeRoommateId].sort().join('_')
+            });
+          }
+        }
+
+        setConversations(Array.from(conversationMap.values()).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
       }
+
     };
     fetchInbox();
 
     const inboxChannel = supabase
       .channel('inbox_updates')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        const msg = payload.new as any;
-        const chatIdStr = msg.chat_id || '';
-        if ((myAuthId && chatIdStr.includes(myAuthId)) || (myProfileId && chatIdStr.includes(myProfileId))) {
-           fetchInbox();
-        }
+        if ((payload.new as any).chat_id?.includes(myAuthId)) fetchInbox();
       })
       .subscribe();
 
     return () => { supabase.removeChannel(inboxChannel); };
-  }, [myAuthId, myProfileId, roommates, activeRoommateId]);
+  }, [myAuthId, roommates, activeRoommateId]);
+
+
+
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
