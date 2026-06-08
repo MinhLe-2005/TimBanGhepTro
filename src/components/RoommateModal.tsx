@@ -30,6 +30,18 @@ export default function RoommateModal({
   onDeleteProfile,
 }: RoommateModalProps) {
   if (!roommate) return null;
+  
+  // Debug: Log received roommate data
+  console.log('[RoommateModal] Received roommate data:', {
+    id: roommate.id,
+    name: roommate.name,
+    budget: roommate.budget,
+    bio: roommate.bio,
+    lifestyle: roommate.lifestyle,
+    hasBudget: !!roommate.budget,
+    hasBio: !!roommate.bio,
+    hasLifestyle: !!roommate.lifestyle
+  });
 
   const renderStars = (rating: number, sizeClass: string = "h-4 w-4") => {
     return (
