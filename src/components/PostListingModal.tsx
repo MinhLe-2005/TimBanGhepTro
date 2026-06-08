@@ -547,14 +547,6 @@ export default function PostListingModal({
                   </div>
                 </div>
 
-                          <option value="Chưa có phòng">Chưa có phòng</option>
-                          <option value="Đã có phòng">Đã có phòng</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Section 4: Contact & Bio */}
                 <div className="rounded-2xl border border-slate-150 bg-white p-5 space-y-4">
                   <div className="pb-3 border-b border-slate-100">
