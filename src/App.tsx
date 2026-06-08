@@ -70,14 +70,43 @@ export default function App() {
         if (savedProfile) {
           try { setCurrentUserProfile(JSON.parse(savedProfile)); } catch(e) {}
         } else {
-          // Try loading from Supabase by user_id or postedBy
+          // Try loading from Supabase profiles table by auth_id
           try {
-            const { data: profileData } = await supabase.from('roommates').select('*').eq('user_id', user.id).maybeSingle();
+            const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
             if (profileData) {
-              setCurrentUserProfile(profileData);
-              localStorage.setItem("roomiematch_user_profile", JSON.stringify(profileData));
+              // Convert profile format to match app's expected structure
+              const fullProfile = {
+                id: profileData.id,
+                name: profileData.name,
+                avatar: profileData.avatar,
+                role: profileData.role,
+                // Add other fields with defaults
+                age: 21,
+                gender: 'Khác',
+                location: 'Đà Nẵng',
+                district: 'Hải Châu',
+                type: 'Phòng trọ',
+                budget: 3000000,
+                bio: '',
+                isVerified: false,
+                status: 'chưa tìm được bạn',
+                matchScore: 100,
+                tags: [],
+                lifestyle: {
+                  sleep: 'Bình thường',
+                  pets: 'Thoải mái',
+                  smoke: 'Không hút thuốc',
+                  cook: 'Đôi khi nấu',
+                  interaction: 'Cân bằng',
+                  neatness: 'Sạch sẽ'
+                }
+              };
+              setCurrentUserProfile(fullProfile);
+              localStorage.setItem("roomiematch_user_profile", JSON.stringify(fullProfile));
             }
-          } catch(e) {}
+          } catch(e) {
+            console.error('[Auth] Error loading profile from Supabase:', e);
+          }
         }
       } else {
         setCurrentUser(null);
@@ -137,16 +166,7 @@ export default function App() {
       if (supabaseRoommates.length > 0) {
         myProfile = supabaseRoommates.find((r: any) => r.postedBy === currentUser.id);
       }
-      if (!myProfile) {
-        try {
-          const mapStr = localStorage.getItem("roomiematch_profiles_map") || "{}";
-          const map = JSON.parse(mapStr);
-          if (map[currentUser.id]) {
-            myProfile = map[currentUser.id];
-          }
-        } catch(e) {}
-      }
-      
+
       if (myProfile) {
         setCurrentUserProfile(myProfile);
         localStorage.setItem("roomiematch_user_profile", JSON.stringify(myProfile));
@@ -238,7 +258,7 @@ export default function App() {
   };
 
   const handleAddRoom = async (newRoom: Room) => {
-    const roomWithOwner = { ...newRoom, postedBy: currentUser?.id || "" };
+    const roomWithOwner = { ...newRoom, postedBy: currentUser?.id || "", user_id: currentUser?.id || "" };
     
     if (editingListingData) {
       // Optimistic UI Update for Edit
@@ -293,7 +313,7 @@ export default function App() {
   };
 
   const handleAddRoommate = async (newRoommate: Roommate) => {
-    const roommateWithOwner = { ...newRoommate, postedBy: currentUser?.id || "" };
+    const roommateWithOwner = { ...newRoommate, postedBy: currentUser?.id || "", user_id: currentUser?.id || "" };
     
     if (editingListingData) {
       // Optimistic UI Update for Edit

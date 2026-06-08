@@ -199,22 +199,31 @@ export default function ChatView({
   // Fetch Inbox Conversations
   useEffect(() => {
     if (!import.meta.env.VITE_SUPABASE_URL) return;
-    // Need at least one ID to search with
-    if (!myAuthId && !myProfileId) return;
+    // Need at least auth ID to search with
+    if (!myAuthId) {
+      console.log('[Chat] No auth ID, skipping inbox fetch');
+      return;
+    }
 
     const fetchInbox = async () => {
-      // Build OR filter: check both auth UUID and profile ID in chat_id
-      // This handles: messages sent BY this user (sender_id = authId)
-      // AND messages sent TO this user (chat_id contains profileId)
+      console.log('[Chat] Fetching inbox with authId:', myAuthId, 'profileId:', myProfileId);
+      
+      // Build OR filter: check both auth UUID and profile ID in chat_id and sender_id
+      // This ensures we fetch ALL messages for this user regardless of profile status
       const filterParts: string[] = [];
-      if (myAuthId) {
-        filterParts.push(`chat_id.ilike.%${myAuthId}%`);
-        filterParts.push(`sender_id.eq.${myAuthId}`);
-      }
+      
+      // Always search by auth UUID
+      filterParts.push(`chat_id.ilike.%${myAuthId}%`);
+      filterParts.push(`sender_id.eq.${myAuthId}`);
+      
+      // Also search by profile ID if exists and different from auth ID
       if (myProfileId && myProfileId !== myAuthId) {
         filterParts.push(`chat_id.ilike.%${myProfileId}%`);
+        filterParts.push(`sender_id.eq.${myProfileId}`);
       }
+      
       const orFilter = filterParts.join(',');
+      console.log('[Chat] Inbox filter:', orFilter);
 
       const { data, error } = await supabase
         .from('messages')
@@ -223,6 +232,7 @@ export default function ChatView({
         .order('timestamp', { ascending: false });
 
       if (!error && data) {
+        console.log('[Chat] Fetched inbox messages:', data.length);
          console.log('[Chat] Fetched inbox messages:', data.length);
          const conversationMap = new Map();
          
@@ -249,17 +259,17 @@ export default function ChatView({
              profilesData.forEach(p => partnerProfiles.set(p.id, p));
            }
            
-           // Auto-create missing profiles for new users
+           // Auto-create missing profiles for new users - with placeholder prompting them to update
            for (const partnerId of partnerIds) {
              if (!partnerProfiles.has(partnerId)) {
-               const newProfileName = partnerId.startsWith('rm-') 
-                 ? partnerId.replace('rm-', '').slice(0, 10).toUpperCase()
-                 : 'User ' + partnerId.slice(0, 8);
+               console.log('[Chat] Partner profile not found, creating placeholder:', partnerId);
                
-               console.log('[Chat] Auto-creating profile for:', partnerId);
+               // Try to get their info from auth users (if they have email)
+               const placeholderName = 'Chưa cập nhật tên';
+               
                const { data: newProfile } = await supabase.from('profiles').insert({
                  id: partnerId,
-                 name: newProfileName,
+                 name: placeholderName,
                  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop',
                  role: 'Thành viên',
                }).select().single();
