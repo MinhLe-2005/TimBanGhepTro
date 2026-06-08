@@ -388,7 +388,7 @@ export default function App() {
       
       if (!existingByName) {
         uniqueByNameMap.set(normalizedName, rm);
-      } else {
+      } else if (rm.id !== existingByName.id) {
         // If new record is a listing and existing is a profile, replace it
         if (rm.is_listing === true && existingByName.is_listing !== true) {
           uniqueByNameMap.set(normalizedName, rm);
@@ -585,7 +585,7 @@ export default function App() {
     // Local fallback cache
     const saved = localStorage.getItem("roomiematch_posted_roommates");
     const parsed = saved ? JSON.parse(saved) : [];
-    localStorage.setItem("roomiematch_posted_roommates", JSON.stringify([roommateWithOwner, ...parsed]));
+    localStorage.setItem("roomiematch_posted_roommates", JSON.stringify([{ ...roommateWithOwner, is_listing: true }, ...parsed]));
 
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
@@ -616,7 +616,7 @@ export default function App() {
     
     // Optimistic UI Update for Insert (after Supabase confirmation)
     setRoommates((prev) => {
-      const updated = [roommateWithOwner, ...prev];
+      const updated = [{ ...roommateWithOwner, is_listing: true }, ...prev];
       return updated;
     });
   };
