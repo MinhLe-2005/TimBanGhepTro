@@ -14,7 +14,9 @@ import {
   RotateCcw,
   Heart,
   Lock,
-  X
+  X,
+  FileEdit,
+  Send
 } from "lucide-react";
 import { Roommate } from "../types";
 import { supabase } from "../lib/supabase";
@@ -217,6 +219,8 @@ export default function AgreementView({
   const [fullName, setFullName] = useState("");
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [isSigned, setIsSigned] = useState(false); // Used to lock form
+  const [isEditingDraft, setIsEditingDraft] = useState(false);
+  const isFormLocked = isSigned && !isEditingDraft;
   const [signedDate, setSignedDate] = useState<string>("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
@@ -375,6 +379,9 @@ export default function AgreementView({
         setSignedDate("");
       }
     }
+    if (!localPendingPayload) {
+      setIsEditingDraft(false);
+    }
   }, [matchedRoommate, activeAgreement, localPendingPayload]);
 
   useEffect(() => {
@@ -476,6 +483,58 @@ export default function AgreementView({
       }
       alert("Đã từ chối thỏa thuận!");
       handleReset();
+    }
+  };
+
+  const handleSendCounterOffer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isAgreed) return alert("Vui lòng tích chọn đồng ý với các quy định sống chung!");
+    if (!fullName.trim()) return alert("Vui lòng nhập họ và tên đầy đủ để tiến hành ký kết!");
+    if (!matchedRoommate) return;
+
+    const targetPayload = localPendingPayload || activeAgreement;
+    const chatId = [currentUserProfile.id, matchedRoommate.id].sort().join('_');
+    
+    // 1. Cancel the old draft
+    if (targetPayload) {
+      const cancelPayload = { ...targetPayload, status: 'cancelled', timestamp: new Date().toISOString() };
+      await supabase.from('messages').insert({
+        chat_id: chatId,
+        sender_id: currentUserProfile.id,
+        text: `[AGREEMENT_CANCELLED] ${JSON.stringify(cancelPayload)}`
+      });
+    }
+
+    // 2. Send the new draft
+    const rules = {
+      quiet: quietOption === 'khac' ? quietOther : QUIET_OPTIONS.find(o => o.id === quietOption)?.label,
+      cleaning: cleaningOption === 'khac' ? cleaningOther : CLEANING_OPTIONS.find(o => o.id === cleaningOption)?.label,
+      visitors: visitorsOption === 'khac' ? visitorsOther : VISITORS_OPTIONS.find(o => o.id === visitorsOption)?.label,
+      bills: billsOption === 'khac' ? billsOther : BILL_OPTIONS.find(o => o.id === billsOption)?.label,
+      pets: petsOption === 'khac' ? petsOther : PET_OPTIONS.find(o => o.id === petsOption)?.label,
+      otherNotes: otherNotesText
+    };
+    const draftPayload = {
+      id: crypto.randomUUID(),
+      status: 'pending',
+      rules,
+      timestamp: new Date().toISOString()
+    };
+    
+    const { error } = await supabase.from('messages').insert({
+      chat_id: chatId,
+      sender_id: currentUserProfile.id,
+      text: `[AGREEMENT_DRAFT] ${JSON.stringify(draftPayload)}`
+    });
+
+    if (!error) {
+       setIsEditingDraft(false);
+       setShowSuccessModal(true);
+       setSignedDate(new Date().toLocaleDateString("vi-VN", {
+         year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
+       }));
+    } else {
+       alert("Lỗi khi xử lý thỏa thuận!");
     }
   };
 
@@ -590,7 +649,7 @@ export default function AgreementView({
                 type="text"
                 value={roommateName}
                 onChange={(e) => handleRoommateNameChange(e.target.value)}
-                disabled={isSigned}
+                disabled={isFormLocked}
                 placeholder="Nhập tên bạn cùng phòng..."
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-[#006590] focus:ring-1 focus:ring-[#006590] focus:bg-white duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
               />
@@ -638,7 +697,7 @@ export default function AgreementView({
                           name="quietOptionRadio"
                           checked={quietOption === opt.id}
                           onChange={() => setQuietOption(opt.id)}
-                          disabled={isSigned}
+                          disabled={isFormLocked}
                           className="sr-only"
                         />
                         <div className="flex flex-col mt-[-2px]">
@@ -666,7 +725,7 @@ export default function AgreementView({
                       rows={2}
                       value={quietOther}
                       onChange={(e) => setQuietOther(e.target.value)}
-                      disabled={isSigned}
+                      disabled={isFormLocked}
                       className="w-full bg-white border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-3 py-2 text-xs text-slate-700 outline-none resize-none duration-150 mt-2 font-medium"
                       placeholder="Quy định khác..."
                     />
@@ -700,7 +759,7 @@ export default function AgreementView({
                           name="cleaningOptionRadio"
                           checked={cleaningOption === opt.id}
                           onChange={() => setCleaningOption(opt.id)}
-                          disabled={isSigned}
+                          disabled={isFormLocked}
                           className="sr-only"
                         />
                         <div className="flex flex-col mt-[-2px]">
@@ -728,7 +787,7 @@ export default function AgreementView({
                       rows={2}
                       value={cleaningOther}
                       onChange={(e) => setCleaningOther(e.target.value)}
-                      disabled={isSigned}
+                      disabled={isFormLocked}
                       className="w-full bg-white border border-slate-200 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-3 py-2 text-xs text-slate-700 outline-none resize-none duration-150 mt-2 font-medium"
                       placeholder="Quy định khác..."
                     />
@@ -762,7 +821,7 @@ export default function AgreementView({
                           name="visitorsOptionRadio"
                           checked={visitorsOption === opt.id}
                           onChange={() => setVisitorsOption(opt.id)}
-                          disabled={isSigned}
+                          disabled={isFormLocked}
                           className="sr-only"
                         />
                         <div className="flex flex-col mt-[-2px]">
@@ -790,7 +849,7 @@ export default function AgreementView({
                       rows={2}
                       value={visitorsOther}
                       onChange={(e) => setVisitorsOther(e.target.value)}
-                      disabled={isSigned}
+                      disabled={isFormLocked}
                       className="w-full bg-white border border-slate-200/80 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-3 py-2 text-xs text-slate-700 outline-none resize-none duration-150 mt-2 font-medium"
                       placeholder="Quy định khác..."
                     />
@@ -824,7 +883,7 @@ export default function AgreementView({
                           name="billsOptionRadio"
                           checked={billsOption === opt.id}
                           onChange={() => setBillsOption(opt.id)}
-                          disabled={isSigned}
+                          disabled={isFormLocked}
                           className="sr-only"
                         />
                         <div className="flex flex-col mt-[-2px]">
@@ -852,7 +911,7 @@ export default function AgreementView({
                       rows={2}
                       value={billsOther}
                       onChange={(e) => setBillsOther(e.target.value)}
-                      disabled={isSigned}
+                      disabled={isFormLocked}
                       className="w-full bg-white border border-slate-200/80 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-3 py-2 text-xs text-slate-700 outline-none resize-none duration-150 mt-2 font-medium"
                       placeholder="Quy định khác..."
                     />
@@ -886,7 +945,7 @@ export default function AgreementView({
                           name="petsOptionRadio"
                           checked={petsOption === opt.id}
                           onChange={() => setPetsOption(opt.id)}
-                          disabled={isSigned}
+                          disabled={isFormLocked}
                           className="sr-only"
                         />
                         <div className="flex flex-col mt-[-2px]">
@@ -914,7 +973,7 @@ export default function AgreementView({
                       rows={2}
                       value={petsOther}
                       onChange={(e) => setPetsOther(e.target.value)}
-                      disabled={isSigned}
+                      disabled={isFormLocked}
                       className="w-full bg-white border border-slate-200/80 focus:border-[#006590] focus:ring-1 focus:ring-[#006590] rounded-xl px-3 py-2 text-xs text-slate-700 outline-none resize-none duration-150 mt-2 font-medium"
                       placeholder="Quy định khác..."
                     />
@@ -934,7 +993,7 @@ export default function AgreementView({
                     rows={4}
                     value={otherNotesText}
                     onChange={(e) => setOtherNotesText(e.target.value)}
-                    disabled={isSigned}
+                    disabled={isFormLocked}
                     className="w-full bg-slate-50 border border-slate-200 focus:border-[#006590] focus:bg-white focus:ring-4 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[13px] text-slate-700 outline-none resize-none duration-150 font-medium"
                     placeholder="Nhập các thỏa thuận hoặc quy định bổ sung khác tại đây..."
                   />
@@ -954,7 +1013,7 @@ export default function AgreementView({
                   id="agreeCheckbox"
                   checked={isAgreed}
                   onChange={(e) => setIsAgreed(e.target.checked)}
-                  disabled={isSigned}
+                  disabled={isFormLocked}
                   className="mt-0.5 accent-emerald-500 h-4.5 w-4.5 cursor-pointer rounded border-emerald-300 focus:ring-emerald-300 disabled:opacity-60 shrink-0"
                 />
                 <label htmlFor="agreeCheckbox" className="text-[13px] text-slate-600 font-medium leading-relaxed select-none cursor-pointer">
@@ -1108,7 +1167,7 @@ export default function AgreementView({
             </div>
 
             {((localPendingPayload?.status === 'pending' && localPendingPayload.sender_id !== currentUserProfile.id) ||
-              (!localPendingPayload && activeAgreement?.status === 'pending' && activeAgreement.creator_id !== currentUserProfile.id)) && (
+              (!localPendingPayload && activeAgreement?.status === 'pending' && activeAgreement.creator_id !== currentUserProfile.id)) && !isEditingDraft && (
               <div className="mt-4 space-y-3">
                 <button
                   type="button"
@@ -1119,10 +1178,37 @@ export default function AgreementView({
                 </button>
                 <button
                   type="button"
+                  onClick={() => setIsEditingDraft(true)}
+                  className="w-full py-3.5 bg-amber-400 hover:bg-amber-500 text-amber-950 font-black rounded-xl text-[14px] transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-400/20"
+                >
+                  <FileEdit className="w-5 h-5" /> Chỉnh sửa & Đề xuất lại
+                </button>
+                <button
+                  type="button"
                   onClick={handleCancelAgreement}
                   className="w-full py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-[13px] transition-all duration-200 cursor-pointer"
                 >
                   Từ chối thỏa thuận
+                </button>
+              </div>
+            )}
+
+            {isEditingDraft && (
+              <div className="mt-4 space-y-3">
+                <button
+                  type="button"
+                  onClick={handleSendCounterOffer}
+                  disabled={!isAgreed || !fullName.trim()}
+                  className="w-full py-3.5 bg-sky-400 hover:bg-sky-500 text-sky-950 font-black rounded-xl text-[14px] transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-sky-400/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Send className="w-5 h-5" /> Lưu & Gửi Đề Xuất Mới
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingDraft(false)}
+                  className="w-full py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-[13px] transition-all duration-200 cursor-pointer"
+                >
+                  Hủy chỉnh sửa
                 </button>
               </div>
             )}
