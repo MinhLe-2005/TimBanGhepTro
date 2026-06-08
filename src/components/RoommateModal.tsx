@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { X, CheckCircle2, MessageSquare, FileText, Heart, ShieldAlert, Sparkles, Smile, Bed, Dog, Shield, ChefHat, Moon, Compass, Star, MapPin } from "lucide-react";
 import { Roommate } from "../types";
+import { supabase } from "../lib/supabase";
 
 interface RoommateModalProps {
   roommate: Roommate | null;
@@ -107,6 +108,45 @@ export default function RoommateModal({
   const [newRating, setNewRating] = useState(5);
   const [newImageUrl, setNewImageUrl] = useState("");
   const [formError, setFormError] = useState("");
+  const [hasCompletedAgreement, setHasCompletedAgreement] = useState(false);
+  const [checkingAgreement, setCheckingAgreement] = useState(true);
+
+  // Check if current user has completed agreement with this roommate
+  useEffect(() => {
+    const checkAgreement = async () => {
+      if (!roommate || isOwnProfile) {
+        setCheckingAgreement(false);
+        return;
+      }
+
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setCheckingAgreement(false);
+          return;
+        }
+
+        // Check if there's a completed agreement between current user and this roommate
+        const { data, error } = await supabase
+          .from('agreements')
+          .select('id, status')
+          .eq('status', 'completed')
+          .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
+          .or(`user1_id.eq.${roommate.postedBy || roommate.id},user2_id.eq.${roommate.postedBy || roommate.id}`)
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          setHasCompletedAgreement(true);
+        }
+      } catch (err) {
+        console.error('[RoommateModal] Error checking agreement:', err);
+      } finally {
+        setCheckingAgreement(false);
+      }
+    };
+
+    checkAgreement();
+  }, [roommate, isOwnProfile]);
 
   const formatPrice = (price: number | undefined) => {
     if (!price || price === 0) return "Chưa cập nhật";
@@ -115,6 +155,13 @@ export default function RoommateModal({
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if user has completed agreement first
+    if (!hasCompletedAgreement) {
+      setFormError(`Bạn cần hoàn thành hợp đồng với ${roommate.name} trước khi có thể đánh giá!`);
+      return;
+    }
+    
     if (!newReviewerName.trim()) {
       setFormError("Vui lòng nhập tên của bạn!");
       return;
@@ -418,18 +465,24 @@ export default function RoommateModal({
             {/* Submit new Review form - Only for users who completed agreement */}
             {(!isOwnProfile) && (
             <div>
-              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4 flex items-start gap-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                  <Shield className="h-4 w-4 text-blue-600" />
+              {checkingAgreement ? (
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
+                  <p className="text-sm text-slate-500 font-medium">Đang kiểm tra quyền đánh giá...</p>
                 </div>
-                <div className="flex-1">
-                  <h5 className="text-sm font-bold text-blue-900 mb-1">Đánh giá từ roommate cũ</h5>
-                  <p className="text-xs text-blue-700 leading-relaxed">
-                    Chỉ những người đã từng ở ghép và hoàn thành hợp đồng với {roommate.name} mới có thể viết đánh giá. Điều này đảm bảo tính xác thực và minh bạch cho cộng đồng.
-                  </p>
-                </div>
-              </div>
-            <form onSubmit={handleReviewSubmit} className="bg-gradient-to-br from-slate-50 to-white border border-slate-200 p-6 rounded-[24px] shadow-[0_2px_12px_rgba(0,0,0,0.02)] space-y-5">
+              ) : hasCompletedAgreement ? (
+                <>
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-4 flex items-start gap-3">
+                    <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h5 className="text-sm font-bold text-emerald-900 mb-1">Bạn có thể đánh giá</h5>
+                      <p className="text-xs text-emerald-700 leading-relaxed">
+                        Bạn đã hoàn thành hợp đồng với {roommate.name}. Hãy chia sẻ trải nghiệm của bạn để giúp cộng đồng!
+                      </p>
+                    </div>
+                  </div>
+                  <form onSubmit={handleReviewSubmit} className="bg-gradient-to-br from-slate-50 to-white border border-slate-200 p-6 rounded-[24px] shadow-[0_2px_12px_rgba(0,0,0,0.02)] space-y-5">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
                   <Smile className="h-4 w-4 text-blue-600" />
@@ -509,6 +562,28 @@ export default function RoommateModal({
                 </button>
               </div>
             </form>
+                </>
+              ) : (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex items-start gap-4">
+                  <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                    <ShieldAlert className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h5 className="text-sm font-bold text-amber-900 mb-2">Chưa thể đánh giá</h5>
+                    <p className="text-xs text-amber-700 leading-relaxed mb-3">
+                      Bạn cần hoàn thành hợp đồng ở ghép với {roommate.name} trước khi có thể viết đánh giá. Điều này đảm bảo tính xác thực và minh bạch cho cộng đồng RoomieMatch.
+                    </p>
+                    <button
+                      onClick={() => onStartAgreement(roommate.id)}
+                      className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      Tạo hợp đồng với {roommate.name}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             )}
           </div>
         </div>
