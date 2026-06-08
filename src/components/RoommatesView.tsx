@@ -138,11 +138,11 @@ export default function RoommatesView({
     }
 
     const matchesGender = genderFilter === "Tất cả" || roommate.gender === genderFilter;
-    const matchesSleep = sleepFilter === "Tất cả" || roommate.lifestyle.sleep === sleepFilter;
-    const matchesPets = petsFilter === "Tất cả" || roommate.lifestyle.pets === petsFilter;
+    const matchesSleep = sleepFilter === "Tất cả" || roommate.lifestyle?.sleep === sleepFilter;
+    const matchesPets = petsFilter === "Tất cả" || roommate.lifestyle?.pets === petsFilter;
     const matchesDistrict = districtFilter === "Tất cả" || (roommate.district && roommate.district === districtFilter);
     const matchesType = typeFilter === "Tất cả" || (roommate.type && roommate.type === typeFilter);
-    const matchesBudget = roommate.budget >= minBudget && roommate.budget <= maxBudget;
+    const matchesBudget = (roommate.budget || 0) >= minBudget && (roommate.budget || 0) <= maxBudget;
 
     const matchesStatus = () => {
       if (statusFilter === "Tất cả") return true;

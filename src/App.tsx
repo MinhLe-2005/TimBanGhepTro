@@ -113,7 +113,7 @@ export default function App() {
             
             // Strategy 1: Find by user_id (most reliable)
             console.log('[Auth] Strategy 1: Searching by user_id:', user.id);
-            const result1 = await supabase.from('roommates').select('*').eq('user_id', user.id).maybeSingle();
+            const result1 = await supabase.from('roommates').select('*').eq('user_id', user.id).eq('is_listing', false).maybeSingle();
             console.log('[Auth] Strategy 1 result:', { data: result1.data, error: result1.error, status: result1.status });
             if (result1.data && !result1.error) {
               profileData = result1.data;
@@ -125,7 +125,7 @@ export default function App() {
             // Strategy 2: Find by id (if profile ID == auth ID)
             if (!profileData) {
               console.log('[Auth] Strategy 2: Searching by id:', user.id);
-              const result2 = await supabase.from('roommates').select('*').eq('id', user.id).maybeSingle();
+              const result2 = await supabase.from('roommates').select('*').eq('id', user.id).eq('is_listing', false).maybeSingle();
               console.log('[Auth] Strategy 2 result:', { data: result2.data, error: result2.error, status: result2.status });
               if (result2.data && !result2.error) {
                 profileData = result2.data;
@@ -138,7 +138,7 @@ export default function App() {
             // Strategy 3: Find by postedBy (legacy)
             if (!profileData) {
               console.log('[Auth] Strategy 3: Searching by postedBy:', user.id);
-              const result3 = await supabase.from('roommates').select('*').eq('postedBy', user.id).maybeSingle();
+              const result3 = await supabase.from('roommates').select('*').eq('postedBy', user.id).eq('is_listing', false).maybeSingle();
               console.log('[Auth] Strategy 3 result:', { data: result3.data, error: result3.error, status: result3.status });
               if (result3.data && !result3.error) {
                 profileData = result3.data;
@@ -150,15 +150,20 @@ export default function App() {
             
             if (profileData) {
               console.log('[Auth] Loaded profile from Supabase roommates:', profileData.name);
+              // Preserve local avatar if Supabase avatar looks like a placeholder/empty
+              const localAvatar = localProfile?.avatar;
+              if (localAvatar && localAvatar.startsWith('data:') && !profileData.avatar?.startsWith('data:')) {
+                profileData = { ...profileData, avatar: localAvatar };
+                console.log('[Auth] Preserved local base64 avatar over Supabase avatar');
+              }
               setCurrentUserProfile(profileData);
               localStorage.setItem("roomiematch_user_profile", JSON.stringify(profileData));
+            } else if (localProfile) {
+              console.log('[Auth] No Supabase profile, keeping localStorage profile:', localProfile.name);
+              setCurrentUserProfile(localProfile);
             } else {
-              console.log('[Auth] No profile found in Supabase roommates for user:', user.id, '-> User needs to create profile');
-              // Clear stale localStorage profile
-              localStorage.removeItem("roomiematch_user_profile");
+              console.log('[Auth] No profile found for user:', user.id, '-> User needs to create profile');
               setCurrentUserProfile(null);
-              // DO NOT auto-create! Let user create their own profile
-              // Modal will open automatically via useEffect
             }
           } catch(e) {
             console.error('[Auth] Error syncing profile with Supabase:', e);
@@ -247,7 +252,7 @@ export default function App() {
       const fetchProfile = async () => {
         try {
           if (!import.meta.env.VITE_SUPABASE_URL) return;
-          const { data, error } = await supabase.from('roommates').select('*').eq('user_id', currentUser.id).maybeSingle();
+          const { data, error } = await supabase.from('roommates').select('*').eq('user_id', currentUser.id).eq('is_listing', false).maybeSingle();
           
           if (data) {
             console.log('[App] Profile found in Supabase, restoring...');
@@ -905,11 +910,11 @@ export default function App() {
     setRooms(allRooms);
   }, [currentUserProfile, currentUser, supabaseRooms]);
 
-  const handleSaveProfile = (profile: any) => {
+  const handleSaveProfile = async (profile: any) => {
     setCurrentUserProfile(profile);
     localStorage.setItem("roomiematch_user_profile", JSON.stringify(profile));
     
-    // Save to a persistent map by user ID as a fallback if Supabase postedBy is missing
+    // Save to a persistent map by user ID as a fallback
     if (currentUser?.id) {
        try {
          const mapStr = localStorage.getItem("roomiematch_profiles_map") || "{}";
@@ -917,8 +922,26 @@ export default function App() {
          map[currentUser.id] = profile;
          localStorage.setItem("roomiematch_profiles_map", JSON.stringify(map));
        } catch(e) {}
+
+       // Also sync to Supabase so avatar + changes persist on reload
+       if (import.meta.env.VITE_SUPABASE_URL) {
+         try {
+           const { reviews, ...dbProfile } = profile as any;
+           const upsertData = {
+             ...dbProfile,
+             user_id: currentUser.id,
+             postedBy: currentUser.id,
+             is_listing: false,
+           };
+           await supabase.from('roommates').upsert(upsertData);
+           console.log('[Profile] Synced profile update to Supabase');
+         } catch(e) {
+           console.error('[Profile] Failed to sync profile to Supabase:', e);
+         }
+       }
     }
   };
+
 
   const handleLoginSuccess = async (user: any) => {
     if (window.history.state?.modal) { window.history.back(); } else { setIsLoginModalOpen(false); }
@@ -943,7 +966,7 @@ export default function App() {
 
       // 1. Try Supabase by user_id column
       try {
-        const { data: byUserId } = await supabase.from('roommates').select('*').eq('user_id', user.id).maybeSingle();
+        const { data: byUserId } = await supabase.from('roommates').select('*').eq('user_id', user.id).eq('is_listing', false).maybeSingle();
         if (byUserId) {
           hasProfile = true;
           setCurrentUserProfile(byUserId);
@@ -954,7 +977,7 @@ export default function App() {
       // 2. Try Supabase by postedBy column (legacy)
       if (!hasProfile) {
         try {
-          const { data: byPostedBy } = await supabase.from('roommates').select('*').eq('postedBy', user.id).maybeSingle();
+          const { data: byPostedBy } = await supabase.from('roommates').select('*').eq('postedBy', user.id).eq('is_listing', false).maybeSingle();
           if (byPostedBy) {
             hasProfile = true;
             setCurrentUserProfile(byPostedBy);
