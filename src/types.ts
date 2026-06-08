@@ -29,13 +29,16 @@ export interface Roommate {
   reputationScore: number;
   tags: string[];
   isVerified: boolean;
-  status?: "Đang tìm" | "Đang trao đổi" | "Đã tìm được";
+  status?: "Đang tìm" | "Đang trao đổi" | "Đã tìm được" | "Đã có phòng" | "Chưa có phòng";
   bio: string;
   budget: number;
   gender: "Nam" | "Nữ" | "Khác";
   school?: string;
   phoneNumber?: string;
   postedBy?: string; // user ID who posted this listing
+  user_id?: string;
+  auth_id?: string;
+  is_listing?: boolean;
   lifestyle: {
     sleep: "Cú đêm" | "Ngủ sớm" | "Bình thường";
     pets: "Yêu mèo" | "Yêu chó" | "Không tiện nuôi" | "Thoải mái";
@@ -77,6 +80,7 @@ export interface Room {
   roommateInfo?: string;
   habits?: string[];
   postedBy?: string; // user ID who posted this listing
+  user_id?: string;
 }
 
 export interface RoomReview {

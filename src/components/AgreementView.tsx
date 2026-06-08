@@ -13,7 +13,8 @@ import {
   Check,
   RotateCcw,
   Heart,
-  Lock
+  Lock,
+  X
 } from "lucide-react";
 import { Roommate } from "../types";
 import { supabase } from "../lib/supabase";

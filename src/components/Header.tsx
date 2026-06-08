@@ -4,13 +4,15 @@ import { Menu, X, Sparkles, MessageSquare, FileText, Users, Home, Building, LogI
 interface HeaderProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  onOpenCreateProfile: () => void;
-  currentUserProfile: any;
+  onOpenCreateProfile?: () => void;
+  currentUserProfile?: any;
+  isAdmin?: boolean;
   currentUser: {
     name: string;
     email: string;
     avatar: string;
     provider: "google" | "facebook" | "email";
+    id?: string;
   } | null;
   onOpenLogin: () => void;
   onLogout: () => void;

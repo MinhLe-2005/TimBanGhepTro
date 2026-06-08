@@ -13,7 +13,7 @@ interface ChatViewProps {
   onRequireAuth?: () => void;
   onRequireProfile?: () => void;
   onNavigateToTab?: (tabId: string) => void;
-  onStartAgreement?: (roommateId: string) => void;
+  onStartAgreement?: (roommateId: string, payload?: any) => void;
   onViewProfile?: (roommate: any) => void;
 }
 
@@ -358,7 +358,13 @@ export default function ChatView({
               isVerified: false, 
               matchScore: 0,
               budget: 0,
+              gender: 'Khác',
+              age: 20,
+              location: '',
+              tags: [],
+              reputationScore: 0,
               bio: '',
+              reviews: [],
               lifestyle: {
                 sleep: 'Bình thường',
                 pets: 'Thoải mái',
@@ -367,7 +373,7 @@ export default function ChatView({
                 interaction: 'Cân bằng',
                 neatness: 'Sạch sẽ'
               }
-            };
+            } as any;
           }
           
           // Ensure partner has complete data structure (defensive coding)
@@ -643,7 +649,7 @@ export default function ChatView({
                         <h4 className="text-sm font-bold text-slate-800 leading-tight tracking-tight truncate flex items-center gap-1">
                           {r.name}
                           {r.isVerified && <CheckCircle2 className="h-3.5 w-3.5 text-sky-500 fill-sky-50 shrink-0" />}
-                          {blockedUsers.includes(r.id) && <Ban className="h-3 w-3 text-red-400 shrink-0" title="Đã chặn" />}
+                          {blockedUsers.includes(r.id) && <span title="Đã chặn"><Ban className="h-3 w-3 text-red-400 shrink-0" /></span>}
                         </h4>
                         {r.matchScore > 0 && (
                           <span className="text-[10px] font-bold text-sky-700 bg-white border border-sky-100 px-1.5 py-0.5 rounded-full">

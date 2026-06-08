@@ -5,6 +5,7 @@ import { SCHOOLS_BY_DISTRICT } from "../data";
 
 interface PostListingModalProps {
   onClose: () => void;
+  isOpen?: boolean;
   onSubmitRoom?: (room: Room) => void;
   onSubmitRoommate?: (roommate: Roommate) => void;
   initialTab?: "roommate" | "room";
