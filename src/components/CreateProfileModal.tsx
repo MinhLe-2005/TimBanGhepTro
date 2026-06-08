@@ -113,10 +113,41 @@ export default function CreateProfileModal({
       },
     };
 
-    // Lưu vào Supabase profiles table
+    // Lưu vào Supabase roommates table (PRIMARY - vì App.tsx query từ đây)
     if (import.meta.env.VITE_SUPABASE_URL) {
       try {
-        console.log('[Profile] Saving to Supabase profiles table...');
+        const { reviews, ...dbProfile } = updatedProfile as any;
+        if (currentUser?.id) {
+          dbProfile.user_id = currentUser.id;
+          dbProfile.postedBy = currentUser.id;
+        }
+        
+        // Mark as user profile (NOT a listing that can be deleted)
+        dbProfile.is_listing = false;
+
+        console.log('[Profile] 🔵 Attempting to save profile to roommates table...');
+        console.log('[Profile] 🔵 Profile data:', JSON.stringify(dbProfile, null, 2));
+        
+        const { data, error } = await supabase.from('roommates').upsert(dbProfile).select();
+        
+        if (error) {
+          console.error('[Profile] ❌ ERROR saving to roommates table:', error);
+          console.error('[Profile] ❌ Error code:', error.code);
+          console.error('[Profile] ❌ Error message:', error.message);
+          console.error('[Profile] ❌ Error details:', error.details);
+          console.error('[Profile] ❌ Error hint:', error.hint);
+          alert(`Lỗi lưu profile: ${error.message}. Vui lòng chụp console gửi admin!`);
+        } else {
+          console.log('[Profile] ✅ Successfully saved to roommates table:', data);
+        }
+      } catch (err) {
+        console.error('[Profile] ❌ Exception saving to roommates table:', err);
+        alert(`Lỗi ngoại lệ: ${err}. Vui lòng chụp console gửi admin!`);
+      }
+      
+      // ALSO save to profiles table for backup
+      try {
+        console.log('[Profile] 🔵 Also saving to profiles table (backup)...');
         
         const { data, error } = await supabase.from('profiles').upsert({
           id: profileId,
@@ -128,36 +159,12 @@ export default function CreateProfileModal({
         }).select();
         
         if (error) {
-          console.error('[Profile] Error saving to Supabase profiles:', error);
+          console.error('[Profile] ⚠️ Error saving to profiles table (non-critical):', error);
         } else {
-          console.log('[Profile] Saved to Supabase profiles successfully:', data);
+          console.log('[Profile] ✅ Also saved to profiles table:', data);
         }
       } catch (err) {
-        console.error('[Profile] Exception saving to Supabase profiles:', err);
-      }
-      
-      // ALSO save to roommates table for compatibility with existing features
-      try {
-        const { reviews, ...dbProfile } = updatedProfile as any;
-        if (currentUser?.id) {
-          dbProfile.user_id = currentUser.id;
-        }
-        
-        // Mark as user profile (NOT a listing that can be deleted)
-        dbProfile.is_listing = false;
-
-        const { error: roommatesError } = await supabase.from('roommates').upsert(dbProfile);
-        
-        if (roommatesError) {
-          console.error('[Profile] Error saving to roommates table:', roommatesError);
-          console.warn('[Profile] Continuing without roommates table sync - profile saved to profiles table');
-          // Don't block the flow - profile is already saved to profiles table
-        } else {
-          console.log('[Profile] Also saved to roommates table for compatibility (is_listing=false)');
-        }
-      } catch (err) {
-        console.error('[Profile] Exception saving to roommates table:', err);
-        console.warn('[Profile] Continuing without roommates table sync');
+        console.error('[Profile] ⚠️ Exception saving to profiles table (non-critical):', err);
       }
     }
 
