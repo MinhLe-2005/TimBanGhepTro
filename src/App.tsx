@@ -1089,7 +1089,12 @@ export default function App() {
             onRequireProfile={() => setIsProfileModalOpen(true)}
             onNavigateToTab={setActiveTab}
             onStartAgreement={startAgreementForm}
-            onViewProfile={(id) => setSelectedRoommate(roommates.find(r => r.id === id) || null)}
+            onViewProfile={(id) => {
+              console.log('[App] View profile clicked for ID:', id);
+              const foundRoommate = roommates.find(r => r.id === id || r.user_id === id);
+              console.log('[App] Found roommate:', foundRoommate?.name);
+              setSelectedRoommate(foundRoommate || null);
+            }}
           />
         )}
 
