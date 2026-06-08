@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, CheckCircle2, AlertCircle, Sparkles, MessageSquare, PhoneCall, Image, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck, Ban, AlertOctagon } from "lucide-react";
+import { Send, CheckCircle2, AlertCircle, Sparkles, MessageSquare, PhoneCall, Image, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck, Ban, AlertOctagon, UploadCloud } from "lucide-react";
 import { Roommate, Message } from "../types";
 import { supabase } from "../lib/supabase";
 
@@ -65,11 +65,12 @@ export default function ChatView({
 
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
-  const [reportImageUrl, setReportImageUrl] = useState("");
+  const [reportImageFile, setReportImageFile] = useState<File | null>(null);
+  const [isUploadingReport, setIsUploadingReport] = useState(false);
 
   const handleSendReport = async () => {
-    if (!reportReason.trim() || !reportImageUrl.trim()) {
-      alert("Vui lòng nhập lý do và đính kèm ảnh minh chứng (URL) để báo cáo.");
+    if (!reportReason.trim() || !reportImageFile) {
+      alert("Vui lòng nhập lý do và đính kèm ảnh minh chứng để báo cáo.");
       return;
     }
     const myId = currentUser?.id || currentUserProfile?.id;
@@ -95,10 +96,35 @@ export default function ChatView({
          }
        }
 
+       setIsUploadingReport(true);
+       let finalImageUrl = "";
+
+       try {
+         const fileExt = reportImageFile.name.split('.').pop();
+         const fileName = `${myId}_report_${Date.now()}.${fileExt}`;
+         
+         const { error: uploadError } = await supabase.storage
+           .from('reports')
+           .upload(fileName, reportImageFile);
+           
+         if (uploadError) throw uploadError;
+         
+         const { data: urlData } = supabase.storage
+           .from('reports')
+           .getPublicUrl(fileName);
+           
+         finalImageUrl = urlData.publicUrl;
+       } catch (err: any) {
+         console.error("Lỗi upload ảnh:", err);
+         alert("Lỗi tải ảnh lên! Bạn đã tạo Storage bucket 'reports' trên Supabase chưa?");
+         setIsUploadingReport(false);
+         return;
+       }
+
        const payload = {
          target_id: activeRoommateId,
          reason: reportReason,
-         image: reportImageUrl
+         image: finalImageUrl
        };
        await supabase.from('messages').insert({
          id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
@@ -109,7 +135,8 @@ export default function ChatView({
        alert("Báo cáo của bạn đã được gửi đến ban quản trị.");
        setIsReportModalOpen(false);
        setReportReason("");
-       setReportImageUrl("");
+       setReportImageFile(null);
+       setIsUploadingReport(false);
     } else {
        alert("Lỗi hệ thống, không thể gửi báo cáo lúc này.");
     }
@@ -1120,21 +1147,42 @@ export default function ChatView({
                  />
                </div>
                <div>
-                 <label className="block text-sm font-bold text-slate-700 mb-1.5">Link ảnh minh chứng <span className="text-rose-500">*</span></label>
-                 <input
-                   type="text"
-                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none transition-all"
-                   placeholder="Dán link ảnh chụp màn hình (URL)..."
-                   value={reportImageUrl}
-                   onChange={e => setReportImageUrl(e.target.value)}
-                 />
-                 <p className="text-xs text-slate-500 mt-2 italic">* Tạm thời hệ thống chỉ hỗ trợ báo cáo qua link hình ảnh tĩnh.</p>
+                 <label className="block text-sm font-bold text-slate-700 mb-1.5">Ảnh minh chứng <span className="text-rose-500">*</span></label>
+                 <label className="w-full flex flex-col items-center justify-center bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl px-4 py-6 hover:bg-slate-100 hover:border-rose-400 transition-all cursor-pointer">
+                   <input
+                     type="file"
+                     accept="image/*"
+                     className="hidden"
+                     disabled={isUploadingReport}
+                     onChange={e => {
+                       if (e.target.files && e.target.files[0]) {
+                         setReportImageFile(e.target.files[0]);
+                       }
+                     }}
+                   />
+                   {reportImageFile ? (
+                     <div className="flex flex-col items-center gap-2">
+                       <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                       <span className="text-sm font-bold text-emerald-600 truncate max-w-[200px]">{reportImageFile.name}</span>
+                       <span className="text-xs text-slate-500">Nhấn để chọn ảnh khác</span>
+                     </div>
+                   ) : (
+                     <div className="flex flex-col items-center gap-2 text-slate-500">
+                       <UploadCloud className="w-8 h-8 text-slate-400" />
+                       <span className="text-sm font-bold">Nhấn để tải ảnh lên</span>
+                       <span className="text-xs">Hỗ trợ JPG, PNG, GIF</span>
+                     </div>
+                   )}
+                 </label>
                </div>
              </div>
 
              <div className="flex gap-3 pt-2">
-               <button onClick={() => setIsReportModalOpen(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">Hủy</button>
-               <button onClick={handleSendReport} className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition-colors">Gửi Báo Cáo</button>
+               <button disabled={isUploadingReport} onClick={() => setIsReportModalOpen(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors disabled:opacity-50">Hủy</button>
+               <button disabled={isUploadingReport} onClick={handleSendReport} className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                 {isUploadingReport ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                 {isUploadingReport ? "Đang gửi..." : "Gửi Báo Cáo"}
+               </button>
              </div>
           </div>
         </div>
