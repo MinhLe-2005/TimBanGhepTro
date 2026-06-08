@@ -28,7 +28,6 @@ export default function CreateProfileModal({
     currentProfile?.bio ||
       "Mình là người hòa đồng, tôn trọng tính riêng tư và sạch sẽ. Thích một không gian sống yên tĩnh lành mạnh."
   );
-  const [phoneNumber, setPhoneNumber] = useState(currentProfile?.phoneNumber || "");
 
   // Lifestyle states
   const [sleep, setSleep] = useState<"Cú đêm" | "Ngủ sớm" | "Bình thường">(
