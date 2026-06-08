@@ -345,12 +345,20 @@ export default function App() {
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
       const { reviews, ...dbRoom } = roomWithOwner;
-      let { error } = await supabase.from('rooms').insert(dbRoom);
+      let { error, data } = await supabase.from('rooms').insert(dbRoom).select();
       if (error && (error.code === 'PGRST204' || error.code === '42703')) {
         const { postedBy, ...dbRoomFallback } = dbRoom;
-        error = (await supabase.from('rooms').insert(dbRoomFallback)).error;
+        const result = await supabase.from('rooms').insert(dbRoomFallback).select();
+        error = result.error;
+        data = result.data;
       }
-      if (error) console.error("Error inserting room to Supabase:", error);
+      if (error) {
+        console.error("Error inserting room to Supabase:", error);
+      } else if (data && data.length > 0) {
+        console.log("[App] Successfully inserted room to Supabase:", data[0]);
+        // Update Supabase state after successful insert
+        setSupabaseRooms((prev) => [data[0], ...prev]);
+      }
     }
   };
 
@@ -386,12 +394,6 @@ export default function App() {
       return;
     }
 
-    // Optimistic UI Update for Insert
-    setRoommates((prev) => {
-      const updated = [roommateWithOwner, ...prev];
-      return updated;
-    });
-
     // Local fallback cache
     const saved = localStorage.getItem("roomiematch_posted_roommates");
     const parsed = saved ? JSON.parse(saved) : [];
@@ -400,13 +402,27 @@ export default function App() {
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
       const { reviews, ...dbRoommate } = roommateWithOwner;
-      let { error } = await supabase.from('roommates').insert(dbRoommate);
+      let { error, data } = await supabase.from('roommates').insert(dbRoommate).select();
       if (error && (error.code === 'PGRST204' || error.code === '42703')) {
         const { postedBy, ...dbRoommateFallback } = dbRoommate;
-        error = (await supabase.from('roommates').insert(dbRoommateFallback)).error;
+        const result = await supabase.from('roommates').insert(dbRoommateFallback).select();
+        error = result.error;
+        data = result.data;
       }
-      if (error) console.error("Error inserting roommate to Supabase:", error);
+      if (error) {
+        console.error("Error inserting roommate to Supabase:", error);
+      } else if (data && data.length > 0) {
+        console.log("[App] Successfully inserted roommate to Supabase:", data[0]);
+        // Update Supabase state after successful insert
+        setSupabaseRoommates((prev) => [data[0], ...prev]);
+      }
     }
+    
+    // Optimistic UI Update for Insert (after Supabase confirmation)
+    setRoommates((prev) => {
+      const updated = [roommateWithOwner, ...prev];
+      return updated;
+    });
   };
 
   const handleDeleteRoom = async (id: string) => {
