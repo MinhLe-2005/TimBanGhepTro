@@ -107,7 +107,11 @@ export default function RoommatesView({
   };
 
   // Filter roommates list
-  const filteredRoommates = roommates.filter((roommate) => {
+  // CRITICAL: Filter out user profiles (is_listing=false) - only show listings in "Tìm Bạn" tab
+  const listingsOnly = roommates.filter(r => r.is_listing !== false);
+  
+  // Apply filters on top of listings-only data
+  const filteredRoommates = listingsOnly.filter((roommate) => {
     // Search by name, role, bio, location
     const matchesSearch =
       roommate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
