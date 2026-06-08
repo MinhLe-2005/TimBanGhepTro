@@ -70,61 +70,56 @@ export default function App() {
           avatar: user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop",
         });
         
-        // Also try to restore profile on session restore (e.g. page reload)
-        const savedProfile = localStorage.getItem("roomiematch_user_profile");
-        if (savedProfile) {
-          try { 
-            setCurrentUserProfile(JSON.parse(savedProfile)); 
-            console.log('[Auth] Loaded profile from localStorage');
-          } catch(e) {
-            console.error('[Auth] Error parsing saved profile:', e);
-          }
-        } else {
-          console.log('[Auth] No saved profile, fetching from Supabase...');
-          // Try loading from Supabase profiles table by auth_id
+        // 1. Dùng cache tạm thời để UI không bị giật
+        const savedProfileStr = localStorage.getItem("roomiematch_user_profile");
+        let localProfile = null;
+        try { if (savedProfileStr) localProfile = JSON.parse(savedProfileStr); } catch(e) {}
+        if (localProfile) setCurrentUserProfile(localProfile);
+
+        // 2. Luôn đồng bộ với Supabase roommates table để người khác thấy
+        if (import.meta.env.VITE_SUPABASE_URL) {
           try {
-            const { data: profileData, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
-            
-            if (error) {
-              console.error('[Auth] Error fetching profile:', error);
-            }
+            const { data: profileData, error } = await supabase.from('roommates').select('*').eq('user_id', user.id).maybeSingle();
             
             if (profileData) {
-              console.log('[Auth] Loaded profile from Supabase:', profileData.name);
-              // Convert profile format to match app's expected structure
-              const fullProfile = {
-                id: profileData.id,
-                name: profileData.name,
-                avatar: profileData.avatar,
-                role: profileData.role,
-                // Add other fields with defaults
-                age: 21,
-                gender: 'Khác',
-                location: 'Đà Nẵng',
-                district: 'Hải Châu',
-                type: 'Phòng trọ',
-                budget: 3000000,
-                bio: '',
+              console.log('[Auth] Loaded profile from Supabase roommates:', profileData.name);
+              setCurrentUserProfile(profileData);
+              localStorage.setItem("roomiematch_user_profile", JSON.stringify(profileData));
+            } else {
+              console.log('[Auth] No profile found in Supabase roommates for user:', user.id, '-> Auto-creating');
+              // Auto-tạo profile cơ bản từ tài khoản Google + localProfile (nếu có)
+              const googleName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Thành viên';
+              const googleAvatar = user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop';
+              const autoProfileId = localProfile?.id || `rm-${Date.now()}`;
+              
+              const autoProfile = {
+                id: autoProfileId,
+                name: localProfile?.name || googleName,
+                avatar: localProfile?.avatar || googleAvatar,
+                role: localProfile?.role || 'Sinh viên',
+                age: localProfile?.age || 20,
+                gender: localProfile?.gender || 'Khác',
+                location: localProfile?.location || 'Đà Nẵng',
+                district: localProfile?.district || 'Hải Châu',
+                type: localProfile?.type || 'Phòng trọ',
+                budget: localProfile?.budget || 3000000,
+                bio: localProfile?.bio || '',
                 isVerified: false,
                 status: 'chưa tìm được bạn',
                 matchScore: 100,
-                tags: [],
-                lifestyle: {
-                  sleep: 'Bình thường',
-                  pets: 'Thoải mái',
-                  smoke: 'Không hút thuốc',
-                  cook: 'Đôi khi nấu',
-                  interaction: 'Cân bằng',
-                  neatness: 'Sạch sẽ'
-                }
+                tags: localProfile?.tags || [],
+                user_id: user.id,
+                lifestyle: localProfile?.lifestyle || { sleep: 'Bình thường', pets: 'Thoải mái', smoke: 'Không hút thuốc', cook: 'Đôi khi nấu', interaction: 'Cân bằng', neatness: 'Sạch sẽ' }
               };
-              setCurrentUserProfile(fullProfile);
-              localStorage.setItem("roomiematch_user_profile", JSON.stringify(fullProfile));
-            } else {
-              console.log('[Auth] No profile found in Supabase for user:', user.id);
+              
+              // Lưu vào Supabase roommates để bên kia nhìn thấy
+              const { reviews, ...dbProfile } = autoProfile as any;
+              await supabase.from('roommates').insert(dbProfile).onConflict?.('id');
+              setCurrentUserProfile(autoProfile);
+              localStorage.setItem('roomiematch_user_profile', JSON.stringify(autoProfile));
             }
           } catch(e) {
-            console.error('[Auth] Error loading profile from Supabase:', e);
+            console.error('[Auth] Error syncing profile with Supabase:', e);
           }
         }
       } else {
@@ -171,17 +166,17 @@ export default function App() {
 
   // Persistence for user profile
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(() => {
-    // Auto-clear old cache version (disabled temporarily)
-    // const CACHE_VERSION = '2.0';
-    // const currentVersion = localStorage.getItem('roomiematch_version');
+    // Auto-clear old cache version to fix ghost profiles
+    const CACHE_VERSION = '3.0';
+    const currentVersion = localStorage.getItem('roomiematch_version');
     
-    // if (currentVersion !== CACHE_VERSION) {
-    //   console.log('[App] Clearing old cache, upgrading to version', CACHE_VERSION);
-    //   localStorage.removeItem('roomiematch_user_profile');
-    //   localStorage.removeItem('roomiematch_profiles_map');
-    //   localStorage.setItem('roomiematch_version', CACHE_VERSION);
-    //   return null;
-    // }
+    if (currentVersion !== CACHE_VERSION) {
+      console.log('[App] Clearing old cache, upgrading to version', CACHE_VERSION);
+      localStorage.removeItem('roomiematch_user_profile');
+      localStorage.removeItem('roomiematch_profiles_map');
+      localStorage.setItem('roomiematch_version', CACHE_VERSION);
+      return null;
+    }
     
     const saved = localStorage.getItem("roomiematch_user_profile");
     return saved ? JSON.parse(saved) : null;
@@ -194,14 +189,29 @@ export default function App() {
   // Auto-sync profile when logging in or refreshing
   useEffect(() => {
     if (currentUser && !currentUserProfile) {
-      console.log('[App] User logged in but no profile found, checking...');
+      console.log('[App] User logged in but no profile found in local storage, fetching from Supabase...');
       
-      // Don't try to find in supabaseRoommates (old fake data)
-      // Instead, open create profile modal for new users
-      setTimeout(() => {
-        console.log('[App] Opening profile creation modal for new user');
-        setIsProfileModalOpen(true);
-      }, 500);
+      const fetchProfile = async () => {
+        try {
+          if (!import.meta.env.VITE_SUPABASE_URL) return;
+          const { data, error } = await supabase.from('roommates').select('*').eq('user_id', currentUser.id).maybeSingle();
+          
+          if (data) {
+            console.log('[App] Profile found in Supabase, restoring...');
+            setCurrentUserProfile(data);
+            localStorage.setItem("roomiematch_user_profile", JSON.stringify(data));
+          } else {
+            console.log('[App] No profile found in Supabase, opening profile creation modal for new user');
+            setTimeout(() => {
+              setIsProfileModalOpen(true);
+            }, 500);
+          }
+        } catch (err) {
+          console.error('[App] Error fetching profile:', err);
+        }
+      };
+
+      fetchProfile();
       
     } else if (currentUser && currentUserProfile && currentUserProfile.id === "me") {
       // Migrate "me" ID to actual Supabase UUID to prevent shared chats
@@ -824,9 +834,18 @@ export default function App() {
     const isAuth = await requireAuth();
     if (!isAuth) return;
     if (window.history.state?.modal) { window.history.back(); } else { setSelectedRoommate(null); setSelectedRoom(null); }
-    setActiveChatRoommateId(roommateId);
+    
+    // Tra DB lấy user_id (Auth UUID) của partner để chat_id luôn đồng bộ mọi thiết bị
+    let effectivePartnerId = roommateId;
+    if (import.meta.env.VITE_SUPABASE_URL) {
+      const { data } = await supabase.from('roommates').select('user_id').eq('id', roommateId).maybeSingle();
+      if (data?.user_id) effectivePartnerId = data.user_id; // dùng Auth UUID của partner
+    }
+    
+    setActiveChatRoommateId(effectivePartnerId);
     setTimeout(() => setActiveTab("chat"), 50);
   };
+
 
 
 

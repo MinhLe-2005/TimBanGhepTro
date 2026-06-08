@@ -180,12 +180,14 @@ export default function ChatView({
           if (partnerId !== myAuthId) partnerIds.add(partnerId);
         });
 
-        // Fetch partner profiles from profiles table (real user data)
+        // Fetch partner profiles - try profiles table first, fallback to roommates
         const dbPartnerMap = new Map();
         if (partnerIds.size > 0) {
           const partnerArr = Array.from(partnerIds);
           
-          // Fetch from profiles table
+          console.log('[Chat] Fetching profiles for partners:', partnerArr);
+          
+          // 1. Try profiles table first (new system)
           const { data: profilesData } = await supabase
             .from('profiles')
             .select('*')
@@ -203,7 +205,32 @@ export default function ChatView({
             if (p.auth_id) dbPartnerMap.set(p.auth_id, p);
           });
           
-          console.log('[Chat] Fetched profiles for partners:', dbPartnerMap.size);
+          console.log('[Chat] Found in profiles table:', dbPartnerMap.size);
+          
+          // 2. Fallback to roommates table for missing partners (old system)
+          const missingPartnerIds = partnerArr.filter(id => !dbPartnerMap.has(id));
+          if (missingPartnerIds.length > 0) {
+            console.log('[Chat] Fetching missing partners from roommates table:', missingPartnerIds);
+            
+            // Try both id and user_id
+            const { data: roommatesById } = await supabase
+              .from('roommates')
+              .select('*')
+              .in('id', missingPartnerIds);
+            
+            const { data: roommatesByUserId } = await supabase
+              .from('roommates')
+              .select('*')
+              .in('user_id', missingPartnerIds);
+            
+            [...(roommatesById || []), ...(roommatesByUserId || [])].forEach(r => {
+              // Map by both id and user_id
+              if (!dbPartnerMap.has(r.id)) dbPartnerMap.set(r.id, r);
+              if (r.user_id && !dbPartnerMap.has(r.user_id)) dbPartnerMap.set(r.user_id, r);
+            });
+            
+            console.log('[Chat] Total profiles after roommates fallback:', dbPartnerMap.size);
+          }
         }
 
         data.forEach(msg => {
