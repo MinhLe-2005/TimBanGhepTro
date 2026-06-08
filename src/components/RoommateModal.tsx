@@ -220,7 +220,7 @@ export default function RoommateModal({
                 GIỚI THIỆU & TIÊU CHÍ
               </div>
               <p className="text-[15px] font-bold text-slate-700 leading-relaxed italic pt-1">
-                "{roommate.bio}"
+                "{roommate.bio || `Xin chào! Mình là ${roommate.name}. Mình đang tìm kiếm một người bạn ở ghép có lối sống lành mạnh, sạch sẽ và tôn trọng không gian riêng tư của nhau.`}"
               </p>
             </div>
           </div>

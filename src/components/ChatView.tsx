@@ -236,6 +236,8 @@ export default function ChatView({
           const partnerId = ids[0] === myAuthId ? ids[1] : ids[0];
           if (partnerId === myAuthId) return;
 
+          console.log('[Chat] Processing message from partner:', partnerId, 'existing:', conversationMap.has(partnerId));
+
           if (!conversationMap.has(partnerId)) {
             // Try to get partner from: 1. roommates list, 2. Supabase profiles/roommates, 3. default
             let partner = roommates.find(r => r.id === partnerId || r.user_id === partnerId);
