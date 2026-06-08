@@ -204,6 +204,8 @@ export default function ChatView({
 
         // Fetch partner profiles - prioritize roommates table (has full data)
         const dbPartnerMap = new Map();
+        const authIdToProfileMap = new Map(); // Map auth_id -> profile for deduplication
+        
         if (partnerIds.size > 0) {
           const partnerArr = Array.from(partnerIds);
           
@@ -222,7 +224,11 @@ export default function ChatView({
           [...(roommatesById.data || []), ...(roommatesByUserId.data || [])].forEach(r => {
             console.log('[Chat] Roommate from DB:', r.id, r.name, 'budget:', r.budget, 'lifestyle:', r.lifestyle);
             if (!dbPartnerMap.has(r.id)) dbPartnerMap.set(r.id, r);
-            if (r.user_id && !dbPartnerMap.has(r.user_id)) dbPartnerMap.set(r.user_id, r);
+            if (r.user_id) {
+              if (!dbPartnerMap.has(r.user_id)) dbPartnerMap.set(r.user_id, r);
+              // Track by auth_id for deduplication
+              authIdToProfileMap.set(r.user_id, r);
+            }
           });
           
           console.log('[Chat] Found in roommates table:', dbPartnerMap.size);
@@ -230,7 +236,13 @@ export default function ChatView({
           // Fallback to profiles for missing (basic info only)
           [...(profilesById.data || []), ...(profilesByAuthId.data || [])].forEach(p => {
             if (!dbPartnerMap.has(p.id)) dbPartnerMap.set(p.id, p);
-            if (p.auth_id && !dbPartnerMap.has(p.auth_id)) dbPartnerMap.set(p.auth_id, p);
+            if (p.auth_id) {
+              if (!dbPartnerMap.has(p.auth_id)) dbPartnerMap.set(p.auth_id, p);
+              // Track by auth_id for deduplication
+              if (!authIdToProfileMap.has(p.auth_id)) {
+                authIdToProfileMap.set(p.auth_id, p);
+              }
+            }
           });
           
           console.log('[Chat] Total profiles loaded:', dbPartnerMap.size);
@@ -243,44 +255,58 @@ export default function ChatView({
 
           console.log('[Chat] Processing message from partner:', partnerId, 'existing:', conversationMap.has(partnerId));
 
-          if (!conversationMap.has(partnerId)) {
-            // Try to get partner from: 1. roommates list, 2. Supabase profiles/roommates, 3. default
-            let partner = roommates.find(r => r.id === partnerId || r.user_id === partnerId);
-            
-            if (!partner) {
-              partner = dbPartnerMap.get(partnerId);
-            }
-            
-            if (!partner) {
-              // Default fallback
-              partner = { 
-                id: partnerId, 
-                name: 'Người dùng', 
-                avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop', 
-                role: 'Thành viên', 
-                isVerified: false, 
-                matchScore: 0 
-              };
-            }
-            
-            // Ensure partner has lifestyle object (required for compatibility)
-            if (!partner.lifestyle) {
-              partner.lifestyle = {
-                sleep: 'Bình thường',
-                pets: 'Thoải mái',
-                smoke: 'Không hút thuốc',
-                cook: 'Đôi khi nấu',
-                interaction: 'Cân bằng',
-                neatness: 'Sạch sẽ'
-              };
-            }
-            
-            conversationMap.set(partnerId, {
+          // Try to get partner from: 1. roommates list, 2. Supabase profiles/roommates, 3. default
+          let partner = roommates.find(r => r.id === partnerId || r.user_id === partnerId);
+          
+          if (!partner) {
+            partner = dbPartnerMap.get(partnerId);
+          }
+          
+          if (!partner) {
+            // Default fallback
+            partner = { 
+              id: partnerId, 
+              name: 'Người dùng', 
+              avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop', 
+              role: 'Thành viên', 
+              isVerified: false, 
+              matchScore: 0 
+            };
+          }
+          
+          // Ensure partner has lifestyle object (required for compatibility)
+          if (!partner.lifestyle) {
+            partner.lifestyle = {
+              sleep: 'Bình thường',
+              pets: 'Thoải mái',
+              smoke: 'Không hút thuốc',
+              cook: 'Đôi khi nấu',
+              interaction: 'Cân bằng',
+              neatness: 'Sạch sẽ'
+            };
+          }
+          
+          // Use auth_id as unique key to prevent duplicates
+          const uniqueKey = partner.user_id || partner.auth_id || partnerId;
+          
+          if (!conversationMap.has(uniqueKey)) {
+            conversationMap.set(uniqueKey, {
               partner,
               lastMessage: msg.text || 'Đã gửi đính kèm',
               timestamp: msg.timestamp,
               chatId: msg.chat_id
             });
+          } else {
+            // Update if this message is newer
+            const existing = conversationMap.get(uniqueKey);
+            if (new Date(msg.timestamp) > new Date(existing.timestamp)) {
+              conversationMap.set(uniqueKey, {
+                partner,
+                lastMessage: msg.text || 'Đã gửi đính kèm',
+                timestamp: msg.timestamp,
+                chatId: msg.chat_id
+              });
+            }
           }
         });
 
