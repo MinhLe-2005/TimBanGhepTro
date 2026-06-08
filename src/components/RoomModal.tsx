@@ -9,9 +9,10 @@ interface RoomModalProps {
   roommates?: Roommate[];
   isOwnProfile?: boolean;
   onDeleteRoom?: (id: string) => void;
+  onEditRoom?: (room: Room) => void;
 }
 
-export default function RoomModal({ room, onClose, onInquire, onAddReview, roommates = [], isOwnProfile = false, onDeleteRoom }: RoomModalProps) {
+export default function RoomModal({ room, onClose, onInquire, onAddReview, roommates = [], isOwnProfile = false, onDeleteRoom, onEditRoom }: RoomModalProps) {
   if (!room) return null;
 
   const hostRoommate = roommates.find(
@@ -642,20 +643,31 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
               </button>
             </>
           ) : (
-            <div className="grid grid-cols-2 gap-3 w-full sm:w-auto mt-4 sm:mt-0">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full sm:w-auto mt-4 sm:mt-0">
+              <button
+                onClick={() => {
+                  if (onEditRoom) {
+                    onClose();
+                    onEditRoom(room);
+                  }
+                }}
+                className="w-full bg-[#006590] hover:bg-[#004e70] text-white py-3.5 px-6 rounded-[16px] font-black active:scale-95 duration-200 cursor-pointer text-[15px] shadow-md"
+              >
+                Sửa tin đăng
+              </button>
               <button
                 onClick={() => {
                   if (onDeleteRoom && window.confirm("Bạn có chắc chắn muốn xóa tin đăng này? Hành động này không thể hoàn tác.")) {
                     onDeleteRoom(room.id);
                   }
                 }}
-                className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-3.5 px-8 rounded-[16px] font-black active:scale-95 duration-200 cursor-pointer border border-red-100 text-[15px]"
+                className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-3.5 px-6 rounded-[16px] font-black active:scale-95 duration-200 cursor-pointer border border-red-100 text-[15px]"
               >
                 Xóa tin đăng
               </button>
               <button
                 onClick={onClose}
-                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3.5 px-8 rounded-[16px] font-black active:scale-95 duration-200 cursor-pointer border border-slate-200 text-[15px]"
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3.5 px-6 rounded-[16px] font-black active:scale-95 duration-200 cursor-pointer border border-slate-200 text-[15px]"
               >
                 Đóng
               </button>

@@ -1333,6 +1333,7 @@ export default function App() {
             setSelectedRoom(null);
             alert("Đã xóa tin đăng thành công!");
           }}
+          onEditRoom={handleEditRoom}
         />
       )}
 

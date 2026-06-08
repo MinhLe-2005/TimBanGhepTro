@@ -124,7 +124,9 @@ export default function RoomsView({
       });
     });
 
-    return matchesSearch && matchesDistrict && matchesType && matchesCapacity && matchesPets && matchesGender && matchesPrice && matchesAmenities;
+    const matchesMyPosts = !showMyPostsOnly || (currentUserId && (room.postedBy === currentUserId || room.user_id === currentUserId));
+
+    return matchesSearch && matchesDistrict && matchesType && matchesCapacity && matchesPets && matchesGender && matchesPrice && matchesAmenities && matchesMyPosts;
   });
 
   return (
