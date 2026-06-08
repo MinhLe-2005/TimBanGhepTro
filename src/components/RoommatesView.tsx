@@ -122,7 +122,7 @@ export default function RoommatesView({
   // Filter roommates list
   // CRITICAL: Filter out user profiles (is_listing=false) - only show listings in "Tìm Bạn" tab
   // MUST use === true to avoid showing profiles with undefined is_listing
-  const listingsOnly = roommates.filter(r => (r as any).is_listing !== false && (r as any).is_listing !== 'false');
+  const listingsOnly = roommates.filter(r => (r as any).is_listing === true);
   
   // Apply filters on top of listings-only data
   const filteredRoommates = listingsOnly.filter((roommate) => {
@@ -142,7 +142,8 @@ export default function RoommatesView({
     const matchesPets = petsFilter === "Tất cả" || roommate.lifestyle?.pets === petsFilter;
     const matchesDistrict = districtFilter === "Tất cả" || (roommate.district && roommate.district === districtFilter);
     const matchesType = typeFilter === "Tất cả" || (roommate.type && roommate.type === typeFilter);
-    const matchesBudget = (roommate.budget || 0) >= minBudget && (roommate.budget || 0) <= maxBudget;
+    const budgetMax = budgetTag === "Tất cả" ? Infinity : maxBudget;
+    const matchesBudget = (roommate.budget || 0) >= minBudget && (roommate.budget || 0) <= budgetMax;
 
     const matchesStatus = () => {
       if (statusFilter === "Tất cả") return true;
