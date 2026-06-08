@@ -741,16 +741,17 @@ export default function App() {
     const saved = localStorage.getItem("roomiematch_posted_roommates");
     const customOnes = saved ? JSON.parse(saved) : [];
     
-    // Deduplicate: INITIAL_ROOMMATES override older Supabase entries
     const initialIds = INITIAL_ROOMMATES.map(r => r.id);
-    const filteredSupabase = supabaseRoommates.filter(r => !initialIds.includes(r.id));
+    const legacyAiIds = ["r1", "r2", "r3", "r4", "r5", "khanh-vy", "minh-anh", "hoang-nam", "trang-le", "duc-tri", "ai_khanh_vy"];
     
-    const allCandidatesRaw = [...customOnes, ...filteredSupabase, ...INITIAL_ROOMMATES];
+    const cleanCustomOnes = customOnes.filter((r: Roommate) => !legacyAiIds.includes(r.id) || initialIds.includes(r.id));
+    const cleanSupabase = supabaseRoommates.filter(r => !legacyAiIds.includes(r.id) || initialIds.includes(r.id));
+    
+    const allCandidatesRaw = [...cleanCustomOnes, ...cleanSupabase, ...INITIAL_ROOMMATES];
     const uniqueCandidatesMap = new Map();
     allCandidatesRaw.forEach(r => {
-      if (!uniqueCandidatesMap.has(r.id)) {
-        uniqueCandidatesMap.set(r.id, r);
-      }
+      // Overwrite existing to ensure INITIAL_ROOMMATES (at the end) wins
+      uniqueCandidatesMap.set(r.id, r);
     });
     const allCandidates = Array.from(uniqueCandidatesMap.values());
 
@@ -856,9 +857,8 @@ export default function App() {
     const allRoomsRaw = [...parsed, ...filteredSupabaseRooms, ...INITIAL_ROOMS];
     const uniqueRoomsMap = new Map();
     allRoomsRaw.forEach(r => {
-      if (!uniqueRoomsMap.has(r.id)) {
-        uniqueRoomsMap.set(r.id, r);
-      }
+      // Overwrite existing to ensure INITIAL_ROOMS (at the end) wins
+      uniqueRoomsMap.set(r.id, r);
     });
     let allRooms = Array.from(uniqueRoomsMap.values());
 
