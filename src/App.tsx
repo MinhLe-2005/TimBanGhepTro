@@ -151,6 +151,18 @@ export default function App() {
 
   // Persistence for user profile
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(() => {
+    // Auto-clear old cache version
+    const CACHE_VERSION = '2.0';
+    const currentVersion = localStorage.getItem('roomiematch_version');
+    
+    if (currentVersion !== CACHE_VERSION) {
+      console.log('[App] Clearing old cache, upgrading to version', CACHE_VERSION);
+      localStorage.removeItem('roomiematch_user_profile');
+      localStorage.removeItem('roomiematch_profiles_map');
+      localStorage.setItem('roomiematch_version', CACHE_VERSION);
+      return null;
+    }
+    
     const saved = localStorage.getItem("roomiematch_user_profile");
     return saved ? JSON.parse(saved) : null;
   });
