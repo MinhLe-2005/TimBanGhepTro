@@ -294,6 +294,31 @@ export default function RoommateModal({
                 </div>
               </div>
             </div>
+            
+            {/* Extended Stats Row */}
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-3">
+              <div className="bg-white px-4 py-2.5 rounded-2xl border-2 border-slate-100 shadow-sm flex items-center gap-3">
+                <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 text-base">🏫</span>
+                <div className="flex flex-col items-start pr-2">
+                  <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider">Trường học</span>
+                  <span className="text-[13px] font-black text-slate-800 leading-tight mt-0.5 truncate max-w-[150px]">{roommate.school || (roommate as any).majorKhoidoi || "Không rõ"}</span>
+                </div>
+              </div>
+              <div className="bg-white px-4 py-2.5 rounded-2xl border-2 border-slate-100 shadow-sm flex items-center gap-3">
+                <span className="w-8 h-8 rounded-lg bg-pink-50 text-pink-600 flex items-center justify-center shrink-0 text-base">👥</span>
+                <div className="flex flex-col items-start pr-2">
+                  <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider">Giới tính</span>
+                  <span className="text-[13px] font-black text-slate-800 leading-tight mt-0.5">{roommate.gender}</span>
+                </div>
+              </div>
+              <div className="bg-white px-4 py-2.5 rounded-2xl border-2 border-slate-100 shadow-sm flex items-center gap-3">
+                <span className="w-8 h-8 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center shrink-0 text-base">🏠</span>
+                <div className="flex flex-col items-start pr-2">
+                  <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider">Loại hình</span>
+                  <span className="text-[13px] font-black text-slate-800 leading-tight mt-0.5">{roommate.type}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
