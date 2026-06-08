@@ -1187,6 +1187,7 @@ export default function App() {
             currentUserProfile={currentUserProfile}
             onRequireAuth={requireAuth}
             onOpenCreateProfile={() => setIsProfileModalOpen(true)}
+            isAdmin={isAdmin}
           />
         )}
 
@@ -1323,6 +1324,7 @@ export default function App() {
             setSelectedRoommate(null);
             alert("Đã xóa hồ sơ thành công!");
           }}
+          isAdmin={isAdmin}
         />
       )}
 
@@ -1340,6 +1342,7 @@ export default function App() {
             alert("Đã xóa tin đăng thành công!");
           }}
           onEditRoom={handleEditRoom}
+          isAdmin={isAdmin}
         />
       )}
 

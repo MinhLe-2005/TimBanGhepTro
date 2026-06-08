@@ -19,6 +19,7 @@ interface HomeViewProps {
   currentUserProfile?: any;
   onRequireAuth?: () => void;
   onOpenCreateProfile?: () => void;
+  isAdmin?: boolean;
 }
 
 export default function HomeView({
@@ -34,7 +35,8 @@ export default function HomeView({
   onStartChat,
   currentUserProfile,
   onRequireAuth,
-  onOpenCreateProfile
+  onOpenCreateProfile,
+  isAdmin = false
 }: HomeViewProps) {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState("Tất cả Đà Nẵng");
@@ -397,7 +399,7 @@ export default function HomeView({
                       key={room.id}
                       room={room}
                       onViewDetails={onViewRoom}
-                      onLikeChange={onLikeRoom}
+                      onLikeChange={isAdmin ? undefined : onLikeRoom}
                       isInitiallyLiked={true}
                     />
                   ))}
@@ -448,14 +450,14 @@ export default function HomeView({
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {/* Chỉ hiển thị listings (is_listing=true), không hiển thị profiles */}
-            {[...roommates.filter(r => r.is_listing === true), ...roommates.filter(r => r.is_listing === true), ...roommates.filter(r => r.is_listing === true)].map((roommate, index) => (
-              <div key={`${roommate.id}-${index}`} className="shrink-0 snap-start w-full sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)]">
+            {[...roommates.filter(r => r.is_listing === true), ...roommates.filter(r => r.is_listing === true), ...roommates.filter(r => r.is_listing === true)].map((rm, index) => (
+              <div key={`${rm.id}-${index}`} className="shrink-0 snap-start w-full sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)]">
                 <RoommateCard
-                  roommate={roommate}
+                  roommate={rm}
                   onViewDetails={onViewRoommate}
-                  onLikeChange={onLikeRoommate}
-                  isInitiallyLiked={likedRoommateIds.includes(roommate.id)}
-                  onStartChat={onStartChat}
+                  onLikeChange={isAdmin ? undefined : onLikeRoommate}
+                  isInitiallyLiked={likedRoommateIds.includes(rm.id)}
+                  onStartChat={isAdmin ? undefined : onStartChat}
                 />
               </div>
             ))}
@@ -515,7 +517,7 @@ export default function HomeView({
                 <RoomCard
                   room={room}
                   onViewDetails={onViewRoom}
-                  onLikeChange={onLikeRoom}
+                  onLikeChange={isAdmin ? undefined : onLikeRoom}
                   isInitiallyLiked={likedRoomIds.includes(room.id)}
                 />
               </div>
