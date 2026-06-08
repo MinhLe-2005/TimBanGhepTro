@@ -86,37 +86,9 @@ export default function App() {
               setCurrentUserProfile(profileData);
               localStorage.setItem("roomiematch_user_profile", JSON.stringify(profileData));
             } else {
-              console.log('[Auth] No profile found in Supabase roommates for user:', user.id, '-> Auto-creating');
-              // Auto-tạo profile cơ bản từ tài khoản Google + localProfile (nếu có)
-              const googleName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Thành viên';
-              const googleAvatar = user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop';
-              const autoProfileId = localProfile?.id || `rm-${Date.now()}`;
-              
-              const autoProfile = {
-                id: autoProfileId,
-                name: localProfile?.name || googleName,
-                avatar: localProfile?.avatar || googleAvatar,
-                role: localProfile?.role || 'Sinh viên',
-                age: localProfile?.age || 20,
-                gender: localProfile?.gender || 'Khác',
-                location: localProfile?.location || 'Đà Nẵng',
-                district: localProfile?.district || 'Hải Châu',
-                type: localProfile?.type || 'Phòng trọ',
-                budget: localProfile?.budget || 3000000,
-                bio: localProfile?.bio || '',
-                isVerified: false,
-                status: 'chưa tìm được bạn',
-                matchScore: 100,
-                tags: localProfile?.tags || [],
-                user_id: user.id,
-                lifestyle: localProfile?.lifestyle || { sleep: 'Bình thường', pets: 'Thoải mái', smoke: 'Không hút thuốc', cook: 'Đôi khi nấu', interaction: 'Cân bằng', neatness: 'Sạch sẽ' }
-              };
-              
-              // Lưu vào Supabase roommates để bên kia nhìn thấy
-              const { reviews, ...dbProfile } = autoProfile as any;
-              await supabase.from('roommates').insert(dbProfile).onConflict?.('id');
-              setCurrentUserProfile(autoProfile);
-              localStorage.setItem('roomiematch_user_profile', JSON.stringify(autoProfile));
+              console.log('[Auth] No profile found in Supabase roommates for user:', user.id, '-> User needs to create profile');
+              // DO NOT auto-create! Let user create their own profile
+              // Modal will open automatically via useEffect in lines 190-205
             }
           } catch(e) {
             console.error('[Auth] Error syncing profile with Supabase:', e);
