@@ -208,21 +208,31 @@ export default function ChatView({
   // Luôn dùng Auth UUID cho chat_id để đồng bộ mọi thiết bị
   const myChatId = myAuthId || myProfileId;
   const chatId = myChatId && activeRoommateId ? [myChatId, activeRoommateId].sort().join("_") : null;
-
-  // Fetch messages & subscribe realtime
   useEffect(() => {
-    if (!chatId || !activeRoommateId || !import.meta.env.VITE_SUPABASE_URL) return;
+    if (!activeRoommateId || !activeRoommate || !import.meta.env.VITE_SUPABASE_URL) return;
+
+    // Determine all possible chat IDs for this partner to avoid losing history
+    const possibleChatIds = [
+      activeRoommate.user_id ? [myChatId, activeRoommate.user_id].sort().join("_") : null,
+      activeRoommate.id ? [myChatId, activeRoommate.id].sort().join("_") : null,
+      activeRoommate.auth_id ? [myChatId, activeRoommate.auth_id].sort().join("_") : null,
+      chatId // The canonical one
+    ].filter(Boolean) as string[];
+    
+    // Unique chat IDs
+    const uniqueChatIds = Array.from(new Set(possibleChatIds));
 
     const fetchMessages = async () => {
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .eq('chat_id', chatId)
+        .in('chat_id', uniqueChatIds)
         .order('timestamp', { ascending: true });
+        
       if (!error && data) {
         setChats(prev => ({
           ...prev,
-          [activeRoommateId!]: data.map((d: any) => ({
+          [activeRoommateId]: data.map((d: any) => ({
             id: d.id, chatId: d.chat_id, senderId: d.sender_id,
             text: d.text, imageUrl: d.image_url, timestamp: d.timestamp
           }))
@@ -231,20 +241,27 @@ export default function ChatView({
     };
     fetchMessages();
 
-    const channel = supabase
-      .channel(`messages:${chatId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` }, (payload) => {
-        const newMsg = payload.new as any;
-        setChats(prev => {
-          const cur = prev[activeRoommateId!] || [];
-          if (cur.some(m => m.id === newMsg.id)) return prev;
-          return { ...prev, [activeRoommateId!]: [...cur, { id: newMsg.id, chatId: newMsg.chat_id, senderId: newMsg.sender_id, text: newMsg.text, imageUrl: newMsg.image_url, timestamp: newMsg.timestamp }] };
-        });
-      })
-      .subscribe();
+    // Subscribe to all possible chat IDs for realtime updates
+    const channels = uniqueChatIds.map(id => {
+      return supabase
+        .channel(`messages:${id}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${id}` }, (payload) => {
+          const newMsg = payload.new as any;
+          setChats(prev => {
+            const cur = prev[activeRoommateId] || [];
+            if (cur.some(m => m.id === newMsg.id)) return prev;
+            // Insert and sort to ensure chronological order when merging streams
+            const updated = [...cur, { id: newMsg.id, chatId: newMsg.chat_id, senderId: newMsg.sender_id, text: newMsg.text, imageUrl: newMsg.image_url, timestamp: newMsg.timestamp }];
+            return { ...prev, [activeRoommateId]: updated.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()) };
+          });
+        })
+        .subscribe();
+    });
 
-    return () => { supabase.removeChannel(channel); };
-  }, [chatId, activeRoommateId]);
+    return () => { channels.forEach(ch => supabase.removeChannel(ch)); };
+  }, [activeRoommateId, activeRoommate, myChatId]);
+
+  // Fetch Inbox Conversations
 
 
   // Fetch Inbox Conversations
@@ -444,36 +461,38 @@ export default function ChatView({
         });
 
         // Đảm bảo activeRoommateId luôn có trong list
-        if (activeRoommateId && !conversationMap.has(activeRoommateId)) {
-          let partner = roommates.find(r => r.id === activeRoommateId || r.user_id === activeRoommateId)
-            || dbPartnerMap.get(activeRoommateId);
-          if (partner) {
-            // Ensure partner has complete data structure
-            if (!partner.lifestyle) {
-              console.warn('[Chat] Active partner missing lifestyle, adding defaults');
-              partner.lifestyle = {
-                sleep: 'Bình thường',
-                pets: 'Thoải mái',
-                smoke: 'Không hút thuốc',
-                cook: 'Đôi khi nấu',
-                interaction: 'Cân bằng',
-                neatness: 'Sạch sẽ'
-              };
-            }
-            if (!partner.budget) {
-              console.warn('[Chat] Active partner missing budget');
-              partner.budget = 0;
-            }
-            if (!partner.bio) {
-              partner.bio = '';
-            }
+        if (activeRoommateId) {
+          let activePartner = roommates.find(r => r.id === activeRoommateId || r.user_id === activeRoommateId) || dbPartnerMap.get(activeRoommateId);
+          
+          if (activePartner) {
+            const activeKeys = [
+              activePartner.user_id,
+              activePartner.auth_id,
+              activePartner.id,
+              activeRoommateId
+            ].filter(Boolean);
             
-            conversationMap.set(activeRoommateId, {
-              partner,
-              lastMessage: 'Bắt đầu cuộc trò chuyện...',
-              timestamp: new Date().toISOString(),
-              chatId: [myAuthId, activeRoommateId].sort().join('_')
-            });
+            const alreadyExists = activeKeys.some(key => conversationMap.has(key));
+            
+            if (!alreadyExists) {
+              // Ensure partner has complete data structure
+              if (!activePartner.lifestyle) {
+                console.warn('[Chat] Active partner missing lifestyle, adding defaults');
+                activePartner.lifestyle = {
+                  sleep: 'Bình thường', pets: 'Thoải mái', smoke: 'Không hút thuốc',
+                  cook: 'Đôi khi nấu', interaction: 'Cân bằng', neatness: 'Sạch sẽ'
+                };
+              }
+              if (!activePartner.budget) activePartner.budget = 0;
+              if (!activePartner.bio) activePartner.bio = '';
+              
+              conversationMap.set(activeKeys[0] || activeRoommateId, {
+                partner: activePartner,
+                lastMessage: 'Bắt đầu cuộc trò chuyện...',
+                timestamp: new Date().toISOString(),
+                chatId: [myAuthId, activeRoommateId].sort().join('_')
+              });
+            }
           }
         }
 

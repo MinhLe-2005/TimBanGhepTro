@@ -101,8 +101,8 @@ export default function AgreementView({
       if (!error && data) {
         const aggrMap = new Map<string, any>();
         
-        // Sort chronologically
-        data.sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        // Sort chronologically descending so find() gets the newest first
+        data.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         
         data.forEach(msg => {
           let payload: any = null;
@@ -119,7 +119,7 @@ export default function AgreementView({
              // Base structure
              const existing = aggrMap.get(payload.id) || {};
              const creatorId = isDraft ? msg.sender_id : (existing.creator_id || (msg.sender_id === currentUserProfile.id ? partner_id : msg.sender_id));
-             const partnerId = isDraft ? (msg.sender_id === currentUserProfile.id ? partner_id : currentUserProfile.id) : (existing.partner_id || (msg.sender_id === currentUserProfile.id ? currentUserProfile.id : partner_id));
+             const partnerId = isDraft ? (msg.sender_id === currentUserProfile.id ? partner_id : currentUserProfile.id) : (existing.partner_id || (msg.sender_id === currentUserProfile.id ? currentUserProfile.id : partnerId));
              
              let currentStatus = payload.status;
              if (currentStatus === 'pending') {
@@ -129,14 +129,17 @@ export default function AgreementView({
                }
              }
              
-             aggrMap.set(payload.id, {
-                id: payload.id,
-                creator_id: creatorId,
-                partner_id: partnerId,
-                status: currentStatus,
-                rules: payload.rules,
-                created_at: payload.timestamp || msg.created_at
-             });
+             // Since data is sorted newest first, the first time we see an ID it's the latest status
+             if (!aggrMap.has(payload.id)) {
+               aggrMap.set(payload.id, {
+                  id: payload.id,
+                  creator_id: creatorId,
+                  partner_id: partnerId,
+                  status: currentStatus,
+                  rules: payload.rules,
+                  created_at: payload.timestamp || msg.created_at
+               });
+             }
           }
         });
         
@@ -217,21 +220,20 @@ export default function AgreementView({
   const [signedDate, setSignedDate] = useState<string>("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // Load pending agreement payload
   useEffect(() => {
-    if (pendingAgreementPayload) {
-      applyLoadedFields(pendingAgreementPayload.rules);
-      setOtherNotesText(pendingAgreementPayload.rules.otherNotes || "");
-      if (pendingAgreementPayload.status === 'signed' || pendingAgreementPayload.sender_id !== currentUserProfile?.id) {
+    if (localPendingPayload) {
+      applyLoadedFields(localPendingPayload.rules);
+      setOtherNotesText(localPendingPayload.rules.otherNotes || "");
+      if (localPendingPayload.status === 'signed' || localPendingPayload.sender_id !== currentUserProfile?.id) {
          setIsSigned(true); // Lock form if signed or if received from partner
       }
-      if (pendingAgreementPayload.status === 'signed') {
-         setSignedDate(new Date(pendingAgreementPayload.timestamp).toLocaleDateString("vi-VN", {
+      if (localPendingPayload.status === 'signed') {
+         setSignedDate(new Date(localPendingPayload.timestamp).toLocaleDateString("vi-VN", {
             year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
          }));
       }
     }
-  }, [pendingAgreementPayload, currentUserProfile]);
+  }, [localPendingPayload, currentUserProfile]);
 
   // Dynamic templates matching each roommate's lifestyle or the default requested requirements
   const getRoommateAgreementFields = (roommate: Roommate) => {
@@ -316,13 +318,21 @@ export default function AgreementView({
     }
   };
 
+  // Sync prop to local state so we can clear it when user clicks "Tạo mới"
+  const [localPendingPayload, setLocalPendingPayload] = useState<any>(null);
+  useEffect(() => {
+    setLocalPendingPayload(pendingAgreementPayload);
+  }, [pendingAgreementPayload]);
+
   const matchedRoommate = roommateName ? (roommates.find((r) => r.name.toLowerCase() === roommateName.toLowerCase()) || 
                           roommates.find((r) => r.name.toLowerCase().includes(roommateName.toLowerCase()))) : null;
 
-  const activeAgreement = agreements.find(
+  const latestAgreementInDb = agreements.find(
     a => (a.creator_id === currentUserProfile?.id && a.partner_id === matchedRoommate?.id) ||
          (a.partner_id === currentUserProfile?.id && a.creator_id === matchedRoommate?.id)
   );
+
+  const activeAgreement = localPendingPayload || (latestAgreementInDb?.status !== 'cancelled' ? latestAgreementInDb : null);
 
   // Pre-load default or pre-selected roommate and their active agreement
   useEffect(() => {
@@ -339,7 +349,7 @@ export default function AgreementView({
     if (activeAgreement && activeAgreement.status !== 'cancelled') {
       applyLoadedFields(activeAgreement.rules);
       setIsSigned(true);
-      setSignedDate(new Date(activeAgreement.created_at).toLocaleDateString("vi-VN", {
+      setSignedDate(new Date(activeAgreement.created_at || activeAgreement.timestamp).toLocaleDateString("vi-VN", {
         year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
       }));
     } else if (matchedRoommate) {
@@ -360,16 +370,15 @@ export default function AgreementView({
         const fields = getRoommateAgreementFields(matchedRoommate);
         applyLoadedFields(fields);
       }
-      if (!pendingAgreementPayload) {
+      if (!localPendingPayload) {
         setIsSigned(false);
         setSignedDate("");
       }
     }
-  }, [matchedRoommate]);
+  }, [matchedRoommate, activeAgreement, localPendingPayload]);
 
-  // Save draft to sessionStorage
   useEffect(() => {
-    if (!matchedRoommate || pendingAgreementPayload) return;
+    if (!matchedRoommate || localPendingPayload) return;
     const draft = {
       quietOption, quietOther,
       cleaningOption, cleaningOther,
@@ -378,7 +387,7 @@ export default function AgreementView({
       petsOption, petsOther
     };
     sessionStorage.setItem(`agreement_draft_${matchedRoommate.id}`, JSON.stringify(draft));
-  }, [quietOption, quietOther, cleaningOption, cleaningOther, visitorsOption, visitorsOther, billsOption, billsOther, petsOption, petsOther, matchedRoommate, pendingAgreementPayload]);
+  }, [quietOption, quietOther, cleaningOption, cleaningOther, visitorsOption, visitorsOther, billsOption, billsOther, petsOption, petsOther, matchedRoommate, localPendingPayload]);
 
   const handleRoommateNameChange = (val: string) => {
     setRoommateName(val);
@@ -401,7 +410,7 @@ export default function AgreementView({
     let payload: any;
     let messagePrefix = "";
 
-    const agreementToSign = pendingAgreementPayload || (activeAgreement?.status === 'pending' ? activeAgreement : null);
+    const agreementToSign = localPendingPayload || (activeAgreement?.status === 'pending' ? activeAgreement : null);
 
     if (agreementToSign) {
       // Xác nhận hợp đồng nhận được
@@ -455,7 +464,7 @@ export default function AgreementView({
   const handleCancelAgreement = async () => {
     if (confirm("Bạn có chắc chắn muốn Hủy / Từ chối hợp đồng này?")) {
       // Gửi tin nhắn hủy
-      const targetPayload = pendingAgreementPayload || activeAgreement;
+      const targetPayload = localPendingPayload || activeAgreement;
       if (targetPayload && matchedRoommate) {
         const payload = { ...targetPayload, status: 'cancelled', timestamp: new Date().toISOString() };
         const chatId = [currentUserProfile.id, matchedRoommate.id].sort().join('_');
@@ -471,10 +480,11 @@ export default function AgreementView({
   };
 
   const handleReset = () => {
-    if (pendingAgreementPayload && pendingAgreementPayload.status === 'signed') {
+    if (localPendingPayload && localPendingPayload.status === 'signed') {
       alert("Hợp đồng này đã được lưu. Vui lòng bấm Hủy Hợp Đồng trước khi tạo mới.");
       return;
     }
+    setLocalPendingPayload(null);
     setIsSigned(false);
     setIsAgreed(false);
     setFullName("");
@@ -542,7 +552,7 @@ export default function AgreementView({
     );
   }
 
-  const isReceivingDraft = pendingAgreementPayload && pendingAgreementPayload.status === 'pending' && pendingAgreementPayload.sender_id !== currentUserProfile.id;
+  const isReceivingDraft = localPendingPayload && localPendingPayload.status === 'pending' && localPendingPayload.sender_id !== currentUserProfile.id;
 
   return (
     <div className="space-y-8 animate-fade-in pb-16 relative">
@@ -961,8 +971,8 @@ export default function AgreementView({
                   disabled={
                     (activeAgreement?.status === 'signed') || 
                     (activeAgreement?.status === 'pending' && activeAgreement.creator_id === currentUserProfile.id) ||
-                    (pendingAgreementPayload?.status === 'signed') ||
-                    (pendingAgreementPayload?.status === 'pending' && pendingAgreementPayload.sender_id === currentUserProfile.id)
+                    (localPendingPayload?.status === 'signed') ||
+                    (localPendingPayload?.status === 'pending' && localPendingPayload.sender_id === currentUserProfile.id)
                   }
                   placeholder="Nhập họ tên đầy đủ để ký số..."
                   className="w-full bg-white border border-emerald-200 rounded-xl px-4 py-3.5 text-[14px] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-slate-800 font-bold placeholder-slate-400 disabled:opacity-70 disabled:bg-slate-50 transition-all duration-200"
@@ -1097,8 +1107,8 @@ export default function AgreementView({
               </div>
             </div>
 
-            {((pendingAgreementPayload?.status === 'pending' && pendingAgreementPayload.sender_id !== currentUserProfile.id) ||
-              (activeAgreement?.status === 'pending' && activeAgreement.creator_id !== currentUserProfile.id)) && (
+            {((localPendingPayload?.status === 'pending' && localPendingPayload.sender_id !== currentUserProfile.id) ||
+              (!localPendingPayload && activeAgreement?.status === 'pending' && activeAgreement.creator_id !== currentUserProfile.id)) && (
               <div className="mt-4 space-y-3">
                 <button
                   type="button"
