@@ -159,7 +159,12 @@ export default function ChatView({
   // Fetch Inbox Conversations
   useEffect(() => {
     if (!import.meta.env.VITE_SUPABASE_URL) return;
-    if (!myAuthId) return;
+    if (!myAuthId) {
+      console.log('[Chat] myAuthId is undefined, cannot fetch inbox');
+      return;
+    }
+
+    console.log('[Chat] Fetching inbox for myAuthId:', myAuthId);
 
     const fetchInbox = async () => {
       // Chỉ cần tìm bằng Auth UUID - đơn giản, đáng tin cậy
@@ -169,7 +174,10 @@ export default function ChatView({
         .ilike('chat_id', `%${myAuthId}%`)
         .order('timestamp', { ascending: false });
 
+      console.log('[Chat] Inbox query result:', { data: data?.length, error });
+
       if (!error && data) {
+        console.log('[Chat] Found', data.length, 'messages in inbox');
         const conversationMap = new Map();
 
         // Collect all unique partner IDs
@@ -265,7 +273,11 @@ export default function ChatView({
           }
         }
 
-        setConversations(Array.from(conversationMap.values()).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+        const conversationsArray = Array.from(conversationMap.values()).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        console.log('[Chat] Setting conversations:', conversationsArray.length, 'conversations');
+        setConversations(conversationsArray);
+      } else if (error) {
+        console.error('[Chat] Error fetching inbox:', error);
       }
 
     };
