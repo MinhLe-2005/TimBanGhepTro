@@ -1437,13 +1437,16 @@ export default function App() {
           onAddReview={handleAddReview}
           isOwnProfile={!!currentUser && (selectedRoommate.postedBy === currentUser.id || (selectedRoommate as any).user_id === currentUser.id)}
           hasChatWithRoommate={(() => {
-            // Check if there's any chat history with this roommate via localStorage chat notes
-            const chatNote = localStorage.getItem(`chat_notes_${selectedRoommate.id}`) || '';
-            const roommateNote = localStorage.getItem(`roommate_notes_${selectedRoommate.id}`) || '';
-            // Also check if there are any messages stored for this chat pair
+            // Check if there's any real chat history by looking for stored messages
             const myId = currentUser?.id || currentUserProfile?.id;
-            const chatKey = myId && selectedRoommate.id ? [myId, selectedRoommate.id].sort().join('_') : null;
-            return chatNote.length > 0 || roommateNote.length > 0 || !!chatKey;
+            if (!myId) return false;
+            // Check if there's a chat session with messages stored in localStorage
+            const chatKey = [myId, selectedRoommate.id].sort().join('_');
+            const storedMessages = localStorage.getItem(`roomiematch_messages_${chatKey}`);
+            const hasStoredMessages = storedMessages && JSON.parse(storedMessages).length > 0;
+            // Also check legacy chat note
+            const chatNote = localStorage.getItem(`chat_notes_${selectedRoommate.id}`) || '';
+            return !!hasStoredMessages || chatNote.length > 0;
           })()}
           onDeleteProfile={(id) => {
             handleDeleteRoommate(id);

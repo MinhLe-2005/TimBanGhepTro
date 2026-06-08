@@ -91,6 +91,8 @@ export default function RoommateModal({
   // Phone reveal state
   const [phoneRevealed, setPhoneRevealed] = useState(false);
   const [showPhoneHint, setShowPhoneHint] = useState(false);
+  // Agreement hint state
+  const [showAgreementHint, setShowAgreementHint] = useState(false);
 
   useEffect(() => {
     if (roommate) {
@@ -687,13 +689,32 @@ export default function RoommateModal({
               )}
 
               {!isAdmin && (
-                <button
-                  onClick={() => onStartAgreement(roommate.id)}
-                  className="w-full bg-[#f6fafe] hover:bg-sky-100/80 text-[#006590] border border-sky-100 py-3.5 px-6 rounded-2xl font-bold active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 text-[15px]"
-                >
-                  <FileText className="h-5 w-5" />
-                  Tạo thỏa thuận sống chung
-                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      if (hasChatWithRoommate) {
+                        onStartAgreement(roommate.id);
+                      } else {
+                        setShowAgreementHint(true);
+                        setTimeout(() => setShowAgreementHint(false), 3000);
+                      }
+                    }}
+                    className={`w-full py-3.5 px-6 rounded-2xl font-bold active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 text-[15px] border ${
+                      hasChatWithRoommate
+                        ? 'bg-[#f6fafe] hover:bg-sky-100/80 text-[#006590] border-sky-100'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                    }`}
+                  >
+                    <FileText className="h-5 w-5" />
+                    Tạo thỏa thuận sống chung
+                  </button>
+                  {showAgreementHint && (
+                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl whitespace-nowrap shadow-lg animate-fade-in z-50">
+                      💬 Nhắn tin với {roommate.name} trước để tạo thỏa thuận
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Block / Unblock button */}
