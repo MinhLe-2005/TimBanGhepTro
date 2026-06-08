@@ -223,7 +223,7 @@ export default function PostListingModal({
         setRmSchool(allowedSchools[0].value);
       }
     }
-  }, [rmDistrict]);
+  }, [rmDistrict, rmSchool]);
 
   const handleRoommateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
