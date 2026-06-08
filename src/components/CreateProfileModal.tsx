@@ -15,7 +15,7 @@ export default function CreateProfileModal({
   currentProfile,
   currentUser,
 }: CreateProfileModalProps) {
-  const [name, setName] = useState(currentProfile?.name || "");
+  const [name, setName] = useState(currentProfile?.name || currentUser?.name || "");
   const [age, setAge] = useState(currentProfile?.age || 21);
   const [gender, setGender] = useState(currentProfile?.gender || "Nữ");
   const [role, setRole] = useState(currentProfile?.role || "Sinh viên");
@@ -57,7 +57,10 @@ export default function CreateProfileModal({
     "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=150&auto=format&fit=crop",
     "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop",
   ];
-  const [selectedAvatar, setSelectedAvatar] = useState(currentProfile?.avatar || avatars[4]);
+  
+  // Auto-fill avatar from Google/Facebook if available, otherwise use profile avatar or default
+  const defaultAvatar = currentUser?.avatar || currentProfile?.avatar || avatars[4];
+  const [selectedAvatar, setSelectedAvatar] = useState(defaultAvatar);
   const [status, setStatus] = useState<"Đang tìm" | "Đang trao đổi" | "Đã tìm được">(
     currentProfile?.status || "Đang tìm"
   );
