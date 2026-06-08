@@ -248,6 +248,27 @@ export default function ChatView({
            if (profilesData) {
              profilesData.forEach(p => partnerProfiles.set(p.id, p));
            }
+           
+           // Auto-create missing profiles for new users
+           for (const partnerId of partnerIds) {
+             if (!partnerProfiles.has(partnerId)) {
+               const newProfileName = partnerId.startsWith('rm-') 
+                 ? partnerId.replace('rm-', '').slice(0, 10).toUpperCase()
+                 : 'User ' + partnerId.slice(0, 8);
+               
+               console.log('[Chat] Auto-creating profile for:', partnerId);
+               const { data: newProfile } = await supabase.from('profiles').insert({
+                 id: partnerId,
+                 name: newProfileName,
+                 avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop',
+                 role: 'Thành viên',
+               }).select().single();
+               
+               if (newProfile) {
+                 partnerProfiles.set(partnerId, newProfile);
+               }
+             }
+           }
          }
          
          data.forEach(msg => {
