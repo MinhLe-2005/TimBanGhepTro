@@ -82,8 +82,11 @@ export default function CreateProfileModal({
 
     setIsSaving(true);
 
-    // Tạo profile object
+    // Tạo profile object - luôn dùng auth UUID làm ID
     const profileId = currentUser?.id || currentProfile?.id || `rm-${Date.now()}`;
+    
+    console.log('[Profile] Creating/updating profile with ID:', profileId, 'auth_id:', currentUser?.id);
+    
     const updatedProfile = {
       id: profileId,
       name,
@@ -113,19 +116,19 @@ export default function CreateProfileModal({
     // Lưu vào Supabase profiles table
     if (import.meta.env.VITE_SUPABASE_URL) {
       try {
-        const { error } = await supabase.from('profiles').upsert({
+        const { data, error } = await supabase.from('profiles').upsert({
           id: profileId,
           auth_id: currentUser?.id,
           name,
           avatar: selectedAvatar,
           role,
           created_at: new Date().toISOString(),
-        });
+        }).select();
         
         if (error) {
           console.error('[Profile] Error saving to Supabase:', error);
         } else {
-          console.log('[Profile] Saved to Supabase successfully');
+          console.log('[Profile] Saved to Supabase successfully:', data);
         }
       } catch (err) {
         console.error('[Profile] Exception saving to Supabase:', err);
