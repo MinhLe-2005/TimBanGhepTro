@@ -401,6 +401,10 @@ export default function App() {
           // Keep existing listing, ignore new profile
           uniqueByIdMap.delete(rm.id);
         }
+        else {
+          // both are profiles or both are listings. Delete the new one from ID map to only keep one
+          uniqueByIdMap.delete(rm.id);
+        }
       }
     });
     
