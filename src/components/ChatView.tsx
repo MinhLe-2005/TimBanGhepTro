@@ -310,27 +310,48 @@ export default function ChatView({
             partner.bio = '';
           }
           
-          // Use auth_id as unique key to prevent duplicates
-          const uniqueKey = partner.user_id || partner.auth_id || partnerId;
+          // Use MULTIPLE keys to deduplicate - prioritize auth-based IDs
+          const possibleKeys = [
+            partner.user_id,      // Auth UUID from Google (most reliable)
+            partner.auth_id,      // Alternative auth ID
+            partner.id,           // Profile ID
+            partnerId             // Message partner ID (fallback)
+          ].filter(Boolean);      // Remove null/undefined
           
-          if (!conversationMap.has(uniqueKey)) {
-            conversationMap.set(uniqueKey, {
-              partner,
-              lastMessage: msg.text || 'Đã gửi đính kèm',
-              timestamp: msg.timestamp,
-              chatId: msg.chat_id
-            });
-          } else {
-            // Update if this message is newer
-            const existing = conversationMap.get(uniqueKey);
+          // Find if any key already exists
+          let existingKey = null;
+          for (const key of possibleKeys) {
+            if (conversationMap.has(key)) {
+              existingKey = key;
+              break;
+            }
+          }
+          
+          // Use the first available key as canonical key
+          const canonicalKey = possibleKeys[0] || partnerId;
+          
+          if (existingKey) {
+            // Update existing conversation if this message is newer
+            const existing = conversationMap.get(existingKey);
             if (new Date(msg.timestamp) > new Date(existing.timestamp)) {
-              conversationMap.set(uniqueKey, {
+              // Update using SAME key to avoid duplication
+              conversationMap.set(existingKey, {
                 partner,
                 lastMessage: msg.text || 'Đã gửi đính kèm',
                 timestamp: msg.timestamp,
                 chatId: msg.chat_id
               });
+              console.log('[Chat] Updated existing conversation:', existingKey);
             }
+          } else {
+            // New conversation - use canonical key
+            conversationMap.set(canonicalKey, {
+              partner,
+              lastMessage: msg.text || 'Đã gửi đính kèm',
+              timestamp: msg.timestamp,
+              chatId: msg.chat_id
+            });
+            console.log('[Chat] Created new conversation with key:', canonicalKey);
           }
         });
 
@@ -520,31 +541,48 @@ export default function ChatView({
               return (
                 <div
                   key={r.id}
-                  onClick={() => setActiveRoommateId(r.id)}
-                  className={`flex gap-3 p-3.5 rounded-2xl cursor-pointer duration-150 items-center ${
+                  className={`flex gap-3 p-3.5 rounded-2xl cursor-pointer duration-150 items-center group relative ${
                     isActive
                       ? "bg-[#dff6ff] border border-sky-100 shadow-sm"
                       : "hover:bg-slate-100/60 border border-transparent"
                   }`}
                 >
-                  <div className="w-12 h-12 rounded-full overflow-hidden border border-slate-200 shadow-inner shrink-0 relative">
-                    <img src={r.avatar} alt={r.name} className="w-full h-full object-cover" />
-                    <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-green-400 ring-2 ring-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline mb-0.5">
-                      <h4 className="text-sm font-bold text-slate-800 leading-tight tracking-tight truncate flex items-center gap-1">
-                        {r.name}
-                        {r.isVerified && <CheckCircle2 className="h-3.5 w-3.5 text-sky-500 fill-sky-50 shrink-0" />}
-                      </h4>
-                      {r.matchScore > 0 && (
-                        <span className="text-[10px] font-bold text-sky-700 bg-white border border-sky-100 px-1.5 py-0.5 rounded-full">
-                          {r.matchScore}%
-                        </span>
-                      )}
+                  <div 
+                    onClick={() => setActiveRoommateId(r.id)}
+                    className="flex gap-3 items-center flex-1 min-w-0"
+                  >
+                    <div className="w-12 h-12 rounded-full overflow-hidden border border-slate-200 shadow-inner shrink-0 relative">
+                      <img src={r.avatar} alt={r.name} className="w-full h-full object-cover" />
+                      <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-green-400 ring-2 ring-white" />
                     </div>
-                    <p className="text-xs text-slate-400 truncate leading-snug font-medium select-none">{lastMsg}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline mb-0.5">
+                        <h4 className="text-sm font-bold text-slate-800 leading-tight tracking-tight truncate flex items-center gap-1">
+                          {r.name}
+                          {r.isVerified && <CheckCircle2 className="h-3.5 w-3.5 text-sky-500 fill-sky-50 shrink-0" />}
+                        </h4>
+                        {r.matchScore > 0 && (
+                          <span className="text-[10px] font-bold text-sky-700 bg-white border border-sky-100 px-1.5 py-0.5 rounded-full">
+                            {r.matchScore}%
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400 truncate leading-snug font-medium select-none">{lastMsg}</p>
+                    </div>
                   </div>
+                  {/* Delete conversation button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`Xóa cuộc trò chuyện với ${r.name}? Tin nhắn sẽ không bị xóa, chỉ ẩn khỏi danh sách.`)) {
+                        setConversations(prev => prev.filter(c => c.partner.id !== r.id));
+                      }
+                    }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-lg text-red-500 shrink-0"
+                    title="Xóa cuộc trò chuyện"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
               );
             })
