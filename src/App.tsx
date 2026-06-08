@@ -1435,7 +1435,7 @@ export default function App() {
           onStartAgreement={startAgreementForm}
           compatibilityDetails={getCompatibilityDetails(selectedRoommate)}
           onAddReview={handleAddReview}
-          isOwnProfile={!!currentUser && ((selectedRoommate.postedBy === currentUser.id) || (currentUserProfile && selectedRoommate.name === currentUserProfile.name))}
+          isOwnProfile={!!currentUser && (selectedRoommate.postedBy === currentUser.id || (selectedRoommate as any).user_id === currentUser.id)}
           hasChatWithRoommate={(() => {
             // Check if there's any chat history with this roommate via localStorage chat notes
             const chatNote = localStorage.getItem(`chat_notes_${selectedRoommate.id}`) || '';
@@ -1465,7 +1465,7 @@ export default function App() {
           onClose={handleCloseModal}
           onInquire={handleRoomInquiry}
           onAddReview={handleAddRoomReview}
-          isOwnProfile={!!currentUser && ((selectedRoom.postedBy === currentUser.id) || (currentUserProfile && selectedRoom.hostName === currentUserProfile.name))}
+          isOwnProfile={!!currentUser && (selectedRoom.postedBy === currentUser.id || (selectedRoom as any).user_id === currentUser.id)}
           onDeleteRoom={(id) => {
             handleDeleteRoom(id);
             setSelectedRoom(null);
