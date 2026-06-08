@@ -511,10 +511,12 @@ export default function ChatView({
 
               {/* Status or compatibility */}
               <div className="flex items-center gap-2">
-                <div className="hidden sm:inline-flex items-center gap-1.5 bg-[#dff6ff] text-[#006590] px-3.5 py-1 rounded-full text-xs font-bold border border-sky-100">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Độ tương thích: {activeRoommate.matchScore}%
-                </div>
+                {activeRoommate.matchScore && activeRoommate.matchScore > 0 ? (
+                  <div className="hidden sm:inline-flex items-center gap-1.5 bg-gradient-to-r from-[#dff6ff] to-sky-50 text-[#006590] px-3.5 py-1.5 rounded-full text-xs font-black border border-sky-200 shadow-sm">
+                    <Sparkles className="h-3.5 w-3.5 fill-sky-200" />
+                    <span className="bg-clip-text">Độ tương thích: {activeRoommate.matchScore}%</span>
+                  </div>
+                ) : null}
                 <button
                   onClick={() => setShowMobileNote(!showMobileNote)}
                   className={`p-2.5 rounded-xl border lg:hidden duration-150 cursor-pointer ${
