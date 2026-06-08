@@ -116,6 +116,8 @@ export default function CreateProfileModal({
     // Lưu vào Supabase profiles table
     if (import.meta.env.VITE_SUPABASE_URL) {
       try {
+        console.log('[Profile] Saving to Supabase profiles table...');
+        
         const { data, error } = await supabase.from('profiles').upsert({
           id: profileId,
           auth_id: currentUser?.id,
@@ -126,12 +128,30 @@ export default function CreateProfileModal({
         }).select();
         
         if (error) {
-          console.error('[Profile] Error saving to Supabase:', error);
+          console.error('[Profile] Error saving to Supabase profiles:', error);
         } else {
-          console.log('[Profile] Saved to Supabase successfully:', data);
+          console.log('[Profile] Saved to Supabase profiles successfully:', data);
         }
       } catch (err) {
-        console.error('[Profile] Exception saving to Supabase:', err);
+        console.error('[Profile] Exception saving to Supabase profiles:', err);
+      }
+      
+      // ALSO save to roommates table for compatibility with existing features
+      try {
+        const { reviews, ...dbProfile } = updatedProfile as any;
+        if (currentUser?.id) {
+          dbProfile.user_id = currentUser.id;
+        }
+
+        const { error: roommatesError } = await supabase.from('roommates').upsert(dbProfile);
+        
+        if (roommatesError) {
+          console.error('[Profile] Error saving to roommates table:', roommatesError);
+        } else {
+          console.log('[Profile] Also saved to roommates table for compatibility');
+        }
+      } catch (err) {
+        console.error('[Profile] Exception saving to roommates table:', err);
       }
     }
 
@@ -258,7 +278,6 @@ export default function CreateProfileModal({
                     className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-3 py-3 text-[14px] text-slate-800 outline-none transition-all cursor-pointer">
                     <option value="Nữ">Nữ</option>
                     <option value="Nam">Nam</option>
-                    <option value="LGBT">LGBT</option>
                     <option value="Khác">Khác</option>
                   </select>
                 </div>
