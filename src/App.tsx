@@ -743,9 +743,11 @@ export default function App() {
     
     const initialIds = INITIAL_ROOMMATES.map(r => r.id);
     const legacyAiIds = ["r1", "r2", "r3", "r4", "r5", "khanh-vy", "minh-anh", "hoang-nam", "trang-le", "duc-tri", "ai_khanh_vy"];
+    const aiNames = ["Minh Anh", "Hoàng Nam", "Trang Lê", "Đức Trí", "Khánh Vy"];
     
-    const cleanCustomOnes = customOnes.filter((r: Roommate) => !legacyAiIds.includes(r.id) || initialIds.includes(r.id));
-    const cleanSupabase = supabaseRoommates.filter(r => !legacyAiIds.includes(r.id) || initialIds.includes(r.id));
+    // Filter out legacy AIs completely (by ID and by exact Name) to avoid UUID duplication from Supabase
+    const cleanCustomOnes = customOnes.filter((r: Roommate) => !legacyAiIds.includes(r.id) && !aiNames.includes(r.name));
+    const cleanSupabase = supabaseRoommates.filter((r: Roommate) => !legacyAiIds.includes(r.id) && !aiNames.includes(r.name));
     
     const allCandidatesRaw = [...cleanCustomOnes, ...cleanSupabase, ...INITIAL_ROOMMATES];
     const uniqueCandidatesMap = new Map();
