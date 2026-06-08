@@ -436,7 +436,64 @@ export default function PostListingModal({
                   </div>
                 </div>
 
-                {/* Section 2: Personal info */}
+                {/* Section 2: Location & Budget */}
+                <div className="rounded-2xl border border-slate-150 bg-white p-5 space-y-4">
+                  <div className="pb-3 border-b border-slate-100">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Địa điểm &amp; Ngân sách</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Khu vực Đà Nẵng</label>
+                      <select value={rmDistrict} onChange={(e) => setRmDistrict(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all cursor-pointer">
+                        <option value="Hải Châu">Quận Hải Châu</option>
+                        <option value="Thanh Khê">Quận Thanh Khê</option>
+                        <option value="Liên Chiểu">Quận Liên Chiểu</option>
+                        <option value="Sơn Trà">Quận Sơn Trà</option>
+                        <option value="Ngũ Hành Sơn">Quận Ngũ Hành Sơn</option>
+                        <option value="Cẩm Lệ">Quận Cẩm Lệ</option>
+                        <option value="Hòa Vang">Huyện Hòa Vang</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Ngân sách tối đa / tháng <span className="text-rose-500">*</span></label>
+                      <input type="number" required value={rmBudget} onChange={(e) => setRmBudget(e.target.value)} placeholder="VD: 2500000"
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] font-bold text-[#006590] outline-none transition-all placeholder:text-slate-300 placeholder:font-normal" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Địa chỉ khu vực mong muốn</label>
+                      <input type="text" value={rmAddress} onChange={(e) => setRmAddress(e.target.value)} placeholder="Gần ĐH Duy Tân, 120 Điện Biên Phủ..."
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="block text-[13px] font-semibold text-slate-700">Loại hình</label>
+                        <select value={rmType} onChange={(e) => setRmType(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 transition-all cursor-pointer">
+                          <option value="Phòng trọ">Phòng trọ</option>
+                          <option value="Ký túc xá">Ký túc xá</option>
+                          <option value="Căn hộ">Căn hộ</option>
+                          <option value="Chung cư">Chung cư</option>
+                          <option value="Homestay">Homestay</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-[13px] font-semibold text-slate-700">Tình trạng</label>
+                        <select value={rmStatus} onChange={(e) => setRmStatus(e.target.value as any)}
+                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 transition-all cursor-pointer">
+                          <option value="Chưa có phòng">Chưa có phòng</option>
+                          <option value="Đã có phòng">Đã có phòng</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 3: Personal info */}
                 <div className="rounded-2xl border border-slate-150 bg-white p-5 space-y-4">
                   <div className="pb-3 border-b border-slate-100">
                     <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Thông tin cá nhân</p>
@@ -490,55 +547,6 @@ export default function PostListingModal({
                   </div>
                 </div>
 
-                {/* Section 3: Location & Budget */}
-                <div className="rounded-2xl border border-slate-150 bg-white p-5 space-y-4">
-                  <div className="pb-3 border-b border-slate-100">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Địa điểm &amp; Ngân sách</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="block text-[13px] font-semibold text-slate-700">Khu vực Đà Nẵng</label>
-                      <select value={rmDistrict} onChange={(e) => setRmDistrict(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all cursor-pointer">
-                        <option value="Hải Châu">Quận Hải Châu</option>
-                        <option value="Thanh Khê">Quận Thanh Khê</option>
-                        <option value="Liên Chiểu">Quận Liên Chiểu</option>
-                        <option value="Sơn Trà">Quận Sơn Trà</option>
-                        <option value="Ngũ Hành Sơn">Quận Ngũ Hành Sơn</option>
-                        <option value="Cẩm Lệ">Quận Cẩm Lệ</option>
-                        <option value="Hòa Vang">Huyện Hòa Vang</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="block text-[13px] font-semibold text-slate-700">Ngân sách tối đa / tháng <span className="text-rose-500">*</span></label>
-                      <input type="number" required value={rmBudget} onChange={(e) => setRmBudget(e.target.value)} placeholder="VD: 2500000"
-                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] font-bold text-[#006590] outline-none transition-all placeholder:text-slate-300 placeholder:font-normal" />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="block text-[13px] font-semibold text-slate-700">Địa chỉ khu vực mong muốn</label>
-                      <input type="text" value={rmAddress} onChange={(e) => setRmAddress(e.target.value)} placeholder="Gần ĐH Duy Tân, 120 Điện Biên Phủ..."
-                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <label className="block text-[13px] font-semibold text-slate-700">Loại hình</label>
-                        <select value={rmType} onChange={(e) => setRmType(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 transition-all cursor-pointer">
-                          <option value="Phòng trọ">Phòng trọ</option>
-                          <option value="Ký túc xá">Ký túc xá</option>
-                          <option value="Căn hộ">Căn hộ</option>
-                          <option value="Chung cư">Chung cư</option>
-                          <option value="Homestay">Homestay</option>
-                        </select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="block text-[13px] font-semibold text-slate-700">Tình trạng</label>
-                        <select value={rmStatus} onChange={(e) => setRmStatus(e.target.value as any)}
-                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 transition-all cursor-pointer">
                           <option value="Chưa có phòng">Chưa có phòng</option>
                           <option value="Đã có phòng">Đã có phòng</option>
                         </select>
