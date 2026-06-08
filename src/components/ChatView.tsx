@@ -442,48 +442,34 @@ export default function ChatView({
             partner.bio = '';
           }
           
-          // Use MULTIPLE keys to deduplicate - prioritize auth-based IDs
-          const possibleKeys = [
-            partner.user_id,      // Auth UUID from Google (most reliable)
-            partner.auth_id,      // Alternative auth ID
-            partner.id,           // Profile ID
-            partnerId             // Message partner ID (fallback)
-          ].filter(Boolean);      // Remove null/undefined
+          // NORMALIZE to a single canonical ID (prefer auth-based IDs)
+          // This ensures all messages from the same person use the same key
+          const canonicalId = partner.user_id || partner.auth_id || partner.id || partnerId;
           
-          // Find if any key already exists
-          let existingKey = null;
-          for (const key of possibleKeys) {
-            if (conversationMap.has(key)) {
-              existingKey = key;
-              break;
-            }
-          }
+          console.log('[Chat] Canonical ID for', partner.name, ':', canonicalId, '(from partnerId:', partnerId, ')');
           
-          // Use the first available key as canonical key
-          const canonicalKey = possibleKeys[0] || partnerId;
-          
-          if (existingKey) {
+          // Check if this canonical ID already has a conversation
+          if (conversationMap.has(canonicalId)) {
             // Update existing conversation if this message is newer
-            const existing = conversationMap.get(existingKey);
+            const existing = conversationMap.get(canonicalId);
             if (new Date(msg.timestamp) > new Date(existing.timestamp)) {
-              // Update using SAME key to avoid duplication
-              conversationMap.set(existingKey, {
+              conversationMap.set(canonicalId, {
                 partner,
                 lastMessage: msg.text || 'Đã gửi đính kèm',
                 timestamp: msg.timestamp,
                 chatId: msg.chat_id
               });
-              console.log('[Chat] Updated existing conversation:', existingKey);
+              console.log('[Chat] Updated existing conversation for canonical ID:', canonicalId);
             }
           } else {
-            // New conversation - use canonical key
-            conversationMap.set(canonicalKey, {
+            // New conversation - use canonical ID
+            conversationMap.set(canonicalId, {
               partner,
               lastMessage: msg.text || 'Đã gửi đính kèm',
               timestamp: msg.timestamp,
               chatId: msg.chat_id
             });
-            console.log('[Chat] Created new conversation with key:', canonicalKey);
+            console.log('[Chat] Created new conversation with canonical ID:', canonicalId);
           }
         });
 
@@ -492,16 +478,10 @@ export default function ChatView({
           let activePartner = roommates.find(r => r.id === activeRoommateId || r.user_id === activeRoommateId) || dbPartnerMap.get(activeRoommateId);
           
           if (activePartner) {
-            const activeKeys = [
-              activePartner.user_id,
-              activePartner.auth_id,
-              activePartner.id,
-              activeRoommateId
-            ].filter(Boolean);
+            // Normalize to canonical ID
+            const canonicalId = activePartner.user_id || activePartner.auth_id || activePartner.id || activeRoommateId;
             
-            const alreadyExists = activeKeys.some(key => conversationMap.has(key));
-            
-            if (!alreadyExists) {
+            if (!conversationMap.has(canonicalId)) {
               // Ensure partner has complete data structure
               if (!activePartner.lifestyle) {
                 console.warn('[Chat] Active partner missing lifestyle, adding defaults');
@@ -513,18 +493,23 @@ export default function ChatView({
               if (!activePartner.budget) activePartner.budget = 0;
               if (!activePartner.bio) activePartner.bio = '';
               
-              conversationMap.set(activeKeys[0] || activeRoommateId, {
+              conversationMap.set(canonicalId, {
                 partner: activePartner,
                 lastMessage: 'Bắt đầu cuộc trò chuyện...',
                 timestamp: new Date().toISOString(),
                 chatId: [myAuthId, activeRoommateId].sort().join('_')
               });
+              
+              console.log('[Chat] Added active roommate with canonical ID:', canonicalId);
             }
           }
         }
 
-        const conversationsArray = Array.from(conversationMap.values()).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        console.log('[Chat] Setting conversations:', conversationsArray.length, 'conversations');
+        // Convert to array - now using single canonical ID per person, no deduplication needed
+        const conversationsArray = Array.from(conversationMap.values())
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        
+        console.log('[Chat] Setting conversations:', conversationsArray.length, 'conversations (', conversationMap.size, 'map entries)');
         setConversations(conversationsArray);
       } else if (error) {
         console.error('[Chat] Error fetching inbox:', error);
