@@ -204,7 +204,6 @@ export default function ChatView({
 
         // Fetch partner profiles - prioritize roommates table (has full data)
         const dbPartnerMap = new Map();
-        const authIdToProfileMap = new Map(); // Map auth_id -> profile for deduplication
         
         if (partnerIds.size > 0) {
           const partnerArr = Array.from(partnerIds);
@@ -220,15 +219,18 @@ export default function ChatView({
             supabase.from('profiles').select('*').in('auth_id', partnerArr)
           ]);
           
+          console.log('[Chat] Fetch results:', {
+            roommatesById: roommatesById.data?.length,
+            roommatesByUserId: roommatesByUserId.data?.length,
+            profilesById: profilesById.data?.length,
+            profilesByAuthId: profilesByAuthId.data?.length
+          });
+          
           // Map roommates first (priority - has full lifestyle, bio, etc.)
           [...(roommatesById.data || []), ...(roommatesByUserId.data || [])].forEach(r => {
-            console.log('[Chat] Roommate from DB:', r.id, r.name, 'budget:', r.budget, 'lifestyle:', r.lifestyle);
+            console.log('[Chat] Roommate from DB:', r.id, r.name, 'user_id:', r.user_id);
             if (!dbPartnerMap.has(r.id)) dbPartnerMap.set(r.id, r);
-            if (r.user_id) {
-              if (!dbPartnerMap.has(r.user_id)) dbPartnerMap.set(r.user_id, r);
-              // Track by auth_id for deduplication
-              authIdToProfileMap.set(r.user_id, r);
-            }
+            if (r.user_id && !dbPartnerMap.has(r.user_id)) dbPartnerMap.set(r.user_id, r);
           });
           
           console.log('[Chat] Found in roommates table:', dbPartnerMap.size);
@@ -236,13 +238,7 @@ export default function ChatView({
           // Fallback to profiles for missing (basic info only)
           [...(profilesById.data || []), ...(profilesByAuthId.data || [])].forEach(p => {
             if (!dbPartnerMap.has(p.id)) dbPartnerMap.set(p.id, p);
-            if (p.auth_id) {
-              if (!dbPartnerMap.has(p.auth_id)) dbPartnerMap.set(p.auth_id, p);
-              // Track by auth_id for deduplication
-              if (!authIdToProfileMap.has(p.auth_id)) {
-                authIdToProfileMap.set(p.auth_id, p);
-              }
-            }
+            if (p.auth_id && !dbPartnerMap.has(p.auth_id)) dbPartnerMap.set(p.auth_id, p);
           });
           
           console.log('[Chat] Total profiles loaded:', dbPartnerMap.size);
