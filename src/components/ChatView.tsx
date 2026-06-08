@@ -129,6 +129,7 @@ export default function ChatView({
         .order('timestamp', { ascending: true });
         
       if (!error && data) {
+        console.log('[Chat] Fetched messages:', data.length);
         setChats(prev => ({
           ...prev,
           [activeRoommateId!]: data.map((d: any) => ({
@@ -140,24 +141,38 @@ export default function ChatView({
              timestamp: d.timestamp
           }))
         }));
+      } else if (error) {
+        console.error('[Chat] Error fetching messages:', error);
       }
     };
     fetchMessages();
 
     // Subscribe to new messages
+    const channelName = `messages:${chatId}`;
+    console.log('[Chat] Subscribing to channel:', channelName);
+    
     const channel = supabase
-      .channel(`messages:${chatId}`)
+      .channel(channelName)
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
         table: 'messages',
         filter: `chat_id=eq.${chatId}`
       }, (payload) => {
+        console.log('[Chat] Received realtime message:', payload.new);
         const newMsg = payload.new;
+        
         setChats(prev => {
           const currentChats = prev[activeRoommateId!] || [];
-          if (currentChats.some(m => m.id === newMsg.id)) return prev;
+          // Check if message already exists
+          const exists = currentChats.some(m => m.id === newMsg.id);
           
+          if (exists) {
+            console.log('[Chat] Message already exists, skipping:', newMsg.id);
+            return prev;
+          }
+          
+          console.log('[Chat] Adding new message to chat');
           return {
             ...prev,
             [activeRoommateId!]: [...currentChats, {
@@ -171,9 +186,12 @@ export default function ChatView({
           };
         });
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[Chat] Subscription status:', status);
+      });
 
     return () => {
+      console.log('[Chat] Unsubscribing from channel:', channelName);
       supabase.removeChannel(channel);
     };
   }, [chatId, activeRoommateId]);
@@ -283,6 +301,14 @@ export default function ChatView({
       timestamp: new Date().toISOString(),
     };
 
+    console.log('[Chat] Sending message:', {
+      newMsgId,
+      chatId,
+      myChatId,
+      activeRoommateId,
+      text: userMessageText
+    });
+
     // Optimistic UI Update
     const updatedMessages = [...activeMessages, newMsg];
     setChats((prev) => ({
@@ -292,14 +318,21 @@ export default function ChatView({
 
     if (import.meta.env.VITE_SUPABASE_URL) {
       // Send to Supabase
-      const { error } = await supabase.from('messages').insert({
+      const { data, error } = await supabase.from('messages').insert({
         id: newMsg.id,
         chat_id: chatId,
         sender_id: myChatId,
         text: userMessageText,
         image_url: sentImage || undefined,
       });
-      if (error) console.error("Error sending message to Supabase", error);
+      
+      if (error) {
+        console.error("[Chat] Error sending message to Supabase:", error);
+      } else {
+        console.log("[Chat] Message sent successfully to Supabase:", data);
+      }
+    } else {
+      console.warn("[Chat] Supabase not configured, message not sent to server");
     }
   };
 
