@@ -415,8 +415,20 @@ export default function RoommateModal({
               )}
             </div>
 
-            {/* Submit new Review form */}
+            {/* Submit new Review form - Only for users who completed agreement */}
             {(!isOwnProfile) && (
+            <div>
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4 flex items-start gap-3">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                  <Shield className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <h5 className="text-sm font-bold text-blue-900 mb-1">Đánh giá từ roommate cũ</h5>
+                  <p className="text-xs text-blue-700 leading-relaxed">
+                    Chỉ những người đã từng ở ghép và hoàn thành hợp đồng với {roommate.name} mới có thể viết đánh giá. Điều này đảm bảo tính xác thực và minh bạch cho cộng đồng.
+                  </p>
+                </div>
+              </div>
             <form onSubmit={handleReviewSubmit} className="bg-gradient-to-br from-slate-50 to-white border border-slate-200 p-6 rounded-[24px] shadow-[0_2px_12px_rgba(0,0,0,0.02)] space-y-5">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
