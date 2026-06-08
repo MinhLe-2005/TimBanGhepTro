@@ -23,10 +23,12 @@ export default function CreateProfileModal({
   const [district, setDistrict] = useState(currentProfile?.district || "Hải Châu");
   const [type, setType] = useState(currentProfile?.type || "Phòng trọ");
   const [budget, setBudget] = useState(currentProfile?.budget || 3000000);
+  const [phoneNumber, setPhoneNumber] = useState(currentProfile?.phoneNumber || "");
   const [bio, setBio] = useState(
     currentProfile?.bio ||
       "Mình là người hòa đồng, tôn trọng tính riêng tư và sạch sẽ. Thích một không gian sống yên tĩnh lành mạnh."
   );
+  const [phoneNumber, setPhoneNumber] = useState(currentProfile?.phoneNumber || "");
 
   // Lifestyle states
   const [sleep, setSleep] = useState<"Cú đêm" | "Ngủ sớm" | "Bình thường">(
@@ -97,6 +99,7 @@ export default function CreateProfileModal({
       district,
       type,
       budget: Number(budget),
+      phoneNumber: phoneNumber.trim() || "Chưa cập nhật", // Add phone number
       bio,
       gender,
       isVerified: false,
@@ -340,6 +343,12 @@ export default function CreateProfileModal({
                 <label className="block text-[13px] font-semibold text-slate-700">Ngân sách / tháng (VNĐ)</label>
                 <input type="number" required step="500000" min="1000000" value={budget} onChange={(e) => setBudget(Number(e.target.value))}
                   className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] font-bold text-[#006590] outline-none transition-all" />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-slate-700">Số điện thoại <span className="text-[11px] text-slate-400">(tùy chọn)</span></label>
+                <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="0987 123 456"
+                  className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] text-slate-800 outline-none transition-all placeholder:text-slate-300" />
               </div>
 
               <div className="space-y-1.5">
