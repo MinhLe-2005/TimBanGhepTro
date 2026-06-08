@@ -7,9 +7,11 @@ interface AdminDashboardProps {
   currentUser: any;
   roommates: Roommate[];
   rooms: Room[];
+  onDeleteRoommate?: (id: string) => void;
+  onDeleteRoom?: (id: string) => void;
 }
 
-export default function AdminDashboard({ currentUser, roommates, rooms }: AdminDashboardProps) {
+export default function AdminDashboard({ currentUser, roommates, rooms, onDeleteRoommate, onDeleteRoom }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<"reports" | "users" | "rooms" | "agreements">("reports");
   const [reports, setReports] = useState<any[]>([]);
   const [bannedUsers, setBannedUsers] = useState<string[]>([]);
@@ -120,9 +122,10 @@ export default function AdminDashboard({ currentUser, roommates, rooms }: AdminD
   const handleDeleteListing = async (table: 'roommates' | 'rooms', id: string) => {
     if (!confirm("Xóa vĩnh viễn bài đăng này? Hành động không thể hoàn tác.")) return;
     await supabase.from(table).delete().eq('id', id);
+    // Sync back to App state so all views update immediately
+    if (table === 'roommates' && onDeleteRoommate) onDeleteRoommate(id);
+    if (table === 'rooms' && onDeleteRoom) onDeleteRoom(id);
     alert("Đã xóa tin đăng.");
-    alert("Đã xóa tin đăng.");
-    // In real app, trigger refresh. Here we rely on user reloading or App.tsx state syncing.
   };
 
   const handleDeleteAgreement = async (id: string) => {

@@ -105,13 +105,15 @@ export default function RoomCard({
           </div>
         )}
 
-        {/* Saved Like Button */}
-        <button
-          onClick={handleLike}
-          className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-red-500 hover:scale-110 active:scale-90 transition-all duration-200 border border-slate-100/50 shadow-md"
-        >
-          <Heart className={`h-5 w-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
-        </button>
+        {/* Saved Like Button - hidden for admin */}
+        {onLikeChange && (
+          <button
+            onClick={handleLike}
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-red-500 hover:scale-110 active:scale-90 transition-all duration-200 border border-slate-100/50 shadow-md"
+          >
+            <Heart className={`h-5 w-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
+          </button>
+        )}
 
         {/* Owner Actions */}
         {currentUserId && (room.postedBy === currentUserId || room.user_id === currentUserId) && (

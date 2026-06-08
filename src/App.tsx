@@ -1198,12 +1198,13 @@ export default function App() {
             onViewRoommate={setSelectedRoommate}
             currentUserProfile={currentUserProfile}
             onStartChat={startChatConversation}
-            onOpenPostModal={() => handleOpenPostModal("roommate")}
+            onOpenPostModal={isAdmin ? undefined : () => handleOpenPostModal("roommate")}
             onRequireAuth={requireAuth}
             onDeleteRoommate={handleDeleteRoommate}
             onEditRoommate={handleEditRoommate}
             currentUserId={currentUser?.id}
             initialFilters={globalSearchFilters}
+            isAdmin={isAdmin}
           />
         )}
 
@@ -1213,12 +1214,13 @@ export default function App() {
             likedRoomIds={likedRoomIds}
             onLikeRoom={handleLikeRoom}
             onViewRoom={setSelectedRoom}
-            onOpenPostModal={() => handleOpenPostModal("room")}
+            onOpenPostModal={isAdmin ? undefined : () => handleOpenPostModal("room")}
             currentUserProfile={currentUserProfile}
             onRequireAuth={requireAuth}
             onDeleteRoom={handleDeleteRoom}
             onEditRoom={handleEditRoom}
             currentUserId={currentUser?.id}
+            isAdmin={isAdmin}
           />
         )}
 
@@ -1273,6 +1275,8 @@ export default function App() {
               currentUser={currentUser}
               roommates={allRoommates}
               rooms={rooms}
+              onDeleteRoommate={handleDeleteRoommate}
+              onDeleteRoom={handleDeleteRoom}
             />
           ) : (
             <div className="flex flex-col items-center justify-center py-20 px-4 min-h-[60vh] animate-fade-in">

@@ -17,6 +17,7 @@ interface RoommatesViewProps {
   onDeleteRoommate?: (id: string) => void;
   currentUserId?: string;
   initialFilters?: any;
+  isAdmin?: boolean;
 }
 
 export default function RoommatesView({
@@ -32,6 +33,7 @@ export default function RoommatesView({
   onDeleteRoommate,
   currentUserId,
   initialFilters,
+  isAdmin = false,
 }: RoommatesViewProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [genderFilter, setGenderFilter] = useState<"Tất cả" | "Nam" | "Nữ" | "Khác">("Tất cả");
@@ -211,13 +213,15 @@ export default function RoommatesView({
             </p>
           </div>
           
-          <button
-            onClick={() => { onOpenPostModal && onOpenPostModal(); }}
-            className="group flex items-center justify-center gap-2.5 px-8 py-4 bg-white hover:bg-sky-50 text-[#004e70] font-black text-[15px] rounded-2xl cursor-pointer duration-300 shadow-[0_10px_25px_rgba(0,0,0,0.15)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.2)] hover:-translate-y-1 active:scale-95 shrink-0 w-full md:w-auto"
-          >
-            <Sparkles className="h-5 w-5 text-[#006590] group-hover:scale-110 transition-transform duration-300" />
-            <span>Đăng tin tìm bạn ở ghép</span>
-          </button>
+          {!isAdmin && (
+            <button
+              onClick={() => { onOpenPostModal && onOpenPostModal(); }}
+              className="group flex items-center justify-center gap-2.5 px-8 py-4 bg-white hover:bg-sky-50 text-[#004e70] font-black text-[15px] rounded-2xl cursor-pointer duration-300 shadow-[0_10px_25px_rgba(0,0,0,0.15)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.2)] hover:-translate-y-1 active:scale-95 shrink-0 w-full md:w-auto"
+            >
+              <Sparkles className="h-5 w-5 text-[#006590] group-hover:scale-110 transition-transform duration-300" />
+              <span>Đăng tin tìm bạn ở ghép</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -494,12 +498,12 @@ export default function RoommatesView({
               key={roommate.id}
               roommate={roommate}
               onViewDetails={onViewRoommate}
-              onLikeChange={onLikeRoommate}
+              onLikeChange={isAdmin ? undefined : onLikeRoommate}
               isInitiallyLiked={likedRoommateIds.includes(roommate.id)}
-              onStartChat={onStartChat}
-              onEdit={onEditRoommate}
-              onDelete={onDeleteRoommate}
-              currentUserId={currentUserId}
+              onStartChat={isAdmin ? undefined : onStartChat}
+              onEdit={isAdmin ? undefined : onEditRoommate}
+              onDelete={isAdmin ? undefined : onDeleteRoommate}
+              currentUserId={isAdmin ? undefined : currentUserId}
             />
           ))}
         </div>

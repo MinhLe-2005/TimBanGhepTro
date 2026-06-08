@@ -183,12 +183,14 @@ export default function Header({
               </>
             ) : (
               <div className="flex items-center gap-4">
-                <button
-                  onClick={onOpenCreateProfile}
-                  className="bg-[#004e70] hover:bg-[#003852] text-white px-6 py-2 rounded-full text-[13px] font-bold shadow-md hover:shadow-lg active:scale-95 transition-all duration-200 cursor-pointer"
-                >
-                  Hồ Sơ Của Tôi
-                </button>
+                {!isAdmin && (
+                  <button
+                    onClick={onOpenCreateProfile}
+                    className="bg-[#004e70] hover:bg-[#003852] text-white px-6 py-2 rounded-full text-[13px] font-bold shadow-md hover:shadow-lg active:scale-95 transition-all duration-200 cursor-pointer"
+                  >
+                    Hồ Sơ Của Tôi
+                  </button>
+                )}
 
                 <div className="relative">
                   <div
@@ -236,6 +238,7 @@ export default function Header({
                       )}
 
                       <div className="mt-3.5 space-y-1.5">
+                        {!isAdmin && (
                         <button
                           onClick={() => { onOpenCreateProfile(); setIsDropdownOpen(false); }}
                           className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-slate-600 hover:text-[#006590] hover:bg-slate-50 duration-200 flex items-center gap-2 cursor-pointer"
@@ -243,6 +246,7 @@ export default function Header({
                           <User className="h-4 w-4" />
                           Cập nhật hồ sơ ghép đôi
                         </button>
+                      )}
                         <button
                           onClick={() => { onLogout(); setIsDropdownOpen(false); }}
                           className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold text-red-600 hover:bg-red-50 duration-200 flex items-center gap-2 cursor-pointer border-t border-slate-100 mt-1"
@@ -358,12 +362,14 @@ export default function Header({
                   <span className="text-xs font-bold text-slate-500">Đã đăng nhập:</span>
                   <span className="text-xs font-extrabold text-slate-800">{currentUser.name}</span>
                 </div>
-                <button
-                  onClick={() => { onOpenCreateProfile(); setIsOpen(false); }}
-                  className="w-full bg-[#004e70] hover:bg-[#003852] text-white px-5 py-3 rounded-xl text-center text-xs font-extrabold shadow-sm cursor-pointer"
-                >
-                  Hồ Sơ Của Tôi
-                </button>
+                {!isAdmin && (
+                  <button
+                    onClick={() => { onOpenCreateProfile(); setIsOpen(false); }}
+                    className="w-full bg-[#004e70] hover:bg-[#003852] text-white px-5 py-3 rounded-xl text-center text-xs font-extrabold shadow-sm cursor-pointer"
+                  >
+                    Hồ Sơ Của Tôi
+                  </button>
+                )}
                 <button
                   onClick={() => { onLogout(); setIsOpen(false); }}
                   className="w-full bg-red-50 text-red-600 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
