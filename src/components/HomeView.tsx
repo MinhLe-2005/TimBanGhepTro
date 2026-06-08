@@ -447,7 +447,8 @@ export default function HomeView({
             className="flex gap-6 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-10 pt-4"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            {[...roommates, ...roommates, ...roommates].map((roommate, index) => (
+            {/* Chỉ hiển thị listings (is_listing=true), không hiển thị profiles */}
+            {[...roommates.filter(r => r.is_listing === true), ...roommates.filter(r => r.is_listing === true), ...roommates.filter(r => r.is_listing === true)].map((roommate, index) => (
               <div key={`${roommate.id}-${index}`} className="shrink-0 snap-start w-full sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)]">
                 <RoommateCard
                   roommate={roommate}
