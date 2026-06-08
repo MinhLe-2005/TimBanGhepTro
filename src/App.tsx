@@ -47,8 +47,21 @@ export default function App() {
   const [isBanned, setIsBanned] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
+        // Check ban
+        try {
+          const { data: banMsgs } = await supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS');
+          if (banMsgs && banMsgs.some((m: any) => m.text.includes(session.user.id))) {
+            await supabase.auth.signOut();
+            setCurrentUser(null);
+            setCurrentUserProfile(null);
+            localStorage.removeItem("roomiematch_user_profile");
+            alert("Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.");
+            return;
+          }
+        } catch(e) {}
+
         setCurrentUser({
           id: session.user.id,
           email: session.user.email,
@@ -62,6 +75,19 @@ export default function App() {
       console.log('[Auth] State changed:', event, session?.user?.email);
       
       if (session?.user) {
+        // Check ban
+        try {
+          const { data: banMsgs } = await supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS');
+          if (banMsgs && banMsgs.some((m: any) => m.text.includes(session.user.id))) {
+            await supabase.auth.signOut();
+            setCurrentUser(null);
+            setCurrentUserProfile(null);
+            localStorage.removeItem("roomiematch_user_profile");
+            alert("Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.");
+            return;
+          }
+        } catch(e) {}
+
         const user = session.user;
         console.log('[Auth] User logged in:', user.email, user.id);
         
@@ -899,6 +925,22 @@ export default function App() {
     
     let hasProfile = false;
     if (user && user.id) {
+      // 0. Check if user is banned
+      try {
+        const { data: banMsgs } = await supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS');
+        if (banMsgs) {
+          const isBanned = banMsgs.some((m: any) => m.text.includes(user.id));
+          if (isBanned) {
+            await supabase.auth.signOut();
+            setCurrentUser(null);
+            setCurrentUserProfile(null);
+            localStorage.removeItem("roomiematch_user_profile");
+            alert("Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.");
+            return;
+          }
+        }
+      } catch(e) {}
+
       // 1. Try Supabase by user_id column
       try {
         const { data: byUserId } = await supabase.from('roommates').select('*').eq('user_id', user.id).maybeSingle();
