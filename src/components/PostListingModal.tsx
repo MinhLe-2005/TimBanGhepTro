@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Sparkles, User, Home, Plus, Briefcase, GraduationCap, DollarSign, Phone, MapPin, Hash, CheckSquare, Settings, Heart, Image, Check, Upload } from "lucide-react";
 import { Roommate, Room } from "../types";
+import { SCHOOLS_BY_DISTRICT } from "../data";
 
 interface PostListingModalProps {
   onClose: () => void;
@@ -213,7 +214,15 @@ export default function PostListingModal({
     }
   }, [editingData, currentProfile, initialTab]);
 
-
+  // When rmDistrict changes, default the school to the first one in the new district if the current school is not valid
+  useEffect(() => {
+    const allowedSchools = SCHOOLS_BY_DISTRICT[rmDistrict] || [];
+    if (!allowedSchools.find(s => s.value === rmSchool)) {
+      if (allowedSchools.length > 0) {
+        setRmSchool(allowedSchools[0].value);
+      }
+    }
+  }, [rmDistrict]);
 
   const handleRoommateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -470,37 +479,11 @@ export default function PostListingModal({
                       <label className="block text-[13px] font-semibold text-slate-700">Trường học</label>
                       <select value={rmSchool} onChange={(e) => setRmSchool(e.target.value)}
                         className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all cursor-pointer">
-                        <optgroup label="Quận Hải Châu">
-                          <option value="ĐH Sư phạm Kỹ thuật (Hải Châu)">ĐH Sư phạm Kỹ thuật</option>
-                          <option value="ĐH Kiến trúc (Hải Châu)">ĐH Kiến trúc</option>
-                          <option value="ĐH Kỹ thuật Y - Dược (Hải Châu)">ĐH Kỹ thuật Y - Dược</option>
-                          <option value="ĐH Đông Á (Hải Châu)">ĐH Đông Á</option>
-                        </optgroup>
-                        <optgroup label="Quận Liên Chiểu">
-                          <option value="ĐH Bách khoa (Liên Chiểu)">ĐH Bách khoa</option>
-                          <option value="ĐH Sư phạm (Liên Chiểu)">ĐH Sư phạm</option>
-                          <option value="ĐH Duy Tân (Liên Chiểu)">ĐH Duy Tân</option>
-                          <option value="CĐ Kinh tế - Kế hoạch (Liên Chiểu)">CĐ Kinh tế - Kế hoạch</option>
-                        </optgroup>
-                        <optgroup label="Quận Ngũ Hành Sơn">
-                          <option value="ĐH Kinh tế (Ngũ Hành Sơn)">ĐH Kinh tế</option>
-                          <option value="ĐH CNTT & TT Việt - Hàn (Ngũ Hành Sơn)">ĐH CNTT & TT Việt - Hàn</option>
-                          <option value="Trường Y Dược - ĐH ĐN (Ngũ Hành Sơn)">Trường Y Dược - ĐH Đà Nẵng</option>
-                          <option value="ĐH FPT (Ngũ Hành Sơn)">ĐH FPT</option>
-                          <option value="CĐ Du lịch Đà Nẵng (Ngũ Hành Sơn)">CĐ Du lịch</option>
-                        </optgroup>
-                        <optgroup label="Quận Cẩm Lệ">
-                          <option value="ĐH Ngoại ngữ (Cẩm Lệ)">ĐH Ngoại ngữ</option>
-                          <option value="CĐ Bách khoa (Cẩm Lệ)">CĐ Bách khoa Đà Nẵng</option>
-                        </optgroup>
-                        <optgroup label="Quận Thanh Khê">
-                          <option value="ĐH Thể dục Thể thao III (Thanh Khê)">ĐH Thể dục Thể thao III</option>
-                          <option value="CĐ Thương mại (Thanh Khê)">CĐ Thương mại</option>
-                        </optgroup>
-                        <optgroup label="Quận Sơn Trà">
-                          <option value="ĐH Greenwich (Sơn Trà)">ĐH Greenwich</option>
-                          <option value="CĐ Nghề Đà Nẵng (Sơn Trà)">CĐ Nghề Đà Nẵng</option>
-                        </optgroup>
+                        {(SCHOOLS_BY_DISTRICT[rmDistrict] || []).map((school) => (
+                          <option key={school.value} value={school.value}>
+                            {school.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>

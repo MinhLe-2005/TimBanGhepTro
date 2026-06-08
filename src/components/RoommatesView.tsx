@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Search, SlidersHorizontal, ArrowDownWideNarrow, ListFilter, MapPin, Sparkles, Building, GraduationCap, User, Moon, Cat, Info, DollarSign, CheckSquare } from "lucide-react";
 import { Roommate } from "../types";
+import { SCHOOLS_BY_DISTRICT } from "../data";
 import RoommateCard from "./RoommateCard";
 
 interface RoommatesViewProps {
@@ -75,6 +76,16 @@ export default function RoommatesView({
       }
     }
   }, [initialFilters]);
+
+  // When district changes, verify if the currently selected school is valid for the new district
+  useEffect(() => {
+    if (districtFilter !== "Tất cả" && roleFilter !== "Tất cả") {
+      const allowedSchools = SCHOOLS_BY_DISTRICT[districtFilter] || [];
+      if (!allowedSchools.find(s => s.value === roleFilter)) {
+        setRoleFilter("Tất cả");
+      }
+    }
+  }, [districtFilter]);
 
   const handleBudgetTagClick = (tag: string) => {
     setBudgetTag(tag);
@@ -321,37 +332,21 @@ export default function RoommatesView({
                 className="w-full bg-white rounded-xl px-4 py-3 text-sm font-bold text-slate-800 border border-slate-200 shadow-sm outline-none hover:border-slate-300 focus:border-[#006590] focus:ring-4 focus:ring-sky-100 transition-all cursor-pointer"
               >
                 <option value="Tất cả">Tất cả</option>
-                <optgroup label="Quận Hải Châu">
-                  <option value="ĐH Sư phạm Kỹ thuật (Hải Châu)">ĐH Sư phạm Kỹ thuật</option>
-                  <option value="ĐH Kiến trúc (Hải Châu)">ĐH Kiến trúc</option>
-                  <option value="ĐH Kỹ thuật Y - Dược (Hải Châu)">ĐH Kỹ thuật Y - Dược</option>
-                  <option value="ĐH Đông Á (Hải Châu)">ĐH Đông Á</option>
-                </optgroup>
-                <optgroup label="Quận Liên Chiểu">
-                  <option value="ĐH Bách khoa (Liên Chiểu)">ĐH Bách khoa</option>
-                  <option value="ĐH Sư phạm (Liên Chiểu)">ĐH Sư phạm</option>
-                  <option value="ĐH Duy Tân (Liên Chiểu)">ĐH Duy Tân</option>
-                  <option value="CĐ Kinh tế - Kế hoạch (Liên Chiểu)">CĐ Kinh tế - Kế hoạch</option>
-                </optgroup>
-                <optgroup label="Quận Ngũ Hành Sơn">
-                  <option value="ĐH Kinh tế (Ngũ Hành Sơn)">ĐH Kinh tế</option>
-                  <option value="ĐH CNTT & TT Việt - Hàn (Ngũ Hành Sơn)">ĐH CNTT & TT Việt - Hàn</option>
-                  <option value="Trường Y Dược - ĐH ĐN (Ngũ Hành Sơn)">Trường Y Dược - ĐH Đà Nẵng</option>
-                  <option value="ĐH FPT (Ngũ Hành Sơn)">ĐH FPT</option>
-                  <option value="CĐ Du lịch Đà Nẵng (Ngũ Hành Sơn)">CĐ Du lịch</option>
-                </optgroup>
-                <optgroup label="Quận Cẩm Lệ">
-                  <option value="ĐH Ngoại ngữ (Cẩm Lệ)">ĐH Ngoại ngữ</option>
-                  <option value="CĐ Bách khoa (Cẩm Lệ)">CĐ Bách khoa Đà Nẵng</option>
-                </optgroup>
-                <optgroup label="Quận Thanh Khê">
-                  <option value="ĐH Thể dục Thể thao III (Thanh Khê)">ĐH Thể dục Thể thao III</option>
-                  <option value="CĐ Thương mại (Thanh Khê)">CĐ Thương mại</option>
-                </optgroup>
-                <optgroup label="Quận Sơn Trà">
-                  <option value="ĐH Greenwich (Sơn Trà)">ĐH Greenwich</option>
-                  <option value="CĐ Nghề Đà Nẵng (Sơn Trà)">CĐ Nghề Đà Nẵng</option>
-                </optgroup>
+                {districtFilter === "Tất cả" ? (
+                  // Show all grouped if "Tất cả" is selected
+                  Object.entries(SCHOOLS_BY_DISTRICT).map(([district, schools]) => (
+                    <optgroup key={district} label={`Quận ${district}`}>
+                      {schools.map(s => (
+                        <option key={s.value} value={s.value}>{s.label}</option>
+                      ))}
+                    </optgroup>
+                  ))
+                ) : (
+                  // Show only schools in the selected district without optgroup
+                  (SCHOOLS_BY_DISTRICT[districtFilter] || []).map(s => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
+                  ))
+                )}
               </select>
             </div>
 

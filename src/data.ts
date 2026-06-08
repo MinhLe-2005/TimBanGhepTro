@@ -414,8 +414,42 @@ export const SUGGGESTED_CHATS = [
   {
     roommateId: "hoang-nam",
     messages: [
-      { id: "m4", chatId: "hoang-nam", senderId: "hoang-nam", text: "Chào bro, mình làm IT ở Hải Châu. Bạn có ngó qua căn phòng Kí Túc Xá bên Hùng Vương chưa?", timestamp: "2026-05-29T06:30:00Z" },
-      { id: "m5", chatId: "hoang-nam", senderId: "me", text: "Mình có qua xem qua tin đăng rồi, trông phòng gọn gàng xịn sò quá.", timestamp: "2026-05-29T06:32:00Z" },
+      { id: "m4", chatId: "hoang-nam", senderId: "hoang-nam", text: "Chào bro, mình học Bách khoa ở Liên Chiểu. Bạn có ngó qua căn phòng Kí Túc Xá bên Liên Chiểu chưa?", timestamp: "2026-05-29T06:30:00Z" },
+      { id: "m5", chatId: "hoang-nam", senderId: "me", text: "Mình có xem qua tin đăng rồi, trông phòng gọn gàng xịn sò quá.", timestamp: "2026-05-29T06:32:00Z" },
     ]
   }
 ];
+
+export const SCHOOLS_BY_DISTRICT: Record<string, { value: string; label: string }[]> = {
+  "Hải Châu": [
+    { value: "ĐH Sư phạm Kỹ thuật (Hải Châu)", label: "ĐH Sư phạm Kỹ thuật" },
+    { value: "ĐH Kiến trúc (Hải Châu)", label: "ĐH Kiến trúc" },
+    { value: "ĐH Kỹ thuật Y - Dược (Hải Châu)", label: "ĐH Kỹ thuật Y - Dược" },
+    { value: "ĐH Đông Á (Hải Châu)", label: "ĐH Đông Á" },
+  ],
+  "Liên Chiểu": [
+    { value: "ĐH Bách khoa (Liên Chiểu)", label: "ĐH Bách khoa" },
+    { value: "ĐH Sư phạm (Liên Chiểu)", label: "ĐH Sư phạm" },
+    { value: "ĐH Duy Tân (Liên Chiểu)", label: "ĐH Duy Tân" },
+    { value: "CĐ Kinh tế - Kế hoạch (Liên Chiểu)", label: "CĐ Kinh tế - Kế hoạch" },
+  ],
+  "Ngũ Hành Sơn": [
+    { value: "ĐH Kinh tế (Ngũ Hành Sơn)", label: "ĐH Kinh tế" },
+    { value: "ĐH CNTT & TT Việt - Hàn (Ngũ Hành Sơn)", label: "ĐH CNTT & TT Việt - Hàn" },
+    { value: "Trường Y Dược - ĐH ĐN (Ngũ Hành Sơn)", label: "Trường Y Dược - ĐH Đà Nẵng" },
+    { value: "ĐH FPT (Ngũ Hành Sơn)", label: "ĐH FPT" },
+    { value: "CĐ Du lịch Đà Nẵng (Ngũ Hành Sơn)", label: "CĐ Du lịch" },
+  ],
+  "Cẩm Lệ": [
+    { value: "ĐH Ngoại ngữ (Cẩm Lệ)", label: "ĐH Ngoại ngữ" },
+    { value: "CĐ Bách khoa (Cẩm Lệ)", label: "CĐ Bách khoa Đà Nẵng" },
+  ],
+  "Thanh Khê": [
+    { value: "ĐH Thể dục Thể thao III (Thanh Khê)", label: "ĐH Thể dục Thể thao III" },
+    { value: "CĐ Thương mại (Thanh Khê)", label: "CĐ Thương mại" },
+  ],
+  "Sơn Trà": [
+    { value: "ĐH Greenwich (Sơn Trà)", label: "ĐH Greenwich" },
+    { value: "CĐ Nghề Đà Nẵng (Sơn Trà)", label: "CĐ Nghề Đà Nẵng" },
+  ]
+};
