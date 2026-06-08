@@ -86,20 +86,24 @@ export default function App() {
             // Strategy 1: Find by user_id (most reliable)
             console.log('[Auth] Strategy 1: Searching by user_id:', user.id);
             const result1 = await supabase.from('roommates').select('*').eq('user_id', user.id).maybeSingle();
-            console.log('[Auth] Strategy 1 result:', result1);
-            if (result1.data) {
+            console.log('[Auth] Strategy 1 result:', { data: result1.data, error: result1.error, status: result1.status });
+            if (result1.data && !result1.error) {
               profileData = result1.data;
               console.log('[Auth] ✅ Found profile by user_id');
+            } else if (result1.error) {
+              console.error('[Auth] ❌ Strategy 1 error:', result1.error);
             }
             
             // Strategy 2: Find by id (if profile ID == auth ID)
             if (!profileData) {
               console.log('[Auth] Strategy 2: Searching by id:', user.id);
               const result2 = await supabase.from('roommates').select('*').eq('id', user.id).maybeSingle();
-              console.log('[Auth] Strategy 2 result:', result2);
-              if (result2.data) {
+              console.log('[Auth] Strategy 2 result:', { data: result2.data, error: result2.error, status: result2.status });
+              if (result2.data && !result2.error) {
                 profileData = result2.data;
                 console.log('[Auth] ✅ Found profile by id');
+              } else if (result2.error) {
+                console.error('[Auth] ❌ Strategy 2 error:', result2.error);
               }
             }
             
@@ -107,10 +111,12 @@ export default function App() {
             if (!profileData) {
               console.log('[Auth] Strategy 3: Searching by postedBy:', user.id);
               const result3 = await supabase.from('roommates').select('*').eq('postedBy', user.id).maybeSingle();
-              console.log('[Auth] Strategy 3 result:', result3);
-              if (result3.data) {
+              console.log('[Auth] Strategy 3 result:', { data: result3.data, error: result3.error, status: result3.status });
+              if (result3.data && !result3.error) {
                 profileData = result3.data;
                 console.log('[Auth] ✅ Found profile by postedBy');
+              } else if (result3.error) {
+                console.error('[Auth] ❌ Strategy 3 error:', result3.error);
               }
             }
             
