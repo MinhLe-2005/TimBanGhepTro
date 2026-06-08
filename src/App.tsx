@@ -212,10 +212,45 @@ export default function App() {
         }
       } catch (err) {
         console.error("Error fetching from Supabase:", err);
+      } finally {
+        setIsSupabaseLoading(false);
       }
     };
 
     fetchSupabaseData();
+
+    // Realtime: auto-refresh when someone posts a new listing or room
+    const channel = supabase
+      .channel('roommates-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'roommates' },
+        async (payload) => {
+          console.log('[Realtime] roommates changed:', payload.eventType);
+          // Refetch all roommates to get the updated list
+          const { data } = await supabase.from('roommates').select('*').order('createdAt', { ascending: false });
+          if (data) {
+            const { data: reviewsData } = await supabase.from('reviews').select('*');
+            const enhanced = data.map((rm: any) => ({
+              ...rm,
+              reviews: reviewsData?.filter((rev: any) => rev.roommateId === rm.id) || []
+            }));
+            setSupabaseRoommates(enhanced);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'rooms' },
+        async () => {
+          console.log('[Realtime] rooms changed');
+          const { data } = await supabase.from('rooms').select('*').order('createdAt', { ascending: false });
+          if (data) setSupabaseRooms(data);
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [currentUser?.id]);
 
 
@@ -243,6 +278,7 @@ export default function App() {
   // States to hold Supabase fetched lists
   const [supabaseRoommates, setSupabaseRoommates] = useState<any[]>([]);
   const [supabaseRooms, setSupabaseRooms] = useState<any[]>([]);
+  const [isSupabaseLoading, setIsSupabaseLoading] = useState(!!import.meta.env.VITE_SUPABASE_URL);
 
   // Auto-sync profile when logging in or refreshing
   useEffect(() => {
@@ -1265,21 +1301,28 @@ export default function App() {
         )}
 
         {activeTab === "roommates" && (
-          <RoommatesView
-            roommates={allRoommates}
-            likedRoommateIds={likedRoommateIds}
-            onLikeRoommate={handleLikeRoommate}
-            onViewRoommate={setSelectedRoommate}
-            currentUserProfile={currentUserProfile}
-            onStartChat={startChatConversation}
-            onOpenPostModal={isAdmin ? undefined : () => handleOpenPostModal("roommate")}
-            onRequireAuth={requireAuth}
-            onDeleteRoommate={handleDeleteRoommate}
-            onEditRoommate={handleEditRoommate}
-            currentUserId={currentUser?.id}
-            initialFilters={globalSearchFilters}
-            isAdmin={isAdmin}
-          />
+          isSupabaseLoading ? (
+            <div className="flex flex-col justify-center items-center py-32 space-y-4">
+               <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[#006590]"></div>
+               <p className="text-slate-500 font-medium animate-pulse">Đang tải dữ liệu...</p>
+            </div>
+          ) : (
+            <RoommatesView
+              roommates={allRoommates}
+              likedRoommateIds={likedRoommateIds}
+              onLikeRoommate={handleLikeRoommate}
+              onViewRoommate={setSelectedRoommate}
+              currentUserProfile={currentUserProfile}
+              onStartChat={startChatConversation}
+              onOpenPostModal={isAdmin ? undefined : () => handleOpenPostModal("roommate")}
+              onRequireAuth={requireAuth}
+              onDeleteRoommate={handleDeleteRoommate}
+              onEditRoommate={handleEditRoommate}
+              currentUserId={currentUser?.id}
+              initialFilters={globalSearchFilters}
+              isAdmin={isAdmin}
+            />
+          )
         )}
 
         {activeTab === "rooms" && (
