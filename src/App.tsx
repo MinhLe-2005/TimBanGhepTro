@@ -194,22 +194,22 @@ export default function App() {
   // Auto-sync profile when logging in or refreshing
   useEffect(() => {
     if (currentUser && !currentUserProfile) {
-      let myProfile = null;
-      if (supabaseRoommates.length > 0) {
-        myProfile = supabaseRoommates.find((r: any) => r.postedBy === currentUser.id);
-      }
-
-      if (myProfile) {
-        setCurrentUserProfile(myProfile);
-        localStorage.setItem("roomiematch_user_profile", JSON.stringify(myProfile));
-      }
+      console.log('[App] User logged in but no profile found, checking...');
+      
+      // Don't try to find in supabaseRoommates (old fake data)
+      // Instead, open create profile modal for new users
+      setTimeout(() => {
+        console.log('[App] Opening profile creation modal for new user');
+        setIsProfileModalOpen(true);
+      }, 500);
+      
     } else if (currentUser && currentUserProfile && currentUserProfile.id === "me") {
       // Migrate "me" ID to actual Supabase UUID to prevent shared chats
       const updatedProfile = { ...currentUserProfile, id: currentUser.id };
       setCurrentUserProfile(updatedProfile);
       localStorage.setItem("roomiematch_user_profile", JSON.stringify(updatedProfile));
     }
-  }, [currentUser, currentUserProfile, supabaseRoommates]);
+  }, [currentUser, currentUserProfile]);
 
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const activeTabRef = useRef(activeTab);
