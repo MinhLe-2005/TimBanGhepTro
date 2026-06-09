@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { X, CheckCircle2, MessageSquare, FileText, Heart, ShieldAlert, Sparkles, Smile, Bed, Dog, Shield, ChefHat, Moon, Compass, Star, MapPin, Ban, Eye, EyeOff } from "lucide-react";
 import { Roommate } from "../types";
 import { supabase } from "../lib/supabase";
+import { useDialog } from "./ui/DialogProvider";
 
 interface RoommateModalProps {
   roommate: Roommate | null;
@@ -35,6 +36,7 @@ export default function RoommateModal({
   isAdmin = false,
 }: RoommateModalProps) {
   if (!roommate) return null;
+  const { confirm } = useDialog();
   
   // Debug: Log received roommate data
   console.log('[RoommateModal] Received roommate data:', {
@@ -774,11 +776,17 @@ export default function RoommateModal({
           ) : (
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => {
+              onClick={async () => {
                   const confirmMessage = roommate.is_listing 
                     ? "Bạn có chắc chắn muốn xóa tin đăng này? Hành động này không thể hoàn tác."
                     : "Bạn có chắc chắn muốn xóa hồ sơ này? Hành động này không thể hoàn tác.";
-                  if (onDeleteProfile && window.confirm(confirmMessage)) {
+                  const ok = await confirm({ 
+                    title: roommate.is_listing ? 'Xóa tin đăng' : 'Xóa hồ sơ', 
+                    message: confirmMessage, 
+                    confirmText: 'Xóa ngay', 
+                    type: 'error' 
+                  });
+                  if (ok && onDeleteProfile) {
                     onDeleteProfile(roommate.id);
                   }
                 }}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { X, Flame, Shield, MapPin, Bed, Bath, User, MessageSquare, Handshake, Check, Info, Star, Upload, Trash2, Moon, Dog, ChefHat, Compass, Sparkles, Heart, CheckCircle2, Smile, FileText, Phone } from "lucide-react";
 import { Room, Roommate } from "../types";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 
 interface RoomModalProps {
   room: Room | null;
@@ -18,6 +19,8 @@ interface RoomModalProps {
 }
 
 export default function RoomModal({ room, onClose, onInquire, onAddReview, roommates = [], isOwnProfile = false, onDeleteRoom, onEditRoom, isAdmin = false, onViewHostProfile, onNavigateToTab, hasSignedAgreement = false }: RoomModalProps) {
+  const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
+  
   if (!room) return null;
 
   // Try to find matching roommate profile, but prioritize room's host data
@@ -690,8 +693,16 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                 Sửa tin đăng
               </button>
               <button
-                onClick={() => {
-                  if (onDeleteRoom && window.confirm("Bạn có chắc chắn muốn xóa tin đăng này? Hành động này không thể hoàn tác.")) {
+                onClick={async () => {
+                  const confirmed = await confirm({
+                    title: "Xóa tin đăng phòng trọ",
+                    message: "Bạn có chắc chắn muốn xóa tin đăng này? Hành động này không thể hoàn tác.",
+                    confirmText: "Xóa vĩnh viễn",
+                    cancelText: "Hủy",
+                    type: "danger"
+                  });
+                  
+                  if (confirmed && onDeleteRoom) {
                     onDeleteRoom(room.id);
                   }
                 }}
@@ -712,6 +723,9 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
           </div>
         </div>
       </div>
+      
+      {/* Confirm Dialog */}
+      <ConfirmDialogComponent />
     </div>
   );
 }

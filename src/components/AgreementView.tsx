@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Roommate } from "../types";
 import { supabase } from "../lib/supabase";
+import { useDialog } from "./ui/DialogProvider";
 
 interface AgreementViewProps {
   roommates: Roommate[];
@@ -78,6 +79,7 @@ export default function AgreementView({
   onRequireProfile,
   pendingAgreementPayload
 }: AgreementViewProps) {
+  const { confirm, toast } = useDialog();
   const [roommateName, setRoommateName] = useState("");
   const [quietHours, setQuietHours] = useState("");
   const [cleaningText, setCleaningText] = useState("");
@@ -448,8 +450,8 @@ export default function AgreementView({
 
   const handleSignAgreement = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAgreed) return alert("Vui lòng tích chọn đồng ý với các quy định sống chung!");
-    if (!fullName.trim()) return alert("Vui lòng nhập họ và tên đầy đủ để tiến hành ký kết!");
+    if (!isAgreed) { toast('Vui lòng tích chọn đồng ý với các quy định sống chung!', 'warning'); return; }
+    if (!fullName.trim()) { toast('Vui lòng nhập họ và tên đầy đủ để tiến hành ký kết!', 'warning'); return; }
     if (!matchedRoommate) return;
 
     let payload: any;
@@ -503,18 +505,17 @@ export default function AgreementView({
        }));
        setIsSigned(true);
     } else {
-       alert("Lỗi khi xử lý thỏa thuận!");
+       toast('Lỗi khi xử lý thỏa thuận! Vui lòng thử lại.', 'error');
        console.error(error);
     }
   };
 
   const handleCancelAgreement = async () => {
-    if (confirm("Bạn có chắc chắn muốn Hủy / Từ chối hợp đồng này?")) {
-      // Gửi tin nhắn hủy
+    const ok = await confirm({ title: 'Hủy thỏa thuận', message: 'Bạn có chắc chắn muốn Hủy / Từ chối hợp đồng này?', confirmText: 'Hủy hợp đồng', type: 'error' });
+    if (ok) {
       const targetPayload = localPendingPayload || activeAgreement;
       if (targetPayload && matchedRoommate) {
         const payload = { ...targetPayload, status: 'cancelled', timestamp: new Date().toISOString() };
-        // CRITICAL: Use auth UUID (currentUser.id) not profile ID
         const chatId = [currentUser.id, matchedRoommate.id].sort().join('_');
         await supabase.from('messages').insert({
           chat_id: chatId,
@@ -522,15 +523,15 @@ export default function AgreementView({
           text: `[AGREEMENT_CANCELLED] ${JSON.stringify(payload)}`
         });
       }
-      alert("Đã từ chối thỏa thuận!");
+      toast('Đã từ chối thỏa thuận!', 'info');
       handleReset();
     }
   };
 
   const handleSendCounterOffer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAgreed) return alert("Vui lòng tích chọn đồng ý với các quy định sống chung!");
-    if (!fullName.trim()) return alert("Vui lòng nhập họ và tên đầy đủ để tiến hành ký kết!");
+    if (!isAgreed) { toast('Vui lòng tích chọn đồng ý với các quy định sống chung!', 'warning'); return; }
+    if (!fullName.trim()) { toast('Vui lòng nhập họ và tên đầy đủ để tiến hành ký kết!', 'warning'); return; }
     if (!matchedRoommate) return;
 
     const targetPayload = localPendingPayload || activeAgreement;
@@ -576,13 +577,13 @@ export default function AgreementView({
          year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
        }));
     } else {
-       alert("Lỗi khi xử lý thỏa thuận!");
+       toast('Lỗi khi xử lý thỏa thuận! Vui lòng thử lại.', 'error');
     }
   };
 
   const handleReset = () => {
     if (localPendingPayload && localPendingPayload.status === 'signed') {
-      alert("Hợp đồng này đã được lưu. Vui lòng bấm Hủy Hợp Đồng trước khi tạo mới.");
+      toast('Hợp đồng này đã được lưu. Vui lòng bấm Hủy Hợp Đồng trước khi tạo mới.', 'warning');
       return;
     }
     setLocalPendingPayload(null);

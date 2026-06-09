@@ -12,6 +12,7 @@ import AgreementView from "./components/AgreementView";
 import HistoryView from "./components/HistoryView";
 import InfoView from "./components/InfoView";
 import AdminDashboard from "./components/AdminDashboard";
+import { useDialog } from "./components/ui/DialogProvider";
 
 import RoommateModal from "./components/RoommateModal";
 import RoomModal from "./components/RoomModal";
@@ -20,6 +21,7 @@ import LoginModal from "./components/LoginModal";
 import PostListingModal from "./components/PostListingModal";
 
 export default function App() {
+  const { toast } = useDialog();
   const [activeTab, setActiveTab] = useState<string>(() => {
     const path = window.location.pathname.replace(/^\/+/, "");
     if (path && ["home", "roommates", "rooms", "chat", "agreement", "info", "admin"].includes(path)) {
@@ -57,7 +59,7 @@ export default function App() {
             setCurrentUser(null);
             setCurrentUserProfile(null);
             localStorage.removeItem("roomiematch_user_profile");
-            alert("Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.");
+            toast('Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.', 'error', 8000);
             return;
           }
         } catch(e) {}
@@ -83,7 +85,7 @@ export default function App() {
             setCurrentUser(null);
             setCurrentUserProfile(null);
             localStorage.removeItem("roomiematch_user_profile");
-            alert("Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.");
+            toast('Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.', 'error', 8000);
             return;
           }
         } catch(e) {}
@@ -728,7 +730,7 @@ export default function App() {
       // Only block deletion if is_listing is explicitly FALSE (user profile)
       // Allow deletion if is_listing is TRUE or NULL (listings)
       if (roommateData && roommateData.is_listing === false) {
-        alert('Không thể xóa hồ sơ cá nhân từ trang này. Hồ sơ cá nhân chỉ có thể chỉnh sửa, không thể xóa.');
+        toast('Không thể xóa hồ sơ cá nhân từ trang này. Hồ sơ cá nhân chỉ có thể chỉnh sửa, không thể xóa.', 'warning');
         return;
       }
       
@@ -1622,7 +1624,7 @@ export default function App() {
               localStorage.removeItem("roomiematch_user_profile");
             }
             setSelectedRoommate(null);
-            alert("Đã xóa hồ sơ thành công!");
+            toast('✅ Đã xóa hồ sơ thành công!', 'success');
           }}
           isAdmin={isAdmin}
         />
@@ -1640,7 +1642,7 @@ export default function App() {
           onDeleteRoom={(id) => {
             handleDeleteRoom(id);
             setSelectedRoom(null);
-            alert("Đã xóa tin đăng thành công!");
+            toast('✅ Đã xóa tin đăng thành công!', 'success');
           }}
           onEditRoom={handleEditRoom}
           isAdmin={isAdmin}

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Users, AlertTriangle, Shield, Trash2, Ban, ShieldCheck, FileText, UserCheck } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { Roommate, Room } from "../types";
+import { useDialog } from "./ui/DialogProvider";
 
 interface AdminDashboardProps {
   currentUser: any;
@@ -12,6 +13,7 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ currentUser, roommates, rooms, onDeleteRoommate, onDeleteRoom }: AdminDashboardProps) {
+  const { confirm, toast } = useDialog();
   const [activeTab, setActiveTab] = useState<"reports" | "users" | "listings" | "rooms" | "agreements">("reports");
   const [reports, setReports] = useState<any[]>([]);
   const [bannedUsers, setBannedUsers] = useState<string[]>([]);
@@ -83,39 +85,43 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   const profiles = allSupabaseRoommates.filter(r => r.is_listing === false || r.is_listing === 'false');
 
   const handleBanUser = async (userId: string) => {
-    if (!confirm("Khóa vĩnh viễn tài khoản này?")) return;
+    const ok = await confirm({ title: 'Khóa tài khoản', message: 'Bạn có chắc muốn khóa vĩnh viễn tài khoản này?', confirmText: 'Khóa ngay', type: 'error' });
+    if (!ok) return;
     const { error } = await supabase.from('messages').insert({
       id: 'msg_' + Date.now(), chat_id: 'SYSTEM_BANS', sender_id: currentUser.id, text: `[BAN] ${userId}`
     });
-    if (!error) { alert("Đã khóa người dùng thành công."); fetchAdminData(); }
+    if (!error) { toast('✅ Đã khóa người dùng thành công.', 'success'); fetchAdminData(); }
   };
 
   const handleUnbanUser = async (userId: string) => {
-    if (!confirm("Mở khóa tài khoản này?")) return;
+    const ok = await confirm({ title: 'Mở khóa tài khoản', message: 'Bạn có chắc muốn mở khóa tài khoản này?', confirmText: 'Mở khóa', type: 'success' });
+    if (!ok) return;
     const { data: banMsgs } = await supabase.from('messages').select('id, text').eq('chat_id', 'SYSTEM_BANS');
     if (banMsgs) {
        const msgsToDelete = banMsgs.filter(m => m.text.includes(userId)).map(m => m.id);
        for (const id of msgsToDelete) await supabase.from('messages').delete().eq('id', id);
     }
-    alert("Đã mở khóa tài khoản."); fetchAdminData();
+    toast('✅ Đã mở khóa tài khoản.', 'success'); fetchAdminData();
   };
 
   const handleDeleteListing = async (table: 'roommates' | 'rooms', id: string) => {
-    if (!confirm("Xóa vĩnh viễn bài đăng này? Hành động không thể hoàn tác.")) return;
+    const ok = await confirm({ title: 'Xóa bài đăng', message: 'Xóa vĩnh viễn bài đăng này? Hành động không thể hoàn tác.', confirmText: 'Xóa ngay', type: 'error' });
+    if (!ok) return;
     await supabase.from(table).delete().eq('id', id);
     if (table === 'roommates' && onDeleteRoommate) onDeleteRoommate(id);
     if (table === 'rooms' && onDeleteRoom) onDeleteRoom(id);
-    alert("Đã xóa tin đăng."); fetchAdminData();
+    toast('🗑️ Đã xóa tin đăng.', 'info'); fetchAdminData();
   };
 
   const handleDeleteAgreement = async (id: string) => {
-    if (!confirm("Bạn có chắc chắn muốn hủy bỏ hợp đồng này?")) return;
+    const ok = await confirm({ title: 'Hủy hợp đồng', message: 'Bạn có chắc chắn muốn hủy bỏ hợp đồng này?', confirmText: 'Hủy hợp đồng', type: 'warning' });
+    if (!ok) return;
     const target = agreements.find(a => a.id === id);
     if (target) {
        await supabase.from('messages').insert({ chat_id: target.chat_id, sender_id: currentUser.id, text: `[AGREEMENT_CANCELLED] {"id":"${id}"}` });
        const ids = target.chat_id.split('_');
        if (ids.length === 2) await supabase.from('roommates').update({ status: 'Đang tìm' }).in('id', ids);
-       alert("Đã hủy hợp đồng thành công."); fetchAdminData();
+       toast('✅ Đã hủy hợp đồng thành công.', 'success'); fetchAdminData();
     }
   };
 
