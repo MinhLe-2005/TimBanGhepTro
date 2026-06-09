@@ -227,25 +227,46 @@ export default function App() {
         { event: '*', schema: 'public', table: 'roommates' },
         async (payload) => {
           console.log('[Realtime] roommates changed:', payload.eventType);
-          // Refetch all roommates to get the updated list
-          const { data } = await supabase.from('roommates').select('*').order('createdAt', { ascending: false });
-          if (data) {
-            const { data: reviewsData } = await supabase.from('reviews').select('*');
-            const enhanced = data.map((rm: any) => ({
-              ...rm,
-              reviews: reviewsData?.filter((rev: any) => rev.roommateId === rm.id) || []
-            }));
-            setSupabaseRoommates(enhanced);
+          
+          // Optimize: Only update the changed record instead of refetching all
+          if (payload.eventType === 'INSERT' && payload.new) {
+            setSupabaseRoommates(prev => [payload.new as any, ...prev]);
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            setSupabaseRoommates(prev => prev.map(rm => rm.id === payload.new.id ? payload.new as any : rm));
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            setSupabaseRoommates(prev => prev.filter(rm => rm.id !== payload.old.id));
+          } else {
+            // Fallback: refetch if we can't handle the event
+            const { data } = await supabase.from('roommates').select('*').order('createdAt', { ascending: false });
+            if (data) {
+              const { data: reviewsData } = await supabase.from('reviews').select('*');
+              const enhanced = data.map((rm: any) => ({
+                ...rm,
+                reviews: reviewsData?.filter((rev: any) => rev.roommateId === rm.id) || []
+              }));
+              setSupabaseRoommates(enhanced);
+            }
           }
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'rooms' },
-        async () => {
-          console.log('[Realtime] rooms changed');
-          const { data } = await supabase.from('rooms').select('*').order('createdAt', { ascending: false });
-          if (data) setSupabaseRooms(data);
+        async (payload) => {
+          console.log('[Realtime] rooms changed:', payload.eventType);
+          
+          // Optimize: Only update the changed record instead of refetching all
+          if (payload.eventType === 'INSERT' && payload.new) {
+            setSupabaseRooms(prev => [payload.new as any, ...prev]);
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            setSupabaseRooms(prev => prev.map(r => r.id === payload.new.id ? payload.new as any : r));
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            setSupabaseRooms(prev => prev.filter(r => r.id !== payload.old.id));
+          } else {
+            // Fallback: refetch if needed
+            const { data } = await supabase.from('rooms').select('*').order('createdAt', { ascending: false });
+            if (data) setSupabaseRooms(data);
+          }
         }
       )
       .subscribe();
