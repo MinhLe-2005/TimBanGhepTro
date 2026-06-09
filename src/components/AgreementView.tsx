@@ -155,7 +155,7 @@ export default function AgreementView({
     };
     
     fetchAgreements();
-  }, [currentUserProfile, currentUser]);
+  }, [currentUserProfile?.id, currentUser?.id]);
 
   // Radioactive option ids and local input states
   const [quietOption, setQuietOption] = useState("chuan");
@@ -253,7 +253,7 @@ export default function AgreementView({
          }));
       }
     }
-  }, [localPendingPayload, currentUserProfile]);
+  }, [localPendingPayload?.id, currentUserProfile?.id]);
 
   // Dynamic templates matching each roommate's lifestyle or the default requested requirements
   const getRoommateAgreementFields = (roommate: Roommate) => {
@@ -392,7 +392,7 @@ export default function AgreementView({
     if (!localPendingPayload) {
       setIsEditingDraft(false);
     }
-  }, [matchedRoommate, activeAgreement, localPendingPayload]);
+  }, [matchedRoommate?.id, activeAgreement?.id, localPendingPayload?.id]);
 
   useEffect(() => {
     if (!matchedRoommate || localPendingPayload) return;
@@ -404,7 +404,7 @@ export default function AgreementView({
       petsOption, petsOther
     };
     sessionStorage.setItem(`agreement_draft_${matchedRoommate.id}`, JSON.stringify(draft));
-  }, [quietOption, quietOther, cleaningOption, cleaningOther, visitorsOption, visitorsOther, billsOption, billsOther, petsOption, petsOther, matchedRoommate, localPendingPayload]);
+  }, [quietOption, quietOther, cleaningOption, cleaningOther, visitorsOption, visitorsOther, billsOption, billsOther, petsOption, petsOther, matchedRoommate?.id, localPendingPayload?.id]);
 
   const handleRoommateNameChange = (val: string) => {
     setRoommateName(val);
