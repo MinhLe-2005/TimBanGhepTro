@@ -1,6 +1,7 @@
 import { Heart, Flame, Bed, Bath, Shield, ChefHat, MapPin, Cpu, Car, Eye, Star, Trash2 } from "lucide-react";
 import { Room } from "../types";
 import { useState } from "react";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 
 interface RoomCardProps {
   room: Room;
@@ -22,6 +23,7 @@ export default function RoomCard({
   currentUserId,
 }: RoomCardProps) {
   const [isLiked, setIsLiked] = useState(isInitiallyLiked);
+  const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
 
   const formatPrice = (price: number) => {
     return price.toLocaleString("vi-VN") + "đ";
@@ -128,7 +130,17 @@ export default function RoomCard({
             )}
             {onDelete && (
               <button
-                onClick={(e) => { e.stopPropagation(); if (confirm("Xóa tin đăng này?")) onDelete(room.id); }}
+                onClick={async (e) => { 
+                  e.stopPropagation(); 
+                  const confirmed = await confirm({
+                    title: "Xóa tin đăng phòng trọ",
+                    message: "Bạn có chắc chắn muốn xóa tin đăng này không?",
+                    confirmText: "Xóa",
+                    cancelText: "Hủy",
+                    type: "danger"
+                  });
+                  if (confirmed) onDelete(room.id);
+                }}
                 className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold shadow-md transition-all duration-200"
               >
                 <Trash2 className="h-3 w-3" />
@@ -219,6 +231,9 @@ export default function RoomCard({
           </div>
         </div>
       </div>
+      
+      {/* Confirm Dialog */}
+      <ConfirmDialogComponent />
     </div>
   );
 }

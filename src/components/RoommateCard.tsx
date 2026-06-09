@@ -1,6 +1,7 @@
 import { CheckCircle2, Heart, Star, Trash2 } from "lucide-react";
 import { Roommate } from "../types";
 import { useState } from "react";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 
 interface RoommateCardProps {
   roommate: Roommate;
@@ -24,6 +25,7 @@ export default function RoommateCard({
   currentUserId,
 }: RoommateCardProps) {
   const [isLiked, setIsLiked] = useState(isInitiallyLiked);
+  const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
 
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -88,7 +90,17 @@ export default function RoommateCard({
             )}
             {onDelete && (
               <button
-                onClick={(e) => { e.stopPropagation(); if (confirm("Xóa tin đăng này?")) onDelete(roommate.id); }}
+                onClick={async (e) => { 
+                  e.stopPropagation(); 
+                  const confirmed = await confirm({
+                    title: "Xóa tin đăng",
+                    message: "Bạn có chắc chắn muốn xóa tin đăng này không?",
+                    confirmText: "Xóa",
+                    cancelText: "Hủy",
+                    type: "danger"
+                  });
+                  if (confirmed) onDelete(roommate.id);
+                }}
                 className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold shadow-md transition-all duration-200"
               >
                 <Trash2 className="h-3 w-3" />
@@ -184,6 +196,9 @@ export default function RoommateCard({
           <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">Nhấn xem chi tiết</span>
         </div>
       </div>
+      
+      {/* Confirm Dialog */}
+      <ConfirmDialogComponent />
     </div>
   );
 }
