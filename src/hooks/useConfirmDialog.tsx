@@ -47,7 +47,7 @@ export function useConfirmDialog() {
     setIsOpen(false);
   };
 
-  const Dialog = () => (
+  const Dialog = () => isOpen ? (
     <ConfirmDialog
       isOpen={isOpen}
       onClose={handleCancel}
@@ -58,7 +58,7 @@ export function useConfirmDialog() {
       cancelText={options.cancelText}
       type={options.type}
     />
-  );
+  ) : null;
 
   return { confirm, Dialog };
 }

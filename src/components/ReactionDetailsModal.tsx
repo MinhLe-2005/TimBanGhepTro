@@ -5,6 +5,9 @@ interface ReactionDetailsModalProps {
   onClose: () => void;
   reactions: Record<string, string[]>;
   currentUserId: string;
+  currentUserName?: string;
+  partnerName?: string;
+  partnerId?: string;
   onRemoveReaction: (emoji: string) => void;
 }
 
@@ -13,6 +16,9 @@ export default function ReactionDetailsModal({
   onClose,
   reactions,
   currentUserId,
+  currentUserName = 'Bạn',
+  partnerName = 'Đối phương',
+  partnerId,
   onRemoveReaction,
 }: ReactionDetailsModalProps) {
   if (!isOpen) return null;
@@ -71,6 +77,14 @@ export default function ReactionDetailsModal({
         <div className="max-h-96 overflow-y-auto p-4">
           {allUsers.map(({ userId, emoji }, idx) => {
             const isCurrentUser = userId === currentUserId;
+            // Check if this is the partner by comparing userId with partnerId
+            const isPartner = partnerId && userId === partnerId;
+            
+            // Use real names for current user and partner only
+            const displayName = isCurrentUser 
+              ? (currentUserName || 'Bạn')
+              : (isPartner ? (partnerName || 'Đối phương') : `Người dùng ${idx + 1}`);
+            
             return (
               <div
                 key={`${userId}-${idx}`}
@@ -79,11 +93,11 @@ export default function ReactionDetailsModal({
                 <div className="flex items-center gap-3">
                   {/* Avatar placeholder */}
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-white font-bold">
-                    {isCurrentUser ? 'B' : 'U'}
+                    {isCurrentUser ? 'B' : (isPartner && partnerName ? partnerName.charAt(0).toUpperCase() : 'U')}
                   </div>
                   <div>
                     <div className="font-semibold text-slate-800">
-                      {isCurrentUser ? 'Bạn' : `Người dùng ${idx + 1}`}
+                      {displayName}
                     </div>
                     {isCurrentUser && (
                       <div className="text-xs text-slate-500 cursor-pointer hover:underline" onClick={() => {

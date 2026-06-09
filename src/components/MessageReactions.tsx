@@ -6,6 +6,9 @@ interface MessageReactionsProps {
   messageId?: string;
   reactions?: Record<string, string[]>; // { "❤️": ["user1", "user2"], "😂": ["user3"] }
   currentUserId: string;
+  currentUserName?: string;
+  partnerName?: string;
+  partnerId?: string;
   onAddReaction: (emoji: string) => void;
   onRemoveReaction: (emoji: string) => void;
   isMyMessage: boolean;
@@ -16,6 +19,9 @@ const REACTION_EMOJIS = ["❤️", "😂", "😮", "😢", "😠", "👍"];
 export default function MessageReactions({
   reactions = {},
   currentUserId,
+  currentUserName = 'Bạn',
+  partnerName = 'Đối phương',
+  partnerId,
   onAddReaction,
   onRemoveReaction,
   isMyMessage,
@@ -97,8 +103,8 @@ export default function MessageReactions({
                   className="fixed inset-0 z-40"
                   onClick={() => setShowPicker(false)}
                 />
-                {/* Popup - horizontal */}
-                <div className="absolute bottom-full right-0 mb-2 bg-white border border-slate-200 rounded-2xl shadow-xl p-2 flex gap-1 z-50 animate-fade-in">
+                {/* Popup - horizontal, ABOVE button like Messenger */}
+                <div className="absolute bottom-full left-0 mb-2 bg-white border border-slate-200 rounded-2xl shadow-xl p-2 flex gap-1 z-50 animate-fade-in">
                   {REACTION_EMOJIS.map((emoji) => (
                     <button
                       key={emoji}
@@ -124,6 +130,9 @@ export default function MessageReactions({
         onClose={() => setShowDetailsModal(false)}
         reactions={reactions}
         currentUserId={currentUserId}
+        currentUserName={currentUserName}
+        partnerName={partnerName}
+        partnerId={partnerId}
         onRemoveReaction={onRemoveReaction}
       />
     </>

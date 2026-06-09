@@ -1387,13 +1387,16 @@ export default function ChatView({
                         </span>
                       </div>
                       
-                      {/* ✅ Message Reactions - positioned below message corner, fully outside bubble */}
+                      {/* ✅ Message Reactions - positioned ABOVE message corner like Messenger */}
                       {!isSpecialMessage && (
-                        <div className={`absolute -bottom-4 ${isMe ? '-left-3' : '-right-3'} z-20`}>
+                        <div className={`absolute -top-3 ${isMe ? 'right-2' : 'left-2'} z-20`}>
                           <MessageReactions
                             messageId={msg.id}
                             reactions={msg.reactions}
                             currentUserId={currentUser?.id || ''}
+                            currentUserName={currentUserProfile?.name || 'Bạn'}
+                            partnerName={activeRoommate?.name || 'Đối phương'}
+                            partnerId={activeRoommate?.user_id || activeRoommate?.id}
                             onAddReaction={(emoji) => handleAddReaction(msg.id, emoji)}
                             onRemoveReaction={(emoji) => handleRemoveReaction(msg.id, emoji)}
                             isMyMessage={isMe}
