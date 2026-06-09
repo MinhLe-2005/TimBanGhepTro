@@ -470,6 +470,7 @@ export default function RoommatesView({
             <RoommateCard
               key={`roommate-${roommate.id}`}
               roommate={roommate}
+              compact
               onViewDetails={onViewRoommate}
               onLikeChange={isAdmin ? undefined : onLikeRoommate}
               isInitiallyLiked={likedRoommateIds.includes(roommate.id)}
