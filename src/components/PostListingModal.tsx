@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Sparkles, User, Home, Plus, Briefcase, GraduationCap, DollarSign, Phone, MapPin, Hash, CheckSquare, Settings, Heart, Image, Check, Upload } from "lucide-react";
+import { X, User, Home, Plus, Briefcase, GraduationCap, DollarSign, Phone, MapPin, Hash, CheckSquare, Settings, Heart, Image, Check, Upload } from "lucide-react";
 import { Roommate, Room } from "../types";
 import { SCHOOLS_BY_DISTRICT } from "../data";
 
@@ -376,9 +376,6 @@ export default function PostListingModal({
             
             {/* Header Text */}
             <div className="flex items-start gap-3">
-              <span className="p-2.5 bg-gradient-to-br from-[#006590]/10 to-indigo-50 text-[#006590] rounded-xl shrink-0">
-                <Sparkles className="h-6 w-6 stroke-[2px]" />
-              </span>
               <div>
                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">{editingData ? "Cập nhật bài viết" : "Đăng bài tin mới"}</h3>
                 <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Cổng kết nối Đà Nẵng</p>
