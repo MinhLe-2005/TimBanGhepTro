@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Send, CheckCircle2, AlertCircle, MessageSquare, PhoneCall, Image as ImageIcon, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck, Ban, AlertOctagon, UploadCloud, Clock, CheckSquare, Users, CreditCard, Heart, Check, Star, FileEdit } from "lucide-react";
+import { Send, CheckCircle2, AlertCircle, MessageSquare, PhoneCall, Image as ImageIcon, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck, Ban, AlertOctagon, UploadCloud, Clock, CheckSquare, Users, CreditCard, Heart, Check, Star, FileEdit, ChevronLeft, ChevronRight } from "lucide-react";
 import { Roommate, Message } from "../types";
 import { supabase } from "../lib/supabase";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -73,6 +73,7 @@ export default function ChatView({
 
   // States for Image sending
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
+  const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
 
   // States for Private Notes
   const [chatPrivateNote, setChatPrivateNote] = useState("");
@@ -386,6 +387,73 @@ export default function ChatView({
   });
   
   const activeMessages = activeRoommate ? (chats[activeRoommateId!] || chats[activeRoommate.id] || []) : [];
+  const activeAgreementState = useMemo(() => {
+    const latestAgreementMessage = [...activeMessages]
+      .reverse()
+      .find(
+        (message) =>
+          message.text?.startsWith("[AGREEMENT_DRAFT]") ||
+          message.text?.startsWith("[AGREEMENT_SIGNED]") ||
+          message.text?.startsWith("[AGREEMENT_CANCELLED]")
+      );
+
+    if (!latestAgreementMessage?.text) {
+      return { status: "none" as const, payload: null };
+    }
+
+    const status = latestAgreementMessage.text.startsWith("[AGREEMENT_SIGNED]")
+      ? "signed"
+      : latestAgreementMessage.text.startsWith("[AGREEMENT_CANCELLED]")
+        ? "cancelled"
+        : "pending";
+    const prefix =
+      status === "signed"
+        ? "[AGREEMENT_SIGNED]"
+        : status === "cancelled"
+          ? "[AGREEMENT_CANCELLED]"
+          : "[AGREEMENT_DRAFT]";
+
+    try {
+      return {
+        status,
+        payload: {
+          ...JSON.parse(latestAgreementMessage.text.replace(prefix, "").trim()),
+          sender_id: latestAgreementMessage.senderId,
+        },
+      };
+    } catch {
+      return { status, payload: null };
+    }
+  }, [activeMessages]);
+  const chatImages = useMemo(
+    () => activeMessages.filter((message) => Boolean(message.imageUrl)),
+    [activeMessages]
+  );
+
+  useEffect(() => {
+    if (activeImageIndex === null) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setActiveImageIndex(null);
+      } else if (event.key === "ArrowLeft") {
+        setActiveImageIndex((current) =>
+          current === null ? null : (current - 1 + chatImages.length) % chatImages.length
+        );
+      } else if (event.key === "ArrowRight") {
+        setActiveImageIndex((current) =>
+          current === null ? null : (current + 1) % chatImages.length
+        );
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeImageIndex, chatImages.length]);
+
+  useEffect(() => {
+    setActiveImageIndex(null);
+  }, [activeRoommateId]);
 
   // Check if partner has blocked us via system message
   const myTempId = currentUser?.id || currentUserProfile?.id;
@@ -516,9 +584,8 @@ export default function ChatView({
     const theirMessages = messages.filter(m => m.senderId !== myChatId);
     const has2Way = myMessages.length > 0 && theirMessages.length > 0;
     
-    // Check signed agreement
-    const signedAgreement = messages.find(m => m.text?.includes('[AGREEMENT_SIGNED]'));
-    const hasSigned = !!signedAgreement;
+    // The agreement is active only when the latest event is SIGNED.
+    const hasSigned = activeAgreementState.status === "signed";
     
     console.log('[Chat] Check 2-way messages:', {
       activeRoommateName: activeRoommate.name,
@@ -532,7 +599,7 @@ export default function ChatView({
     
     setHasTwoWayMessages(has2Way);
     setHasSignedAgreement(hasSigned);
-  }, [activeRoommateId, activeRoommate, chats, myChatId]);
+  }, [activeRoommateId, activeRoommate, chats, myChatId, activeAgreementState.status]);
 
   // Fetch Inbox Conversations
 
@@ -637,9 +704,18 @@ export default function ChatView({
           const partnerId = ids[0] === myAuthId ? ids[1] : ids[0];
           if (partnerId === myAuthId) return;
 
-          // Check if message is an unread agreement draft
-          if (msg.text?.startsWith('[AGREEMENT_DRAFT]') && msg.sender_id !== myAuthId) {
-            agreementMap[partnerId] = true;
+          // Data is newest-first. Only the latest agreement event decides the badge.
+          if (
+            agreementMap[partnerId] === undefined &&
+            (
+              msg.text?.startsWith('[AGREEMENT_DRAFT]') ||
+              msg.text?.startsWith('[AGREEMENT_SIGNED]') ||
+              msg.text?.startsWith('[AGREEMENT_CANCELLED]')
+            )
+          ) {
+            agreementMap[partnerId] =
+              msg.sender_id !== myAuthId &&
+              (msg.text?.startsWith('[AGREEMENT_DRAFT]') || false);
           }
 
           console.log('[Chat] Processing message from partner:', partnerId, 'existing:', conversationMap.has(partnerId));
@@ -1159,15 +1235,29 @@ export default function ChatView({
                     // Mark agreement as read when opening from action button
                     const partnerId = activeRoommate.user_id || activeRoommate.id;
                     setConversationsWithAgreements(prev => ({ ...prev, [partnerId]: false }));
-                    
-                    // Open agreement modal directly in chat
-                    setAgreementModalPayload(null);
+
+                    // A signed agreement opens the signed copy; otherwise start a new agreement.
+                    setAgreementModalPayload(
+                      activeAgreementState.status === "signed"
+                        ? activeAgreementState.payload
+                        : null
+                    );
                     setIsAgreementModalOpen(true);
                   }}
-                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#006590] to-sky-600 hover:shadow-lg hover:-translate-y-0.5 text-white text-[13px] font-bold transition-all duration-300 cursor-pointer flex items-center gap-2"
+                  className={`px-4 py-2.5 rounded-xl hover:shadow-lg hover:-translate-y-0.5 text-white text-[13px] font-bold transition-all duration-300 cursor-pointer flex items-center gap-2 ${
+                    activeAgreementState.status === "signed"
+                      ? "bg-gradient-to-r from-emerald-600 to-green-600"
+                      : "bg-gradient-to-r from-[#006590] to-sky-600"
+                  }`}
                 >
-                  <BadgeCheck className="h-4 w-4" />
-                  <span className="hidden sm:inline">Lập Thỏa Thuận</span>
+                  {activeAgreementState.status === "signed" ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    <BadgeCheck className="h-4 w-4" />
+                  )}
+                  <span className="hidden sm:inline">
+                    {activeAgreementState.status === "signed" ? "Đã ký kết" : "Lập Thỏa Thuận"}
+                  </span>
                 </button>
                 <button
                   onClick={() => setIsReportModalOpen(true)}
@@ -1179,41 +1269,6 @@ export default function ChatView({
                 </button>
               </div>
             </div>
-
-            {(() => {
-              // ✅ Chỉ hiển thị banner nếu agreement SIGNED là message mới nhất (chưa bị CANCELLED)
-              const signedMessages = activeMessages.filter(m => m.text?.startsWith('[AGREEMENT_SIGNED]'));
-              const cancelledMessages = activeMessages.filter(m => m.text?.startsWith('[AGREEMENT_CANCELLED]'));
-              
-              if (signedMessages.length === 0) return null;
-              
-              // Lấy agreement ID từ signed message cuối cùng
-              const lastSigned = signedMessages[signedMessages.length - 1];
-              let signedAgreementId = null;
-              try {
-                const payload = JSON.parse(lastSigned.text?.replace('[AGREEMENT_SIGNED]', '').trim() || '{}');
-                signedAgreementId = payload.id;
-              } catch {}
-              
-              // Kiểm tra xem agreement này có bị cancel sau đó không
-              const isCancelled = cancelledMessages.some(msg => {
-                try {
-                  const payload = JSON.parse(msg.text?.replace('[AGREEMENT_CANCELLED]', '').trim() || '{}');
-                  return payload.id === signedAgreementId;
-                } catch {
-                  return false;
-                }
-              });
-              
-              if (isCancelled) return null;
-              
-              return (
-                <div className="bg-emerald-50 text-emerald-700 px-6 py-3 border-b border-emerald-100 flex items-center justify-center gap-2 shadow-sm shrink-0 font-bold text-[13px] animate-fade-in z-10">
-                  <BadgeCheck className="w-5 h-5 text-emerald-600" />
-                  🎉 Hai bạn đã ký thỏa thuận sống chung thành công!
-                </div>
-              );
-            })()}
 
             {/* Message bubbles wrapper container */}
             <div ref={scrollContainerRef} className="flex-grow p-6 overflow-y-auto space-y-4 scroll-smooth">
@@ -1258,11 +1313,11 @@ export default function ChatView({
                   return (
                     <div
                       key={msg.id}
-                      className={`flex ${isMe ? "justify-end" : "justify-start"} animate-fade-in mb-6`}
+                      className={`flex w-full flex-col ${isMe ? "items-end" : "items-start"} animate-fade-in mb-6`}
                     >
-                      <div className="relative">
+                      <div className={`relative flex w-full flex-col ${isMe ? "items-end" : "items-start"}`}>
                         <div
-                          className={`max-w-[85%] px-4 py-3 rounded-2xl text-[14.5px] leading-relaxed shadow-[0_2px_4px_rgba(15,23,42,0.01)] ${
+                          className={`w-fit min-w-[64px] max-w-[78%] sm:max-w-[68%] px-4 py-3 rounded-2xl text-[14.5px] leading-relaxed break-words [overflow-wrap:anywhere] shadow-[0_2px_4px_rgba(15,23,42,0.01)] ${
                             isSpecialMessage 
                               ? (isAgreementSigned ? "bg-emerald-50 text-emerald-900 border border-emerald-200" : isAgreementCancelled ? "bg-red-50 text-red-900 border border-red-200" : "bg-sky-50 text-sky-900 border border-sky-200")
                               : (isMe
@@ -1271,9 +1326,17 @@ export default function ChatView({
                           }`}
                         >
                         {msg.imageUrl && (
-                          <div className="mb-2 max-w-full overflow-hidden rounded-xl border border-slate-100/10 dark:border-slate-800">
-                            <img src={msg.imageUrl} alt="Đính kèm" className="max-h-60 object-cover w-full rounded-lg" referrerPolicy="no-referrer" />
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const imageIndex = chatImages.findIndex((image) => image.id === msg.id);
+                              if (imageIndex >= 0) setActiveImageIndex(imageIndex);
+                            }}
+                            className="mb-2 block max-w-full cursor-zoom-in overflow-hidden rounded-xl border border-slate-100/10 bg-slate-900/5"
+                            title="Mở ảnh"
+                          >
+                            <img src={msg.imageUrl} alt="Đính kèm" className="max-h-72 w-full object-contain transition-transform duration-200 hover:scale-[1.02]" referrerPolicy="no-referrer" />
+                          </button>
                         )}
                         {isSpecialMessage && agreementPayload ? (
                           <div className="flex flex-col gap-2">
@@ -1313,7 +1376,7 @@ export default function ChatView({
                             </button>
                           </div>
                         ) : (
-                          msg.text && <p>{msg.text}</p>
+                          msg.text && <p className="whitespace-pre-wrap">{msg.text}</p>
                         )}
                         <span
                           className={`flex items-center justify-end gap-1 text-[9.5px] mt-2 text-right  ${
@@ -1336,7 +1399,7 @@ export default function ChatView({
                       
                       {/* Message reactions sit below the bubble so they never cover the timestamp. */}
                       {!isSpecialMessage && (
-                        <div className={`mt-1 flex px-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`mt-1 flex w-full px-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
                           <MessageReactions
                             messageId={msg.id}
                             reactions={msg.reactions}
@@ -2303,7 +2366,7 @@ export default function ChatView({
                       console.warn('[Signature] Agreement signed but roommate status update failed:', statusError);
                     }
 
-                    toast('Ký kết thành công! Thỏa thuận đã có hiệu lực.', "success");
+                    toast('Ký kết thành công! Thỏa thuận đã có hiệu lực.', "success", 5000);
                     
                     // Close modals
                     setIsSignatureModalOpen(false);
@@ -2327,6 +2390,62 @@ export default function ChatView({
                 )}
                 {isSigningAgreement ? "Đang ký..." : "Xác nhận ký"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeImageIndex !== null && chatImages[activeImageIndex]?.imageUrl && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 p-4 backdrop-blur-sm"
+          onClick={() => setActiveImageIndex(null)}
+        >
+          <div
+            className="relative flex h-full w-full max-w-6xl items-center justify-center"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setActiveImageIndex(null)}
+              className="absolute right-0 top-0 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+              aria-label="Đóng ảnh"
+            >
+              <X className="h-6 w-6" />
+            </button>
+
+            {chatImages.length > 1 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setActiveImageIndex((activeImageIndex - 1 + chatImages.length) % chatImages.length)
+                }
+                className="absolute left-0 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white shadow-lg transition-all hover:scale-105 hover:bg-white/20"
+                aria-label="Ảnh trước"
+              >
+                <ChevronLeft className="h-7 w-7" />
+              </button>
+            )}
+
+            <img
+              src={chatImages[activeImageIndex].imageUrl}
+              alt={`Ảnh ${activeImageIndex + 1} trong cuộc trò chuyện`}
+              className="max-h-[88vh] max-w-[88vw] rounded-xl object-contain shadow-2xl"
+              referrerPolicy="no-referrer"
+            />
+
+            {chatImages.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setActiveImageIndex((activeImageIndex + 1) % chatImages.length)}
+                className="absolute right-0 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white shadow-lg transition-all hover:scale-105 hover:bg-white/20"
+                aria-label="Ảnh tiếp theo"
+              >
+                <ChevronRight className="h-7 w-7" />
+              </button>
+            )}
+
+            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-black/45 px-3 py-1.5 text-xs font-bold text-white">
+              {activeImageIndex + 1} / {chatImages.length}
             </div>
           </div>
         </div>

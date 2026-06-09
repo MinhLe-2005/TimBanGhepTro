@@ -8,8 +8,9 @@ interface HomeViewProps {
   roommates: Roommate[];
   rooms: Room[];
   likedRoommateIds: string[];
+  roommateLikeCounts: Record<string, number>;
   likedRoomIds: string[];
-  onLikeRoommate: (id: string, isLiked: boolean) => void;
+  onLikeRoommate: (id: string, isLiked: boolean) => void | Promise<boolean>;
   onLikeRoom: (id: string, isLiked: boolean) => void;
   onViewRoommate: (roommate: Roommate) => void;
   onViewRoom: (room: Room) => void;
@@ -25,6 +26,7 @@ export default function HomeView({
   roommates,
   rooms,
   likedRoommateIds,
+  roommateLikeCounts,
   likedRoomIds,
   onLikeRoommate,
   onLikeRoom,
@@ -110,6 +112,18 @@ export default function HomeView({
   const locations = ["Tất cả Đà Nẵng", "Hải Châu", "Sơn Trà", "Ngũ Hành Sơn", "Liên Chiểu", "Thanh Khê", "Cẩm Lệ"];
   const budgets = ["Tất cả mức giá", "Dưới 2 triệu", "2 - 3 triệu", "3 - 5 triệu", "Trên 5 triệu"];
   const lifestyles = ["Mọi phong cách", "Ngăn nắp", "Yêu động vật", "Không hút thuốc", "Cú đêm", "Thích nấu ăn"];
+  const popularRoommates = roommates
+    .filter(
+      (roommate) =>
+        roommate.is_listing === true &&
+        roommate.status !== "Đã tìm được" &&
+        (roommateLikeCounts[roommate.id] || 0) > 0
+    )
+    .sort(
+      (a, b) =>
+        (roommateLikeCounts[b.id] || 0) - (roommateLikeCounts[a.id] || 0)
+    )
+    .slice(0, 5);
 
   return (
     <div className="space-y-20 animate-fade-in relative pt-20 lg:pt-28 px-4 lg:px-8 max-w-[1350px] mx-auto">
@@ -409,6 +423,48 @@ export default function HomeView({
           </div>
         </div>
       </section>
+      )}
+
+      {popularRoommates.length > 0 && (
+        <section className="relative overflow-hidden rounded-[28px] border border-rose-100 bg-gradient-to-br from-white via-rose-50/60 to-sky-50/50 p-5 sm:p-7 shadow-[0_12px_35px_rgba(15,23,42,0.05)]">
+          <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-rose-100 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-rose-600">
+                <Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-500" />
+                Được cộng đồng quan tâm
+              </div>
+              <h2 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+                Roommate được quan tâm
+              </h2>
+              <p className="mt-1 max-w-2xl text-sm text-slate-500">
+                Những hồ sơ đang được nhiều người lưu để xem lại nhất.
+              </p>
+            </div>
+            <button
+              onClick={() => onNavigateToTab("roommates")}
+              className="flex shrink-0 items-center gap-2 text-sm font-bold text-[#006590] transition-colors hover:text-rose-600"
+            >
+              Xem thêm
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {popularRoommates.map((roommate) => (
+              <RoommateCard
+                key={`popular-${roommate.id}`}
+                roommate={roommate}
+                compact
+                likeCount={roommateLikeCounts[roommate.id] || 0}
+                showLikeCount
+                onViewDetails={onViewRoommate}
+                onLikeChange={isAdmin ? undefined : onLikeRoommate}
+                isInitiallyLiked={likedRoommateIds.includes(roommate.id)}
+                onStartChat={isAdmin ? undefined : onStartChat}
+              />
+            ))}
+          </div>
+        </section>
       )}
 
       {/* 3. Roommate Tiềm Năng */}

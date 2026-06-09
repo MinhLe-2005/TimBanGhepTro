@@ -368,8 +368,11 @@ export default function App() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         const newMessage = payload.new;
         if (newMessage.sender_id !== myChatId && newMessage.chat_id.includes(myChatId)) {
+          const isAgreementSystemMessage =
+            newMessage.text?.startsWith('[AGREEMENT_SIGNED]') ||
+            newMessage.text?.startsWith('[AGREEMENT_CANCELLED]');
           // Unread message badge for Tin Nhắn
-          if (activeTabRef.current !== 'chat') {
+          if (activeTabRef.current !== 'chat' && !isAgreementSystemMessage) {
             setHasUnreadMessages(true);
           }
           // Pending agreement badge for Thỏa Thuận
@@ -770,18 +773,118 @@ export default function App() {
     const saved = localStorage.getItem("roomiematch_liked_roommates");
     return saved ? JSON.parse(saved) : [];
   });
+  const [roommateLikeCounts, setRoommateLikeCounts] = useState<Record<string, number>>(() => {
+    const saved = localStorage.getItem("roomiematch_liked_roommates");
+    const likedIds: string[] = saved ? JSON.parse(saved) : [];
+    return likedIds.reduce<Record<string, number>>((counts, id) => {
+      counts[id] = 1;
+      return counts;
+    }, {});
+  });
   const [likedRoomIds, setLikedRoomIds] = useState<string[]>(() => {
     const saved = localStorage.getItem("roomiematch_liked_rooms");
     return saved ? JSON.parse(saved) : [];
   });
 
-  const handleLikeRoommate = (id: string, isLiked: boolean) => {
-    if (!requireAuth()) return false;
+  useEffect(() => {
+    const fetchRoommateLikes = async () => {
+      if (!import.meta.env.VITE_SUPABASE_URL) return;
+
+      const { data, error } = await supabase
+        .from("roommate_likes")
+        .select("roommate_id, user_id");
+      if (error || !data) return;
+
+      const counts: Record<string, number> = data.reduce((result: Record<string, number>, like: any) => {
+        const target = allRoommates.find((roommate) => roommate.id === like.roommate_id);
+        if (target && (target.postedBy === like.user_id || target.user_id === like.user_id)) {
+          return result;
+        }
+        result[like.roommate_id] = (result[like.roommate_id] || 0) + 1;
+        return result;
+      }, {});
+      if (currentUser?.id) {
+        const savedLikes: string[] = JSON.parse(
+          localStorage.getItem("roomiematch_liked_roommates") || "[]"
+        );
+        const ownLikes = data
+          .filter((like) => like.user_id === currentUser.id)
+          .map((like) => like.roommate_id);
+        const missingLikes = savedLikes.filter((id) => {
+          if (ownLikes.includes(id)) return false;
+          const target = allRoommates.find((roommate) => roommate.id === id);
+          return target && target.postedBy !== currentUser.id && target.user_id !== currentUser.id;
+        });
+
+        if (missingLikes.length > 0) {
+          const { error: migrationError } = await supabase
+            .from("roommate_likes")
+            .upsert(
+              missingLikes.map((roommateId) => ({
+                roommate_id: roommateId,
+                user_id: currentUser.id,
+              })),
+              { onConflict: "roommate_id,user_id" }
+            );
+
+          if (!migrationError) {
+            missingLikes.forEach((id) => {
+              counts[id] = (counts[id] || 0) + 1;
+            });
+          }
+        }
+
+        const syncedLikes = Array.from(new Set([...ownLikes, ...missingLikes]));
+        setLikedRoommateIds(syncedLikes);
+        localStorage.setItem("roomiematch_liked_roommates", JSON.stringify(syncedLikes));
+      }
+
+      setRoommateLikeCounts(counts);
+    };
+
+    fetchRoommateLikes();
+  }, [currentUser?.id, allRoommates]);
+
+  const handleLikeRoommate = async (id: string, isLiked: boolean) => {
+    const isAuth = await requireAuth();
+    if (!isAuth || !currentUser?.id) return false;
+
+    const target = allRoommates.find((roommate) => roommate.id === id);
+    if (target && (target.postedBy === currentUser.id || target.user_id === currentUser.id)) {
+      return false;
+    }
+
     setLikedRoommateIds((prev) => {
-      const next = isLiked ? [...prev, id] : prev.filter((x) => x !== id);
+      const next = isLiked
+        ? Array.from(new Set([...prev, id]))
+        : prev.filter((x) => x !== id);
       localStorage.setItem("roomiematch_liked_roommates", JSON.stringify(next));
       return next;
     });
+
+    setRoommateLikeCounts((previous) => ({
+      ...previous,
+      [id]: Math.max(0, (previous[id] || 0) + (isLiked ? 1 : -1)),
+    }));
+
+    if (import.meta.env.VITE_SUPABASE_URL) {
+      const result = isLiked
+        ? await supabase
+            .from("roommate_likes")
+            .upsert(
+              { roommate_id: id, user_id: currentUser.id },
+              { onConflict: "roommate_id,user_id" }
+            )
+        : await supabase
+            .from("roommate_likes")
+            .delete()
+            .eq("roommate_id", id)
+            .eq("user_id", currentUser.id);
+
+      if (result.error) {
+        console.warn("[Likes] Falling back to local likes:", result.error.message);
+      }
+    }
     return true;
   };
 
@@ -1623,6 +1726,7 @@ export default function App() {
             roommates={allRoommates}
             rooms={rooms}
             likedRoommateIds={likedRoommateIds}
+            roommateLikeCounts={roommateLikeCounts}
             likedRoomIds={likedRoomIds}
             onLikeRoommate={handleLikeRoommate}
             onLikeRoom={handleLikeRoom}

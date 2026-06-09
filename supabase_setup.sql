@@ -96,12 +96,27 @@ ON public.review_reports(review_id, reporter_id);
 CREATE INDEX IF NOT EXISTS idx_review_reports_status
 ON public.review_reports(status, created_at DESC);
 
+-- 2.7. LƯỢT QUAN TÂM HỒ SƠ ROOMMATE
+CREATE TABLE IF NOT EXISTS public.roommate_likes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    roommate_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_roommate_likes_unique
+ON public.roommate_likes(roommate_id, user_id);
+
+CREATE INDEX IF NOT EXISTS idx_roommate_likes_roommate
+ON public.roommate_likes(roommate_id, created_at DESC);
+
 -- 3. TẮT RLS TẠM THỜI ĐỂ TESTING (CHO PHÉP TẤT CẢ TRUY CẬP)
 -- ⚠️ LƯU Ý: NẾU LÊN PRODUCTION, CẦN BẬT LẠI VÀ THIẾT LẬP POLICY CHO ĐÚNG!
 ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.agreements DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reviews DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.roommate_likes DISABLE ROW LEVEL SECURITY;
 
 -- NẾU BẠN MUỐN BẬT RLS NHƯNG CHO PHÉP TẤT CẢ (DEMO MODE):
 -- ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;

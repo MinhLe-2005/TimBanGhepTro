@@ -1,13 +1,13 @@
 import { Heart, Pencil, Star, Trash2 } from "lucide-react";
 import { Roommate } from "../types";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { getAverageRating } from "../utils/scoring";
 
 interface RoommateCardProps {
   roommate: Roommate;
   onViewDetails: (roommate: Roommate) => void;
-  onLikeChange?: (id: string, isLiked: boolean) => boolean | void;
+  onLikeChange?: (id: string, isLiked: boolean) => boolean | void | Promise<boolean>;
   isInitiallyLiked?: boolean;
   onStartChat?: (id: string) => void;
   onEdit?: (roommate: Roommate) => void;
@@ -15,6 +15,8 @@ interface RoommateCardProps {
   onClearSelectedRoommate?: () => void;
   currentUserId?: string;
   compact?: boolean;
+  likeCount?: number;
+  showLikeCount?: boolean;
 }
 
 export default function RoommateCard({
@@ -28,15 +30,21 @@ export default function RoommateCard({
   onClearSelectedRoommate,
   currentUserId,
   compact = false,
+  likeCount = 0,
+  showLikeCount = false,
 }: RoommateCardProps) {
   const [isLiked, setIsLiked] = useState(isInitiallyLiked);
   const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
 
-  const handleLike = (e: React.MouseEvent) => {
+  useEffect(() => {
+    setIsLiked(isInitiallyLiked);
+  }, [isInitiallyLiked]);
+
+  const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onLikeChange) {
       const newLiked = !isLiked;
-      const success = onLikeChange(roommate.id, newLiked);
+      const success = await onLikeChange(roommate.id, newLiked);
       if (success !== false) {
         setIsLiked(newLiked);
       }
@@ -70,6 +78,13 @@ export default function RoommateCard({
           >
             <Heart className={`h-4 w-4 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
           </button>
+        )}
+
+        {showLikeCount && likeCount > 0 && (
+          <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 rounded-full border border-white/70 bg-white/95 px-2.5 py-1 text-[10px] font-bold text-rose-600 shadow-sm backdrop-blur-sm">
+            <Heart className="h-3 w-3 fill-rose-500 text-rose-500" />
+            <span>{likeCount} lượt quan tâm</span>
+          </div>
         )}
 
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/10 via-transparent to-transparent opacity-60 pointer-events-none" />

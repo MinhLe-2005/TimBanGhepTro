@@ -9,7 +9,7 @@ interface RoommatesViewProps {
   onViewRoommate: (roommate: Roommate) => void;
   currentUserProfile: any;
   likedRoommateIds: string[];
-  onLikeRoommate: (id: string, isLiked: boolean) => void;
+  onLikeRoommate: (id: string, isLiked: boolean) => void | Promise<boolean>;
   onStartChat: (id: string) => void;
   onOpenPostModal?: () => void;
   onRequireAuth?: () => void;
