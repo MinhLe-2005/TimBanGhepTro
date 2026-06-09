@@ -732,6 +732,9 @@ export default function App() {
   };
 
   const handleDeleteRoommate = async (id: string) => {
+    console.log('[App] Starting delete for ID:', id);
+    console.log('[App] Currently selectedRoommate:', selectedRoommate?.id);
+    
     // 1. Check if this is a user profile (is_listing = false) - should not be deleted
     if (import.meta.env.VITE_SUPABASE_URL) {
       const { data: roommateData, error: fetchError } = await supabase.from('roommates').select('is_listing, user_id, name').eq('id', id).single();
@@ -748,10 +751,9 @@ export default function App() {
       console.log('[Delete] Allowed to delete - is_listing:', roommateData?.is_listing);
     }
     
-    // 2. Close modal if viewing this roommate
-    if (selectedRoommate?.id === id) {
-      setSelectedRoommate(null);
-    }
+    // 2. Close modal if viewing this roommate - DO THIS FIRST!
+    console.log('[App] Clearing selectedRoommate, current:', selectedRoommate?.id, 'deleting:', id);
+    setSelectedRoommate(null);
     
     // 3. Remove from local fallback
     const saved = localStorage.getItem("roomiematch_posted_roommates");
