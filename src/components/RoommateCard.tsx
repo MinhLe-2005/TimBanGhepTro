@@ -83,6 +83,7 @@ export default function RoommateCard({
               <button
                 onClick={async (e) => { 
                   e.stopPropagation(); 
+                  console.log('[RoommateCard] Delete button clicked for:', roommate.id);
                   const confirmed = await confirm({
                     title: "Xóa tin đăng",
                     message: "Bạn có chắc chắn muốn xóa tin đăng này không?",
@@ -90,7 +91,11 @@ export default function RoommateCard({
                     cancelText: "Hủy",
                     type: "danger"
                   });
-                  if (confirmed) onDelete(roommate.id);
+                  console.log('[RoommateCard] Delete confirmed:', confirmed);
+                  if (confirmed) {
+                    console.log('[RoommateCard] Calling onDelete for:', roommate.id);
+                    onDelete(roommate.id);
+                  }
                 }}
                 className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold shadow-md transition-all duration-200"
               >
