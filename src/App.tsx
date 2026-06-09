@@ -956,10 +956,11 @@ export default function App() {
         return {
           ...r,
           budget: r.budget || 0,
-          matchScore: isOwner ? 100 : normalized,
+          matchScore: isOwner && !r.is_listing ? 100 : normalized,
           reviews: [...dbReviews, ...(r.reviews || [])],
-          avatar: isOwner ? currentUserProfile.avatar : r.avatar,
-          name: isOwner ? currentUserProfile.name : r.name,
+          // CRITICAL FIX: Keep listing avatar even if user owns it - don't mix with profile avatar
+          avatar: (isOwner && !r.is_listing) ? currentUserProfile.avatar : r.avatar,
+          name: (isOwner && !r.is_listing) ? currentUserProfile.name : r.name,
           postedBy: isOwner && currentUser ? currentUser.id : r.postedBy,
         };
       });
