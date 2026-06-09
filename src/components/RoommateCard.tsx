@@ -68,46 +68,46 @@ export default function RoommateCard({
           </button>
         )}
 
-        {/* Owner actions */}
-        {currentUserId && (roommate.postedBy === currentUserId || roommate.user_id === currentUserId) && (
-          <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
-            {onEdit && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onEdit(roommate); }}
-                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 hover:bg-white text-[#006590] text-[11px] font-bold shadow-md transition-all duration-200"
-              >
-                Sửa tin
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={async (e) => { 
-                  e.stopPropagation(); 
-                  console.log('[RoommateCard] Delete button clicked for:', roommate.id);
-                  const confirmed = await confirm({
-                    title: "Xóa tin đăng",
-                    message: "Bạn có chắc chắn muốn xóa tin đăng này không?",
-                    confirmText: "Xóa",
-                    cancelText: "Hủy",
-                    type: "danger"
-                  });
-                  console.log('[RoommateCard] Delete confirmed:', confirmed);
-                  if (confirmed) {
-                    console.log('[RoommateCard] Calling onDelete for:', roommate.id);
-                    onDelete(roommate.id);
-                  }
-                }}
-                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold shadow-md transition-all duration-200"
-              >
-                <Trash2 className="h-3 w-3" />
-                Xóa tin
-              </button>
-            )}
-          </div>
-        )}
-
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/10 via-transparent to-transparent opacity-60 pointer-events-none" />
       </div>
+
+      {/* Owner actions - centered below image */}
+      {currentUserId && (roommate.postedBy === currentUserId || roommate.user_id === currentUserId) && (
+        <div className="flex justify-center gap-2 px-3 py-3 bg-slate-50 border-b border-slate-100">
+          {onEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(roommate); }}
+              className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-blue-50 text-[#006590] text-[12px] font-bold shadow-sm border border-blue-200 transition-all duration-200"
+            >
+              Sửa tin
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={async (e) => { 
+                e.stopPropagation(); 
+                console.log('[RoommateCard] Delete button clicked for:', roommate.id);
+                const confirmed = await confirm({
+                  title: "Xóa tin đăng",
+                  message: "Bạn có chắc chắn muốn xóa tin đăng này không?",
+                  confirmText: "Xóa",
+                  cancelText: "Hủy",
+                  type: "danger"
+                });
+                console.log('[RoommateCard] Delete confirmed:', confirmed);
+                if (confirmed) {
+                  console.log('[RoommateCard] Calling onDelete for:', roommate.id);
+                  onDelete(roommate.id);
+                }
+              }}
+              className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-red-50 hover:bg-red-100 text-red-600 text-[12px] font-bold shadow-sm border border-red-200 transition-all duration-200"
+            >
+              <Trash2 className="h-4 w-4" />
+              Xóa tin
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Profile Metadata */}
       <div className="p-5 flex flex-col flex-1">
