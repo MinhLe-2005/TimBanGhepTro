@@ -768,6 +768,7 @@ export default function App() {
   // Modal display states
   const [selectedRoommate, setSelectedRoommate] = useState<Roommate | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [roomUserHasSignedAgreement, setRoomUserHasSignedAgreement] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const requireAuth = async () => {
@@ -798,6 +799,17 @@ export default function App() {
       }
     }
   }, [roommates, selectedRoommate]);
+
+  // Check if user has signed agreement with room host when room modal opens
+  useEffect(() => {
+    if (selectedRoom && currentUser) {
+      checkHasSignedAgreement(selectedRoom.postedBy || selectedRoom.id).then(hasAgreement => {
+        setRoomUserHasSignedAgreement(hasAgreement);
+      });
+    } else {
+      setRoomUserHasSignedAgreement(false);
+    }
+  }, [selectedRoom?.id, currentUser?.id]);
 
   // Browser History & Navigation Management
   const wasModalOpen = useRef(false);
@@ -1288,6 +1300,41 @@ export default function App() {
     return true;
   };
 
+  // Check if currentUser has signed an agreement with the room host
+  const checkHasSignedAgreement = async (roomHostId: string) => {
+    if (!currentUser || !roomHostId) return false;
+    
+    try {
+      const myAuthId = currentUser.id;
+      
+      // Query messages table for signed agreements between current user and room host
+      const { data } = await supabase
+        .from('messages')
+        .select('text')
+        .like('chat_id', `%${myAuthId}%`)
+        .like('text', '%[AGREEMENT_SIGNED]%');
+      
+      if (!data || data.length === 0) return false;
+      
+      // Parse agreements and check if any are signed with the room host
+      for (const msg of data) {
+        try {
+          const payload = JSON.parse(msg.text.replace('[AGREEMENT_SIGNED]', '').trim());
+          if (payload.status === 'signed') {
+            return true; // Found at least one signed agreement
+          }
+        } catch(e) {
+          // Skip parsing errors
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('[App] Error checking signed agreements:', error);
+      return false;
+    }
+  };
+
   const handleAddRoomReview = async (roomId: string, review: { reviewerName: string; rating: number; comment: string; images: string[] }) => {
     const isAuth = await requireAuth();
     if (!isAuth) return false;
@@ -1568,6 +1615,7 @@ export default function App() {
           onInquire={handleRoomInquiry}
           onAddReview={handleAddRoomReview}
           isOwnProfile={!!currentUser && (selectedRoom.postedBy === currentUser.id || (selectedRoom as any).user_id === currentUser.id)}
+          hasSignedAgreement={roomUserHasSignedAgreement}
           onDeleteRoom={(id) => {
             handleDeleteRoom(id);
             setSelectedRoom(null);

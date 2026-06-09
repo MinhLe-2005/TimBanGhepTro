@@ -14,9 +14,10 @@ interface RoomModalProps {
   isAdmin?: boolean;
   onViewHostProfile?: (roommate: Roommate) => void;
   onNavigateToTab?: (tab: string) => void;
+  hasSignedAgreement?: boolean;
 }
 
-export default function RoomModal({ room, onClose, onInquire, onAddReview, roommates = [], isOwnProfile = false, onDeleteRoom, onEditRoom, isAdmin = false, onViewHostProfile, onNavigateToTab }: RoomModalProps) {
+export default function RoomModal({ room, onClose, onInquire, onAddReview, roommates = [], isOwnProfile = false, onDeleteRoom, onEditRoom, isAdmin = false, onViewHostProfile, onNavigateToTab, hasSignedAgreement = false }: RoomModalProps) {
   if (!room) return null;
 
   // Try to find matching roommate profile, but prioritize room's host data
@@ -526,7 +527,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
             </div>
 
             {/* Create review input form matching instructions */}
-            {(onAddReview && !isOwnProfile) && (
+            {(onAddReview && !isOwnProfile && hasSignedAgreement) && (
               <div className="bg-white border-2 border-slate-100 rounded-3xl p-5 sm:p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-5">
                 <h5 className="text-[13px] font-black text-[#006590] uppercase tracking-wider flex items-center gap-2">
                   <Star className="h-4 w-4" />
