@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 interface ReactionDetailsModalProps {
@@ -21,6 +23,22 @@ export default function ReactionDetailsModal({
   partnerId,
   onRemoveReaction,
 }: ReactionDetailsModalProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   // Get all reactions with counts
@@ -35,19 +53,22 @@ export default function ReactionDetailsModal({
     users.map(userId => ({ userId, emoji }))
   );
 
-  return (
-    <>
-      {/* Backdrop - darker */}
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-[2px]"
+      onClick={onClose}
+      role="presentation"
+    >
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] animate-fade-in"
-        onClick={onClose}
-      />
-
-      {/* Modal - centered on screen */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-[100] animate-fade-in mx-4">
+        className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-[0_24px_80px_rgba(15,23,42,0.30)] animate-fade-in"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reaction-details-title"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
-          <h3 className="text-lg font-bold text-slate-800">Cảm xúc về tin nhắn</h3>
+          <h3 id="reaction-details-title" className="text-lg font-bold text-slate-800">Cảm xúc về tin nhắn</h3>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
@@ -115,6 +136,7 @@ export default function ReactionDetailsModal({
           })}
         </div>
       </div>
-    </>
+    </div>,
+    document.body
   );
 }

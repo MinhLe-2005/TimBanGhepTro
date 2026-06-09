@@ -29,9 +29,24 @@ export default function MessageReactions({
   const [showPicker, setShowPicker] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
+  // Keep only the latest emoji for each user. This also cleans up old duplicated data.
+  const latestReactionByUser = new Map<string, string>();
+  Object.entries(reactions).forEach(([emoji, users]) => {
+    users.forEach((userId) => latestReactionByUser.set(userId, emoji));
+  });
+
+  const normalizedReactions = Object.entries(reactions).reduce<Record<string, string[]>>(
+    (result, [emoji, users]) => {
+      const latestUsers = users.filter((userId) => latestReactionByUser.get(userId) === emoji);
+      if (latestUsers.length > 0) result[emoji] = latestUsers;
+      return result;
+    },
+    {}
+  );
+
   // Check if current user has reacted (with any emoji)
   const getUserReaction = (): string | null => {
-    for (const [emoji, users] of Object.entries(reactions)) {
+    for (const [emoji, users] of Object.entries(normalizedReactions)) {
       if (users.includes(currentUserId)) {
         return emoji;
       }
@@ -46,18 +61,14 @@ export default function MessageReactions({
     if (currentUserReaction === emoji) {
       onRemoveReaction(emoji);
     } else {
-      // If user reacted with different emoji, remove old one first
-      if (currentUserReaction) {
-        onRemoveReaction(currentUserReaction);
-      }
-      // Add new reaction
+      // The update handler replaces any previous reaction in one database request.
       onAddReaction(emoji);
     }
     setShowPicker(false);
   };
 
   // Get sorted reactions (by count, descending)
-  const sortedReactions = Object.entries(reactions)
+  const sortedReactions = Object.entries(normalizedReactions)
     .filter(([_, users]) => users.length > 0)
     .sort(([, a], [, b]) => b.length - a.length);
 
@@ -128,7 +139,7 @@ export default function MessageReactions({
       <ReactionDetailsModal
         isOpen={showDetailsModal}
         onClose={() => setShowDetailsModal(false)}
-        reactions={reactions}
+        reactions={normalizedReactions}
         currentUserId={currentUserId}
         currentUserName={currentUserName}
         partnerName={partnerName}

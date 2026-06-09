@@ -113,6 +113,7 @@ export default function ChatView({
   // Signature modal for agreement signing
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [signatureName, setSignatureName] = useState("");
+  const [isSigningAgreement, setIsSigningAgreement] = useState(false);
 
   const handleSendReport = async () => {
     if (!reportReason.trim() || !reportImageFile) {
@@ -219,20 +220,26 @@ export default function ChatView({
         .single();
 
       const currentReactions = message?.reactions || {};
-      const currentUsers = currentReactions[emoji] || [];
-      
-      // Add user to reaction if not already reacted
-      if (!currentUsers.includes(currentUser.id)) {
-        const updatedReactions = {
-          ...currentReactions,
-          [emoji]: [...currentUsers, currentUser.id]
-        };
+      const updatedReactions = Object.entries(currentReactions).reduce<Record<string, string[]>>(
+        (result, [reactionEmoji, users]) => {
+          const remainingUsers = (users as string[]).filter((userId) => userId !== currentUser.id);
+          if (remainingUsers.length > 0) result[reactionEmoji] = remainingUsers;
+          return result;
+        },
+        {}
+      );
 
-        await supabase
-          .from('messages')
-          .update({ reactions: updatedReactions })
-          .eq('id', messageId);
-      }
+      updatedReactions[emoji] = [
+        ...(updatedReactions[emoji] || []),
+        currentUser.id,
+      ];
+
+      const { error } = await supabase
+        .from('messages')
+        .update({ reactions: updatedReactions })
+        .eq('id', messageId);
+
+      if (error) throw error;
     } catch (error) {
       console.error('Error adding reaction:', error);
     }
@@ -959,7 +966,6 @@ export default function ChatView({
 
         {/* Inbox chat list wrapper */}
         <div className="flex-grow overflow-y-auto p-3 space-y-1.5 scrollbar-thin">
-          {console.log('[Chat] Rendering inbox, conversations:', conversations.length, 'showHidden:', showHiddenChats, 'showBlocked:', showBlockedUsers) && false}
           {conversations.length === 0 ? (
             <div className="text-center py-8 text-slate-400 font-medium text-sm">
               Chưa có cuộc trò chuyện nào.
@@ -2274,7 +2280,7 @@ export default function ChatView({
                 onClick={async () => {
                   // Validate signature name
                   if (!signatureName.trim()) {
-                    alert("Vui lòng nhập họ và tên đầy đủ!");
+                    toast("Vui lòng nhập họ và tên đầy đủ!", "warning");
                     return;
                   }
 
@@ -2283,12 +2289,13 @@ export default function ChatView({
                   const normalizedProfile = currentUserProfile?.name?.trim().toLowerCase().replace(/\s+/g, ' ');
                   
                   if (normalizedSignature !== normalizedProfile) {
-                    alert(`Tên không khớp! Vui lòng nhập đúng tên trong hồ sơ: "${currentUserProfile?.name}"`);
+                    toast(`Tên không khớp! Vui lòng nhập đúng tên trong hồ sơ: "${currentUserProfile?.name}"`, "warning");
                     return;
                   }
 
                   // All validation passed - proceed with signing
                   try {
+                    setIsSigningAgreement(true);
                     const signedPayload = {
                       ...agreementModalPayload,
                       status: 'signed',
@@ -2301,6 +2308,12 @@ export default function ChatView({
                     // CRITICAL FIX: Use auth UUID consistently
                     const myChatId = currentUser?.id || currentUserProfile?.id;
                     const partnerChatId = activeRoommate?.user_id || activeRoommate?.auth_id || activeRoommate?.id;
+
+                    if (!myChatId || !partnerChatId) {
+                      toast("Không xác định được tài khoản của hai bên. Vui lòng tải lại trang.", "error");
+                      return;
+                    }
+
                     const chatId = [myChatId, partnerChatId].sort().join('_');
 
                     console.log('[Signature] Signing agreement:', {
@@ -2311,7 +2324,6 @@ export default function ChatView({
                     });
 
                     const { error } = await supabase.from('messages').insert({
-                      id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
                       chat_id: chatId,
                       sender_id: myChatId,
                       text: `[AGREEMENT_SIGNED] ${JSON.stringify(signedPayload)}`
@@ -2319,16 +2331,20 @@ export default function ChatView({
 
                     if (error) {
                       console.error('[Signature] Error signing agreement:', error);
-                      alert('Lỗi khi ký kết thỏa thuận! Vui lòng thử lại.');
+                      toast(`Không thể ký thỏa thuận: ${error.message}`, "error");
                       return;
                     }
 
                     // Update roommate status to "Đã tìm được"
-                    await supabase.from('roommates')
+                    const { error: statusError } = await supabase.from('roommates')
                       .update({ status: 'Đã tìm được' })
                       .in('user_id', [myChatId, partnerChatId]);
 
-                    alert('✅ Ký kết thành công! Thỏa thuận đã có hiệu lực.');
+                    if (statusError) {
+                      console.warn('[Signature] Agreement signed but roommate status update failed:', statusError);
+                    }
+
+                    toast('Ký kết thành công! Thỏa thuận đã có hiệu lực.', "success");
                     
                     // Close modals
                     setIsSignatureModalOpen(false);
@@ -2337,13 +2353,20 @@ export default function ChatView({
                     setAgreementModalPayload(null);
                   } catch (err) {
                     console.error('[Signature] Unexpected error:', err);
-                    alert('Lỗi không xác định! Vui lòng thử lại.');
+                    toast('Lỗi không xác định khi ký thỏa thuận. Vui lòng thử lại.', "error");
+                  } finally {
+                    setIsSigningAgreement(false);
                   }
                 }}
-                className="flex-1 py-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+                disabled={isSigningAgreement}
+                className="flex-1 py-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 disabled:cursor-not-allowed disabled:opacity-60 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
               >
-                <Check className="h-5 w-5" />
-                Xác nhận ký
+                {isSigningAgreement ? (
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                ) : (
+                  <Check className="h-5 w-5" />
+                )}
+                {isSigningAgreement ? "Đang ký..." : "Xác nhận ký"}
               </button>
             </div>
           </div>
