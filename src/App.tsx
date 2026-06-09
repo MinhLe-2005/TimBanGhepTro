@@ -411,6 +411,55 @@ export default function App() {
     return result;
   }, [supabaseRoommates, roommates]);
 
+  // Merge local rooms with Supabase rooms (deduplicate by id)
+  const allRooms = useMemo(() => {
+    const combined = [...supabaseRooms, ...rooms];
+    console.log('[App] Merging rooms:', {
+      supabaseCount: supabaseRooms.length,
+      localCount: rooms.length,
+      combinedCount: combined.length
+    });
+    
+    const uniqueByIdMap = new Map();
+    
+    combined.forEach(r => {
+      // If same ID appears twice, prefer Supabase version (most up-to-date)
+      if (!uniqueByIdMap.has(r.id) || supabaseRooms.some(sr => sr.id === r.id)) {
+        uniqueByIdMap.set(r.id, r);
+      }
+    });
+    
+    let result = Array.from(uniqueByIdMap.values());
+
+    // Update with current user's avatar if they own the room
+    if (currentUserProfile) {
+      result = result.map(r => {
+        const isOwner = (currentUser && r.postedBy === currentUser.id) || (r.user_id === currentUser?.id);
+        return {
+          ...r,
+          price: r.price || 0,
+          hostAvatar: isOwner ? currentUserProfile.avatar : r.hostAvatar,
+          hostName: isOwner ? currentUserProfile.name : r.hostName,
+          postedBy: isOwner && currentUser ? currentUser.id : (r.postedBy || r.user_id),
+        };
+      });
+    }
+
+    // Sort: newest first by createdAt
+    result.sort((a, b) => {
+      const getTs = (r: any): number => {
+        if (r.createdAt) {
+          const d = new Date(r.createdAt);
+          if (!isNaN(d.getTime())) return d.getTime();
+        }
+        return 0;
+      };
+      return getTs(b) - getTs(a);
+    });
+
+    return result;
+  }, [supabaseRooms, rooms, currentUserProfile, currentUser]);
+
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [postModalInitialTab, setPostModalInitialTab] = useState<"roommate" | "room">("roommate");
 
