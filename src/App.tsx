@@ -615,6 +615,26 @@ export default function App() {
           error = (await supabase.from('roommates').update(dbRoommateFallback).eq('id', editingListingData.id)).error;
         }
         if (error) console.error("Error updating roommate to Supabase:", error);
+        
+        // SYNC: Nếu status thay đổi trong listing → cập nhật status trong profile luôn
+        if (updatedRoommate.status && currentUserProfile?.status !== updatedRoommate.status) {
+          console.log('[App] Syncing status from listing to profile:', updatedRoommate.status);
+          
+          const profileUpdateData: any = { status: updatedRoommate.status };
+          
+          // Update profile in Supabase
+          await supabase.from('roommates')
+            .update(profileUpdateData)
+            .eq('user_id', currentUser?.id)
+            .eq('is_listing', false);
+          
+          // Update local profile
+          if (currentUserProfile) {
+            const updatedProfile = { ...currentUserProfile, status: updatedRoommate.status };
+            setCurrentUserProfile(updatedProfile);
+            localStorage.setItem("roomiematch_user_profile", JSON.stringify(updatedProfile));
+          }
+        }
       }
       setEditingListingData(null);
       return;

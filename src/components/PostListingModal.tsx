@@ -90,7 +90,7 @@ export default function PostListingModal({
   const [rmBudget, setRmBudget] = useState("");
   const [rmPhone, setRmPhone] = useState("");
   const [rmBio, setRmBio] = useState("");
-  const [rmStatus, setRmStatus] = useState<"Đã có phòng" | "Chưa có phòng">("Chưa có phòng");
+  const [rmStatus, setRmStatus] = useState<"Đang tìm" | "Đang trao đổi" | "Đã tìm được">("Đang tìm");
   const [rmAvatar, setRmAvatar] = useState(AVATAR_PRESETS[0]);
   const [rmType, setRmType] = useState("Phòng trọ");
 
@@ -157,7 +157,7 @@ export default function PostListingModal({
         setRmBudget(editingData.budget?.toString() || "");
         setRmPhone(editingData.phoneNumber || "");
         setRmBio(editingData.bio || "");
-        setRmStatus(editingData.status || "Chưa có phòng");
+        setRmStatus(editingData.status || "Đang tìm");
         setRmAvatar(editingData.avatar || AVATAR_PRESETS[0]);
         setRmType(editingData.type || "Phòng trọ");
         if (editingData.lifestyle) {
@@ -483,11 +483,12 @@ export default function PostListingModal({
                         </select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="block text-[13px] font-semibold text-slate-700">Tình trạng</label>
+                        <label className="block text-[13px] font-semibold text-slate-700">Trạng thái ghép đôi</label>
                         <select value={rmStatus} onChange={(e) => setRmStatus(e.target.value as any)}
                           className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 transition-all cursor-pointer">
-                          <option value="Chưa có phòng">Chưa có phòng</option>
-                          <option value="Đã có phòng">Đã có phòng</option>
+                          <option value="Đang tìm">🟢 Đang tìm roommate</option>
+                          <option value="Đang trao đổi">🟡 Đang trao đổi với ai đó</option>
+                          <option value="Đã tìm được">🔴 Đã tìm được roommate</option>
                         </select>
                       </div>
                     </div>
