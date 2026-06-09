@@ -260,7 +260,23 @@ export default function ChatView({
   const myProfileId = currentUserProfile?.id;
   // Luôn dùng Auth UUID cho chat_id để đồng bộ mọi thiết bị
   const myChatId = myAuthId || myProfileId;
-  const chatId = myChatId && activeRoommateId ? [myChatId, activeRoommateId].sort().join("_") : null;
+  
+  // CRITICAL: Normalize activeRoommateId to auth UUID for consistent chat_id
+  const partnerChatId = useMemo(() => {
+    if (!activeRoommate) return activeRoommateId;
+    // Priority: user_id (auth UUID) > auth_id > id (profile ID)
+    return activeRoommate.user_id || activeRoommate.auth_id || activeRoommate.id || activeRoommateId;
+  }, [activeRoommate, activeRoommateId]);
+  
+  const chatId = myChatId && partnerChatId ? [myChatId, partnerChatId].sort().join("_") : null;
+  
+  console.log('[Chat] Chat IDs:', {
+    myChatId,
+    activeRoommateId,
+    partnerChatId,
+    finalChatId: chatId,
+    activeRoommateName: activeRoommate?.name
+  });
   useEffect(() => {
     if (!activeRoommateId || !activeRoommate || !import.meta.env.VITE_SUPABASE_URL) return;
 
