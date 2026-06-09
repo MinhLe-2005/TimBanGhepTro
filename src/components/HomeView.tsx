@@ -461,6 +461,7 @@ export default function HomeView({
               <div key={`${rm.id}-${index}`} className="shrink-0 snap-start w-[82%] sm:w-[calc(50%-8px)] md:w-[calc(33.333%-11px)] lg:w-[calc(25%-12px)] xl:w-[calc(20%-13px)]">
                 <RoommateCard
                   roommate={rm}
+                  compact
                   onViewDetails={onViewRoommate}
                   onLikeChange={isAdmin ? undefined : onLikeRoommate}
                   isInitiallyLiked={likedRoommateIds.includes(rm.id)}

@@ -14,6 +14,7 @@ interface RoommateCardProps {
   onDelete?: (id: string) => void;
   onClearSelectedRoommate?: () => void;
   currentUserId?: string;
+  compact?: boolean;
 }
 
 export default function RoommateCard({
@@ -26,6 +27,7 @@ export default function RoommateCard({
   onDelete,
   onClearSelectedRoommate,
   currentUserId,
+  compact = false,
 }: RoommateCardProps) {
   const [isLiked, setIsLiked] = useState(isInitiallyLiked);
   const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
@@ -52,7 +54,7 @@ export default function RoommateCard({
       className="group relative flex flex-col h-full bg-white rounded-[24px] overflow-hidden border border-slate-100 cursor-pointer shadow-[0_4px_20px_rgba(15,23,42,0.04)] hover:shadow-[0_15px_35px_rgba(15,23,42,0.08)] hover:-translate-y-1 transition-all duration-300"
     >
       {/* Profile Image & Top Badges */}
-      <div className="relative aspect-[4/5] overflow-hidden bg-slate-50 shrink-0">
+      <div className={`relative overflow-hidden bg-slate-50 shrink-0 ${compact ? "aspect-[4/3]" : "aspect-[4/5]"}`}>
         <img
           src={roommate.avatar}
           alt={roommate.name}
@@ -120,10 +122,10 @@ export default function RoommateCard({
       </div>
 
       {/* Profile Metadata */}
-      <div className="p-5 flex flex-col flex-1">
+      <div className={`${compact ? "p-4" : "p-5"} flex flex-col flex-1`}>
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-1.5 overflow-hidden">
-            <h3 className="text-xl font-bold text-slate-900 tracking-tight truncate">
+            <h3 className={`${compact ? "text-[17px]" : "text-xl"} font-bold text-slate-900 tracking-tight truncate`}>
               {roommate.name}, {roommate.age}
             </h3>
           </div>
@@ -144,7 +146,7 @@ export default function RoommateCard({
         </div>
 
         {/* Detailed Info Grid */}
-        <div className="grid grid-cols-2 gap-y-1.5 gap-x-2 text-[12px] mb-3">
+        <div className={`grid grid-cols-2 gap-y-1.5 gap-x-2 text-[12px] ${compact ? "mb-2" : "mb-3"}`}>
           <div className="flex items-center gap-1.5 text-slate-600 truncate">
             <span className="font-semibold text-slate-400 shrink-0">Giới tính:</span> {roommate.gender}
           </div>
@@ -157,19 +159,23 @@ export default function RoommateCard({
           <div className="flex items-center gap-1.5 text-slate-600 truncate">
             <span className="font-semibold text-slate-400 shrink-0">Loại hình:</span> {roommate.type}
           </div>
-          <div className="flex items-center gap-1.5 text-slate-600 truncate col-span-2">
-            <span className="font-semibold text-slate-400 shrink-0">SĐT:</span> 
-            <span className="bg-slate-100 px-1.5 rounded text-slate-500 font-mono text-[10px] tracking-widest">{roommate.phoneNumber ? roommate.phoneNumber.replace(/\d{3}\s?\d{3}$/, '*** ***') : '09** *** ***'}</span>
-          </div>
+          {!compact && (
+            <div className="flex items-center gap-1.5 text-slate-600 truncate col-span-2">
+              <span className="font-semibold text-slate-400 shrink-0">SĐT:</span>
+              <span className="bg-slate-100 px-1.5 rounded text-slate-500 font-mono text-[10px] tracking-widest">{roommate.phoneNumber ? roommate.phoneNumber.replace(/\d{3}\s?\d{3}$/, '*** ***') : '09** *** ***'}</span>
+            </div>
+          )}
         </div>
 
         {/* Short Bio */}
-        <div className="text-[11px] text-slate-500 italic line-clamp-2 mb-3 bg-slate-50 p-2 rounded-lg border border-slate-100 leading-relaxed">
-          "{roommate.bio}"
-        </div>
+        {!compact && (
+          <div className="text-[11px] text-slate-500 italic line-clamp-2 mb-3 bg-slate-50 p-2 rounded-lg border border-slate-100 leading-relaxed">
+            "{roommate.bio}"
+          </div>
+        )}
 
         {/* Status Box */}
-        <div className={`mb-3 w-fit text-[11px] font-bold px-2.5 py-1 rounded-md flex items-center gap-2 ${
+        <div className={`${compact ? "mb-0 mt-1" : "mb-3"} w-fit text-[11px] font-bold px-2.5 py-1 rounded-md flex items-center gap-2 ${
           roommate.status === "Đã tìm được"
             ? "bg-red-50/80 text-red-700 border border-red-100/50"
             : roommate.status === "Đang trao đổi"
@@ -196,7 +202,7 @@ export default function RoommateCard({
         </div>
 
         {/* Lifestyle Tags - Compact */}
-        <div className="mt-auto border-t border-slate-100 pt-3 flex items-center justify-between">
+        {!compact && <div className="mt-auto border-t border-slate-100 pt-3 flex items-center justify-between">
           <div className="flex items-center flex-wrap gap-1.5">
             {roommate.tags.slice(0, 2).map((tag, idx) => (
               <span
@@ -208,7 +214,7 @@ export default function RoommateCard({
             ))}
           </div>
           <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">Nhấn xem chi tiết</span>
-        </div>
+        </div>}
       </div>
       
       {/* Confirm Dialog */}
