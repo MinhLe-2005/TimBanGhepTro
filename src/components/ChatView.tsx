@@ -535,26 +535,29 @@ export default function ChatView({
           
           // Batch fetch ALL fields from roommates table (has full data)
           // Priority: roommates (full data with budget, lifestyle, bio) > profiles (basic data only)
-          const [roommatesById, roommatesByUserId, profilesById, profilesByAuthId] = await Promise.all([
+          const [roommatesById, roommatesByUserId, profilesById, profilesByAuthId, roommates_auth_id] = await Promise.all([
             supabase.from('roommates').select('*').in('id', partnerArr),
             supabase.from('roommates').select('*').in('user_id', partnerArr),
             supabase.from('profiles').select('*').in('id', partnerArr),
-            supabase.from('profiles').select('*').in('auth_id', partnerArr)
+            supabase.from('profiles').select('*').in('auth_id', partnerArr),
+            supabase.from('roommates').select('*').in('auth_id', partnerArr)
           ]);
           
           console.log('[Chat] Fetch results:', {
             roommatesById: roommatesById.data?.length,
             roommatesByUserId: roommatesByUserId.data?.length,
             profilesById: profilesById.data?.length,
-            profilesByAuthId: profilesByAuthId.data?.length
+            profilesByAuthId: profilesByAuthId.data?.length,
+            roommates_auth_id: roommates_auth_id.data?.length
           });
           
           // Map roommates first (priority - has full lifestyle, bio, budget, etc.)
-          [...(roommatesById.data || []), ...(roommatesByUserId.data || [])].forEach(r => {
+          [...(roommatesById.data || []), ...(roommatesByUserId.data || []), ...(roommates_auth_id.data || [])].forEach(r => {
             console.log('[Chat] Roommate from DB:', {
               id: r.id,
               name: r.name,
               user_id: r.user_id,
+              auth_id: r.auth_id,
               budget: r.budget,
               hasLifestyle: !!r.lifestyle,
               bio: r.bio?.substring(0, 30),
@@ -563,6 +566,7 @@ export default function ChatView({
             });
             if (!dbPartnerMap.has(r.id)) dbPartnerMap.set(r.id, r);
             if (r.user_id && !dbPartnerMap.has(r.user_id)) dbPartnerMap.set(r.user_id, r);
+            if (r.auth_id && !dbPartnerMap.has(r.auth_id)) dbPartnerMap.set(r.auth_id, r);
           });
           
           console.log('[Chat] Found in roommates table:', dbPartnerMap.size);
@@ -592,12 +596,12 @@ export default function ChatView({
           console.log('[Chat] Processing message from partner:', partnerId, 'existing:', conversationMap.has(partnerId));
 
           // Try to get partner - PRIORITIZE database over props
-          // 1. Try database first (most up-to-date)
+          // 1. Try database first (most up-to-date) - check by all ID types
           let partner = dbPartnerMap.get(partnerId);
           
-          // 2. Fallback to roommates list from props
+          // 2. Fallback: try from roommates list from props
           if (!partner) {
-            partner = roommates.find(r => r.id === partnerId || r.user_id === partnerId);
+            partner = roommates.find(r => r.id === partnerId || r.user_id === partnerId || r.auth_id === partnerId);
           }
           
           if (!partner) {
@@ -605,6 +609,8 @@ export default function ChatView({
             // Default fallback (should rarely happen)
             partner = { 
               id: partnerId, 
+              user_id: partnerId,
+              auth_id: partnerId,
               name: 'Người dùng', 
               avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop', 
               role: 'Thành viên', 
@@ -651,11 +657,13 @@ export default function ChatView({
             partner.bio = '';
           }
           
-          // NORMALIZE to a single canonical ID - ALWAYS use partner.id (most stable)
-          // This ensures all messages from the same person use the same key
-          const canonicalId = partner.id || partnerId;
+          // NORMALIZE to a single canonical ID
+          // Use partnerId (from chat_id split) as the key since:
+          // - It's what's actually in the messages
+          // - partner.id may be different if partner is retrieved from different tables
+          const canonicalId = partnerId;
           
-          console.log('[Chat] Canonical ID for', partner.name, ':', canonicalId, '(from partnerId:', partnerId, ')');
+          console.log('[Chat] Canonical ID for', partner.name, ':', canonicalId, '(from partnerId)');
           
           // Check if this canonical ID already has a conversation
           if (conversationMap.has(canonicalId)) {
@@ -664,6 +672,7 @@ export default function ChatView({
             if (new Date(msg.timestamp) > new Date(existing.timestamp)) {
               conversationMap.set(canonicalId, {
                 partner,
+                partnerId: canonicalId,
                 lastMessage: msg.text || 'Đã gửi đính kèm',
                 timestamp: msg.timestamp,
                 chatId: msg.chat_id
@@ -674,6 +683,7 @@ export default function ChatView({
             // New conversation - use canonical ID
             conversationMap.set(canonicalId, {
               partner,
+              partnerId: canonicalId, // Store canonical ID in conversation
               lastMessage: msg.text || 'Đã gửi đính kèm',
               timestamp: msg.timestamp,
               chatId: msg.chat_id
@@ -687,8 +697,8 @@ export default function ChatView({
           let activePartner = roommates.find(r => r.id === activeRoommateId || r.user_id === activeRoommateId) || dbPartnerMap.get(activeRoommateId);
           
           if (activePartner) {
-            // Normalize to canonical ID - ALWAYS use partner.id
-            const canonicalId = activePartner.id || activeRoommateId;
+            // Use activeRoommateId as canonical key (it's from user selection)
+            const canonicalId = activeRoommateId;
             
             if (!conversationMap.has(canonicalId)) {
               // Ensure partner has complete data structure
@@ -704,6 +714,7 @@ export default function ChatView({
               
               conversationMap.set(canonicalId, {
                 partner: activePartner,
+                partnerId: canonicalId,
                 lastMessage: 'Bắt đầu cuộc trò chuyện...',
                 timestamp: new Date().toISOString(),
                 chatId: [myAuthId, activeRoommateId].sort().join('_')
@@ -729,8 +740,8 @@ export default function ChatView({
           let changed = false;
           
           conversationsArray.forEach(conv => {
-            // ALWAYS use partner.id as key
-            const partnerId = conv.partner.id;
+            // Use canonical ID from conversation
+            const partnerId = conv.partnerId || conv.partner.id;
             const hideTimestamp = hiddenMap[partnerId];
             
             if (hideTimestamp) {
@@ -1002,8 +1013,8 @@ export default function ChatView({
                   return false;
                 }
                 // Filter by tab: show hidden or active
-                // ALWAYS use partner.id as canonical ID (most stable identifier)
-                const partnerId = conv.partner.id;
+                // Use the canonical ID stored in conversation
+                const partnerId = conv.partnerId || conv.partner.id;
                 const isHidden = !!hiddenConversations[partnerId];
                 const isBlocked = blockedUsers.includes(partnerId);
                 
@@ -1016,8 +1027,8 @@ export default function ChatView({
               const r = conv.partner;
               const isActive = r.id === activeRoommateId;
               const lastMsg = conv.lastMessage;
-              // ALWAYS use partner.id as canonical ID for consistency
-              const partnerId = r.id;
+              // Use canonical ID from conversation
+              const partnerId = conv.partnerId || r.id;
               const hasAgreement = conversationsWithAgreements[partnerId];
               const isHidden = !!hiddenConversations[partnerId];
               
