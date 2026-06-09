@@ -1724,7 +1724,7 @@ export default function ChatView({
                       >
                         Đóng
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 </>
               ) : (
