@@ -240,8 +240,12 @@ export default function AgreementView({
     if (localPendingPayload) {
       applyLoadedFields(localPendingPayload.rules);
       setOtherNotesText(localPendingPayload.rules.otherNotes || "");
-      if (localPendingPayload.status === 'signed' || localPendingPayload.sender_id !== currentUserProfile?.id) {
-         setIsSigned(true); // Lock form if signed or if received from partner
+      // Logic khóa form dựa vào status:
+      // - 'signed': form bị khóa hoàn toàn, không edit
+      // - 'pending' và gửi từ bên kia (sender_id khác): form editable nhưng không ký ngay, chỉ có thể từ chối hoặc sửa
+      // - 'pending' và tạo bởi mình: form editable, chờ bên kia ký
+      if (localPendingPayload.status === 'signed') {
+         setIsSigned(true); // Lock form if signed
       }
       if (localPendingPayload.status === 'signed') {
          setSignedDate(new Date(localPendingPayload.timestamp).toLocaleDateString("vi-VN", {
@@ -453,10 +457,11 @@ export default function AgreementView({
       messagePrefix = "[AGREEMENT_DRAFT]";
     }
 
-    const chatId = [currentUserProfile.id, matchedRoommate.id].sort().join('_');
+    // CRITICAL: Use auth UUID (currentUser.id) not profile ID to match ChatView logic
+    const chatId = [currentUser.id, matchedRoommate.id].sort().join('_');
     const { error } = await supabase.from('messages').insert({
       chat_id: chatId,
-      sender_id: currentUserProfile.id,
+      sender_id: currentUser.id,
       text: `${messagePrefix} ${JSON.stringify(payload)}`
     });
 
@@ -468,6 +473,7 @@ export default function AgreementView({
        setSignedDate(new Date().toLocaleDateString("vi-VN", {
          year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
        }));
+       setIsSigned(true);
     } else {
        alert("Lỗi khi xử lý thỏa thuận!");
        console.error(error);
@@ -480,10 +486,11 @@ export default function AgreementView({
       const targetPayload = localPendingPayload || activeAgreement;
       if (targetPayload && matchedRoommate) {
         const payload = { ...targetPayload, status: 'cancelled', timestamp: new Date().toISOString() };
-        const chatId = [currentUserProfile.id, matchedRoommate.id].sort().join('_');
+        // CRITICAL: Use auth UUID (currentUser.id) not profile ID
+        const chatId = [currentUser.id, matchedRoommate.id].sort().join('_');
         await supabase.from('messages').insert({
           chat_id: chatId,
-          sender_id: currentUserProfile.id,
+          sender_id: currentUser.id,
           text: `[AGREEMENT_CANCELLED] ${JSON.stringify(payload)}`
         });
       }
@@ -499,14 +506,15 @@ export default function AgreementView({
     if (!matchedRoommate) return;
 
     const targetPayload = localPendingPayload || activeAgreement;
-    const chatId = [currentUserProfile.id, matchedRoommate.id].sort().join('_');
+    // CRITICAL: Use auth UUID (currentUser.id) not profile ID
+    const chatId = [currentUser.id, matchedRoommate.id].sort().join('_');
     
     // 1. Cancel the old draft
     if (targetPayload) {
       const cancelPayload = { ...targetPayload, status: 'cancelled', timestamp: new Date().toISOString() };
       await supabase.from('messages').insert({
         chat_id: chatId,
-        sender_id: currentUserProfile.id,
+        sender_id: currentUser.id,
         text: `[AGREEMENT_CANCELLED] ${JSON.stringify(cancelPayload)}`
       });
     }
@@ -529,7 +537,7 @@ export default function AgreementView({
     
     const { error } = await supabase.from('messages').insert({
       chat_id: chatId,
-      sender_id: currentUserProfile.id,
+      sender_id: currentUser.id,
       text: `[AGREEMENT_DRAFT] ${JSON.stringify(draftPayload)}`
     });
 
