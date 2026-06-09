@@ -618,7 +618,7 @@ export default function HomeView({
             {
               name: "Hoàng Oanh",
               role: "Sinh viên Kinh Tế",
-              text: "Nhờ tính năng đo độ tương thích mà mình tìm được một bạn chung phòng cực kỳ hợp cạ. Tụi mình lập thỏa thuận sống chung trên web luôn, giờ sống rất thoải mái!",
+              text: "Nhờ hồ sơ lối sống và phần đánh giá rõ ràng mà mình tìm được một bạn chung phòng khá hợp cạ. Tụi mình lập thỏa thuận sống chung trên web luôn, giờ sống rất thoải mái!",
               rating: 5,
               color: "bg-rose-100 text-rose-600"
             },

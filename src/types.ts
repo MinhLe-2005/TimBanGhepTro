@@ -8,6 +8,7 @@ export interface LifestylePreference {
 
 export interface RoommateReview {
   id: string;
+  reviewerId?: string;
   reviewerName: string;
   reviewerAvatar?: string;
   rating: number; // 1 to 5

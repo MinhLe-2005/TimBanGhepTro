@@ -1,117 +1,136 @@
-import { useState, useEffect } from "react";
-import { FileText, Check, Clock, X, BadgeCheck, AlertCircle, Eye } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertCircle, BadgeCheck, Check, Clock, Eye, FileText, UserRound, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { Roommate } from "../types";
+import {
+  AgreementRecord,
+  buildAgreementHistory,
+  findRoommateByIdentity,
+} from "../utils/agreements";
 
-export default function HistoryView({ currentUserProfile, currentUser, roommates, onRequireAuth, onRequireProfile }: { currentUserProfile: any, currentUser?: any, roommates: Roommate[], onRequireAuth?: () => void, onRequireProfile?: () => void }) {
-  const [agreements, setAgreements] = useState<any[]>([]);
-  const [selectedAgreement, setSelectedAgreement] = useState<any>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
+interface HistoryViewProps {
+  currentUserProfile: any;
+  currentUser?: any;
+  roommates: Roommate[];
+  onRequireAuth?: () => void;
+  onRequireProfile?: () => void;
+}
+
+const fallbackAvatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb";
+
+const formatDateTime = (value?: string) => {
+  if (!value) return "Chưa có";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Không xác định";
+  return date.toLocaleString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
+const ruleLabels: Array<[keyof AgreementRecord["rules"], string]> = [
+  ["quiet", "Giờ yên tĩnh"],
+  ["cleaning", "Dọn dẹp"],
+  ["visitors", "Khách thăm"],
+  ["bills", "Chia chi phí"],
+  ["pets", "Thú cưng"],
+  ["otherNotes", "Ghi chú khác"],
+];
+
+export default function HistoryView({
+  currentUserProfile,
+  currentUser,
+  roommates,
+  onRequireAuth,
+  onRequireProfile,
+}: HistoryViewProps) {
+  const [agreements, setAgreements] = useState<AgreementRecord[]>([]);
+  const [selectedAgreement, setSelectedAgreement] = useState<AgreementRecord | null>(null);
+  const myAuthId = currentUser?.id || "";
 
   useEffect(() => {
-    if (!currentUserProfile || !currentUser) return;
-    
+    if (!myAuthId) return;
+
     const fetchAgreements = async () => {
-      // CRITICAL FIX: Fetch from messages table using auth UUID
-      const myAuthId = currentUser.id;
-      
-      const { data } = await supabase
-        .from('messages')
-        .select('*')
-        .like('chat_id', `%${myAuthId}%`)
-        .like('text', '%[AGREEMENT_%')
-        .order('timestamp', { ascending: false });
-      
-      console.log('[HistoryView] Fetched agreements:', { count: data?.length, myAuthId });
-      
-      if (data) {
-        // Group by agreement ID, keep only SIGNED ones for history
-        const aggrMap = new Map<string, any>();
-        
-        data.forEach(msg => {
-          let payload: any = null;
-          try {
-            if (msg.text.startsWith('[AGREEMENT_DRAFT]')) payload = JSON.parse(msg.text.replace('[AGREEMENT_DRAFT]', '').trim());
-            if (msg.text.startsWith('[AGREEMENT_SIGNED]')) payload = JSON.parse(msg.text.replace('[AGREEMENT_SIGNED]', '').trim());
-            if (msg.text.startsWith('[AGREEMENT_CANCELLED]')) payload = JSON.parse(msg.text.replace('[AGREEMENT_CANCELLED]', '').trim());
-          } catch(e) {}
-          
-          if (payload) {
-            const partner_id = msg.chat_id.replace(myAuthId, '').replace('_', '');
-            
-            // Show both signed AND pending agreements in history
-            if (payload.status === 'signed' || payload.status === 'pending') {
-              if (!aggrMap.has(payload.id)) {
-                aggrMap.set(payload.id, {
-                  id: payload.id,
-                  creator_id: msg.sender_id,
-                  partner_id: msg.sender_id === myAuthId ? partner_id : myAuthId,
-                  status: payload.status,
-                  rules: payload.rules,
-                  created_at: payload.timestamp || msg.timestamp || msg.created_at
-                });
-              }
-            }
-          }
-        });
-        
-        setAgreements(Array.from(aggrMap.values()));
+      const { data, error } = await supabase
+        .from("messages")
+        .select("chat_id, sender_id, text, timestamp")
+        .like("chat_id", `%${myAuthId}%`)
+        .like("text", "%[AGREEMENT_%")
+        .order("timestamp", { ascending: true });
+
+      if (error) {
+        console.error("[HistoryView] Cannot load agreements:", error);
+        return;
       }
+
+      const ownMessages = (data || []).filter((message) =>
+        message.chat_id?.split("_").includes(myAuthId)
+      );
+      setAgreements(buildAgreementHistory(ownMessages, myAuthId));
     };
-    
+
     fetchAgreements();
 
-    // Realtime updates
-    const sub = supabase.channel('history_channel')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `text=ilike.%[AGREEMENT_SIGNED]%` }, fetchAgreements)
+    const channel = supabase
+      .channel(`history-agreements-${myAuthId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload) => {
+          const message = payload.new as { chat_id?: string; text?: string };
+          if (
+            message.text?.startsWith("[AGREEMENT_") &&
+            message.chat_id?.split("_").includes(myAuthId)
+          ) {
+            fetchAgreements();
+          }
+        }
+      )
       .subscribe();
-    return () => { supabase.removeChannel(sub); };
-  }, [currentUserProfile, currentUser]);
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [myAuthId]);
 
   if (!currentUser) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 px-4 min-h-[60vh]">
-        <div className="bg-white p-10 rounded-[32px] border border-slate-100 max-w-md text-center shadow-sm">
-          <AlertCircle className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-400 font-bold mb-6">Vui lòng đăng nhập để xem lịch sử hợp đồng.</p>
-          <button 
-            onClick={() => onRequireAuth && onRequireAuth()} 
-            className="w-full py-3 bg-[#006590] hover:bg-[#005176] text-white font-bold rounded-xl transition-all duration-200"
-          >
-            Đăng nhập ngay
-          </button>
-        </div>
-      </div>
+      <EmptyAccess
+        icon={<AlertCircle className="h-10 w-10 text-slate-300" />}
+        message="Vui lòng đăng nhập để xem lịch sử hợp đồng."
+        buttonLabel="Đăng nhập ngay"
+        onClick={onRequireAuth}
+      />
     );
   }
 
   if (!currentUserProfile) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 px-4 min-h-[60vh]">
-        <div className="bg-white p-10 rounded-[32px] border border-slate-100 max-w-md text-center shadow-sm">
-          <BadgeCheck className="h-10 w-10 text-sky-500 mx-auto mb-3" />
-          <p className="text-slate-600 font-bold mb-6">Bạn cần thiết lập hồ sơ cá nhân để xem lịch sử hợp đồng.</p>
-          <button 
-            onClick={() => onRequireProfile && onRequireProfile()} 
-            className="w-full py-3 bg-[#006590] hover:bg-[#005176] text-white font-bold rounded-xl transition-all duration-200"
-          >
-            Tạo hồ sơ ngay
-          </button>
-        </div>
-      </div>
+      <EmptyAccess
+        icon={<BadgeCheck className="h-10 w-10 text-sky-500" />}
+        message="Bạn cần thiết lập hồ sơ cá nhân để xem lịch sử hợp đồng."
+        buttonLabel="Tạo hồ sơ ngay"
+        onClick={onRequireProfile}
+      />
     );
   }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in pb-16 pt-6">
-      <div className="bg-white rounded-[24px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-6 sm:p-8">
+      <section className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-8">
         <div className="flex items-center gap-3 pb-6 border-b border-slate-100">
           <div className="w-12 h-12 bg-[#006590]/10 text-[#006590] rounded-xl flex items-center justify-center">
             <FileText className="w-6 h-6" />
           </div>
           <div>
             <h1 className="text-2xl font-black text-slate-800">Quản Lý Hợp Đồng</h1>
-            <p className="text-sm text-slate-500">Lịch sử các bản thỏa thuận sống chung của bạn</p>
+            <p className="text-sm text-slate-500">
+              Theo dõi bản chờ ký, đã ký và đã hủy
+            </p>
           </div>
         </div>
 
@@ -120,172 +139,257 @@ export default function HistoryView({ currentUserProfile, currentUser, roommates
             <div className="text-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
               <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
               <p className="text-slate-500 font-bold">Chưa có hợp đồng nào</p>
-              <p className="text-xs text-slate-400 mt-1">Hãy bắt đầu tạo thỏa thuận với các bạn cùng phòng.</p>
+              <p className="text-xs text-slate-400 mt-1">
+                Các thỏa thuận bạn gửi hoặc nhận sẽ xuất hiện tại đây.
+              </p>
             </div>
           ) : (
             <div className="grid gap-4">
-              {agreements.map((a, i) => {
-                const partner = a.creator_id === currentUserProfile.id ? roommates.find(r => r.id === a.partner_id) : roommates.find(r => r.id === a.creator_id);
-                const isPending = a.status === 'pending';
-                const isSigned = a.status === 'signed';
-                const isCreator = a.creator_id === currentUserProfile.id;
+              {agreements.map((agreement) => {
+                const partnerId =
+                  agreement.creator_id === myAuthId
+                    ? agreement.partner_id
+                    : agreement.creator_id;
+                const partner = findRoommateByIdentity(roommates, partnerId);
+                const isCreator = agreement.creator_id === myAuthId;
 
                 return (
-                  <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-slate-100 bg-white hover:border-sky-200 hover:shadow-md transition-all gap-4">
-                    <div className="flex items-center gap-4">
-                      <img src={partner?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb"} alt="" className="w-12 h-12 rounded-full object-cover border border-slate-200" />
-                      <div>
-                        <h4 className="text-base font-bold text-slate-800">{partner?.name || "Người lạ"}</h4>
-                        <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
-                          Ngày tạo: {new Date(a.created_at).toLocaleDateString('vi-VN')}
+                  <article
+                    key={agreement.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-slate-100 hover:border-sky-200 hover:shadow-md transition-all gap-4"
+                  >
+                    <div className="flex items-center gap-4 min-w-0">
+                      <img
+                        src={partner?.avatar || fallbackAvatar}
+                        alt=""
+                        className="w-12 h-12 rounded-full object-cover border border-slate-200 shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <h2 className="text-base font-bold text-slate-800 truncate">
+                          {partner?.name || "Người dùng RoomieMatch"}
+                        </h2>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Tạo lúc {formatDateTime(agreement.created_at)}
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5 font-mono">
+                          Mã: {agreement.id.slice(0, 12)}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      {isSigned ? (
-                        <span className="px-3.5 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5">
-                          <Check className="w-3.5 h-3.5" /> Đã Ký Hiệu Lực
-                        </span>
-                      ) : isPending ? (
-                        <span className="px-3.5 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 animate-pulse" /> {isCreator ? "Đang chờ đối tác ký" : "Cần bạn ký"}
-                        </span>
-                      ) : (
-                        <span className="px-3.5 py-1.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5">
-                          <X className="w-3.5 h-3.5" /> Đã Hủy
-                        </span>
-                      )}
+                    <div className="flex flex-wrap items-center gap-3">
+                      <StatusBadge agreement={agreement} isCreator={isCreator} />
                       <button
-                        onClick={() => {
-                          setSelectedAgreement({...a, partner});
-                          setShowDetailModal(true);
-                        }}
-                        className="px-4 py-2 bg-[#006590] hover:bg-[#005176] text-white text-[11px] font-bold rounded-lg transition-colors"
+                        type="button"
+                        onClick={() => setSelectedAgreement(agreement)}
+                        className="px-4 py-2 bg-[#006590] hover:bg-[#005176] text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-2"
                       >
-                        Xem Chi Tiết
+                        <Eye className="w-4 h-4" />
+                        Xem chi tiết
                       </button>
                     </div>
-                  </div>
+                  </article>
                 );
               })}
             </div>
           )}
         </div>
-      </div>
+      </section>
 
-      {/* Detail Modal */}
-      {showDetailModal && selectedAgreement && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-[28px] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-8 space-y-6 animate-scale-in border border-slate-100">
-            {/* Header */}
-            <div className="flex items-center justify-between pb-6 border-b border-slate-100">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-[#006590]/10 text-[#006590] rounded-xl flex items-center justify-center">
-                  <FileText className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-black text-slate-800">Chi Tiết Hợp Đồng</h2>
-                  <p className="text-xs text-slate-500 mt-0.5">Bản cam kết sống chung</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowDetailModal(false)}
-                className="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center transition-colors"
-              >
-                <X className="h-5 w-5 text-slate-600" />
-              </button>
+      {selectedAgreement && (
+        <AgreementDetailModal
+          agreement={selectedAgreement}
+          currentUserId={myAuthId}
+          currentUserName={currentUserProfile?.name || "Bạn"}
+          roommates={roommates}
+          onClose={() => setSelectedAgreement(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function StatusBadge({
+  agreement,
+  isCreator,
+}: {
+  agreement: AgreementRecord;
+  isCreator: boolean;
+}) {
+  if (agreement.status === "signed") {
+    return (
+      <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[11px] font-bold uppercase flex items-center gap-1.5">
+        <Check className="w-3.5 h-3.5" /> Đã ký
+      </span>
+    );
+  }
+
+  if (agreement.status === "pending") {
+    return (
+      <span className="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[11px] font-bold uppercase flex items-center gap-1.5">
+        <Clock className="w-3.5 h-3.5" />
+        {isCreator ? "Chờ đối tác ký" : "Chờ bạn ký"}
+      </span>
+    );
+  }
+
+  return (
+    <span className="px-3 py-1.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-full text-[11px] font-bold uppercase flex items-center gap-1.5">
+      <X className="w-3.5 h-3.5" /> Đã hủy
+    </span>
+  );
+}
+
+function AgreementDetailModal({
+  agreement,
+  currentUserId,
+  currentUserName,
+  roommates,
+  onClose,
+}: {
+  agreement: AgreementRecord;
+  currentUserId: string;
+  currentUserName: string;
+  roommates: Roommate[];
+  onClose: () => void;
+}) {
+  const partnerId =
+    agreement.creator_id === currentUserId ? agreement.partner_id : agreement.creator_id;
+  const partner = findRoommateByIdentity(roommates, partnerId);
+  const creatorName =
+    agreement.creator_id === currentUserId
+      ? currentUserName
+      : findRoommateByIdentity(roommates, agreement.creator_id)?.name || "Người dùng RoomieMatch";
+  const signerName =
+    agreement.signed_by_name ||
+    (agreement.signed_by === currentUserId
+      ? currentUserName
+      : findRoommateByIdentity(roommates, agreement.signed_by)?.name);
+  const populatedRules = ruleLabels.filter(([key]) => agreement.rules?.[key]?.trim());
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6 border border-slate-100">
+        <header className="flex items-start justify-between gap-4 pb-5 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-[#006590]/10 text-[#006590] rounded-xl flex items-center justify-center shrink-0">
+              <FileText className="w-6 h-6" />
             </div>
-
-            {/* Partner Info */}
-            <div className="bg-slate-50 rounded-2xl p-6 flex items-center gap-4">
-              <img src={selectedAgreement.partner?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb"} alt="" className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md" />
-              <div>
-                <h3 className="text-lg font-bold text-slate-800">{selectedAgreement.partner?.name || "Người lạ"}</h3>
-                <p className="text-sm text-slate-600 mt-1">Ngày tạo: {new Date(selectedAgreement.created_at).toLocaleDateString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
-              </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-800">
+                Chi Tiết Hợp Đồng
+              </h2>
+              <p className="text-xs text-slate-500 mt-1 font-mono break-all">
+                {agreement.id}
+              </p>
             </div>
+          </div>
+          <button
+            type="button"
+            aria-label="Đóng"
+            onClick={onClose}
+            className="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center transition-colors shrink-0"
+          >
+            <X className="h-5 w-5 text-slate-600" />
+          </button>
+        </header>
 
-            {/* Status */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-3">
-              <p className="text-sm font-bold text-slate-700">Trạng thái:</p>
-              {selectedAgreement.status === 'signed' ? (
-                <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 px-4 py-3 rounded-xl border border-emerald-200">
-                  <Check className="w-5 h-5" />
-                  <span className="font-bold">Đã Ký Hiệu Lực</span>
-                </div>
-              ) : selectedAgreement.status === 'pending' ? (
-                <div className="flex items-center gap-2 text-amber-700 bg-amber-50 px-4 py-3 rounded-xl border border-amber-200">
-                  <Clock className="w-5 h-5 animate-pulse" />
-                  <span className="font-bold">Chờ Ký Kết</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-slate-600 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200">
-                  <X className="w-5 h-5" />
-                  <span className="font-bold">Đã Hủy</span>
-                </div>
-              )}
-            </div>
-
-            {/* Rules */}
-            {selectedAgreement.rules && (
-              <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4">
-                <h3 className="text-lg font-bold text-slate-800">Các Điều Khoản</h3>
-                
-                {selectedAgreement.rules.quiet && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-slate-700">🕐 Giờ giấc yên tĩnh:</p>
-                    <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">{selectedAgreement.rules.quiet}</p>
-                  </div>
-                )}
-                
-                {selectedAgreement.rules.cleaning && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-slate-700">🧹 Dọn dẹp:</p>
-                    <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">{selectedAgreement.rules.cleaning}</p>
-                  </div>
-                )}
-                
-                {selectedAgreement.rules.visitors && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-slate-700">👥 Khách thăm:</p>
-                    <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">{selectedAgreement.rules.visitors}</p>
-                  </div>
-                )}
-                
-                {selectedAgreement.rules.bills && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-slate-700">💰 Chia tiền:</p>
-                    <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">{selectedAgreement.rules.bills}</p>
-                  </div>
-                )}
-                
-                {selectedAgreement.rules.pets && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-slate-700">🐾 Thú cưng:</p>
-                    <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">{selectedAgreement.rules.pets}</p>
-                  </div>
-                )}
-                
-                {selectedAgreement.rules.otherNotes && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-slate-700">📝 Ghi chú khác:</p>
-                    <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">{selectedAgreement.rules.otherNotes}</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Close Button */}
-            <button
-              onClick={() => setShowDetailModal(false)}
-              className="w-full py-3 bg-[#006590] hover:bg-[#005176] text-white font-bold rounded-xl transition-colors"
-            >
-              Đóng
-            </button>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <InfoRow label="Người đề xuất" value={creatorName} />
+          <InfoRow label="Người còn lại" value={partner?.name || "Người dùng RoomieMatch"} />
+          <InfoRow label="Ngày tạo" value={formatDateTime(agreement.created_at)} />
+          <InfoRow
+            label={agreement.status === "cancelled" ? "Ngày hủy" : "Ngày ký"}
+            value={
+              agreement.status === "cancelled"
+                ? formatDateTime(agreement.cancelled_at)
+                : agreement.status === "signed"
+                  ? formatDateTime(agreement.signed_at)
+                  : "Chưa ký"
+            }
+          />
+          {agreement.status === "signed" && (
+            <InfoRow label="Người ký xác nhận" value={signerName || "Đối tác"} />
+          )}
+          <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+            <p className="text-xs font-bold uppercase text-slate-400 mb-2">Trạng thái</p>
+            <StatusBadge
+              agreement={agreement}
+              isCreator={agreement.creator_id === currentUserId}
+            />
           </div>
         </div>
-      )}
+
+        <section>
+          <h3 className="text-base font-black text-slate-800 mb-3">Các điều khoản</h3>
+          {populatedRules.length === 0 ? (
+            <p className="text-sm text-slate-500 bg-slate-50 border border-slate-100 rounded-xl p-4">
+              Bản ghi cũ này không có dữ liệu điều khoản.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {populatedRules.map(([key, label]) => (
+                <div key={key} className="border border-slate-100 rounded-xl p-4">
+                  <p className="text-xs font-bold uppercase text-slate-400 mb-1.5">{label}</p>
+                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                    {agreement.rules[key]}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <p className="text-xs text-slate-400 flex items-start gap-2">
+          <UserRound className="w-4 h-4 shrink-0" />
+          Đây là thỏa thuận sống chung giữa hai người dùng, không thay thế hợp đồng thuê nhà có giá trị pháp lý.
+        </p>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full py-3 bg-[#006590] hover:bg-[#005176] text-white font-bold rounded-xl transition-colors"
+        >
+          Đóng
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+      <p className="text-xs font-bold uppercase text-slate-400 mb-1">{label}</p>
+      <p className="text-sm font-bold text-slate-700">{value}</p>
+    </div>
+  );
+}
+
+function EmptyAccess({
+  icon,
+  message,
+  buttonLabel,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  message: string;
+  buttonLabel: string;
+  onClick?: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 px-4 min-h-[60vh]">
+      <div className="bg-white p-10 rounded-3xl border border-slate-100 max-w-md text-center shadow-sm">
+        <div className="flex justify-center mb-3">{icon}</div>
+        <p className="text-slate-600 font-bold mb-6">{message}</p>
+        <button
+          type="button"
+          onClick={onClick}
+          className="w-full py-3 bg-[#006590] hover:bg-[#005176] text-white font-bold rounded-xl transition-colors"
+        >
+          {buttonLabel}
+        </button>
+      </div>
     </div>
   );
 }

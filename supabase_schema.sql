@@ -85,10 +85,3 @@ INSERT INTO public.rooms (id, title, price, location, district, type, images, fe
 VALUES
   ('room-1', 'Phòng Trọ Gác Lửng', 2500000, 'Hải Châu, Đà Nẵng', 'Hải Châu', 'Phòng trọ', '["https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=800&auto=format&fit=crop"]', '["Máy lạnh", "Tủ lạnh", "Máy giặt", "Chỗ để xe", "Bảo vệ 24/7"]', true, 'còn phòng', true, 1, 'Khép kín', 'Chung', 'Chị Lan', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=150&auto=format&fit=crop', 'Phòng trọ gác lửng mới xây, khu vực an ninh, không chung chủ.')
 ON CONFLICT (id) DO NOTHING;
-
--- ĐỔ DỮ LIỆU FAKE CHO REVIEWS
-INSERT INTO public.reviews (id, "roommateId", "reviewerName", "reviewerAvatar", rating, comment, "imageUrl", "createdAt")
-VALUES
-  ('rev-ma-1', 'minh-anh', 'Huyền Trang', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop', 5, 'Minh Anh siêu dễ thương và cực kỳ sạch sẽ luôn!', 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=500&auto=format&fit=crop', '15/04/2026'),
-  ('rev-hn-1', 'hoang-nam', 'Thanh Tùng', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop', 5, 'Nam nấu ăn cực đỉnh và rất đúng giờ giấc.', 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop', '20/05/2026')
-ON CONFLICT (id) DO NOTHING;

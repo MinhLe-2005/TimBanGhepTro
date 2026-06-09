@@ -61,6 +61,7 @@ DROP TABLE IF EXISTS public.reviews CASCADE;
 CREATE TABLE public.reviews (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     roommate_id TEXT NOT NULL,
+    reviewer_id TEXT,
     reviewer_name TEXT NOT NULL,
     reviewer_avatar TEXT,
     rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
@@ -72,7 +73,28 @@ CREATE TABLE public.reviews (
 
 -- Index cho reviews
 CREATE INDEX IF NOT EXISTS idx_reviews_roommate ON public.reviews(roommate_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_reviewer ON public.reviews(reviewer_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_created ON public.reviews(created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_unique_reviewer
+ON public.reviews(roommate_id, reviewer_id)
+WHERE reviewer_id IS NOT NULL;
+
+-- 2.6. BÁO CÁO FEEDBACK KHÔNG PHÙ HỢP
+CREATE TABLE IF NOT EXISTS public.review_reports (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    review_id TEXT NOT NULL,
+    roommate_id TEXT NOT NULL,
+    reporter_id TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_review_reports_unique
+ON public.review_reports(review_id, reporter_id);
+
+CREATE INDEX IF NOT EXISTS idx_review_reports_status
+ON public.review_reports(status, created_at DESC);
 
 -- 3. TẮT RLS TẠM THỜI ĐỂ TESTING (CHO PHÉP TẤT CẢ TRUY CẬP)
 -- ⚠️ LƯU Ý: NẾU LÊN PRODUCTION, CẦN BẬT LẠI VÀ THIẾT LẬP POLICY CHO ĐÚNG!

@@ -22,6 +22,11 @@ import {
 import { Roommate } from "../types";
 import { supabase } from "../lib/supabase";
 import { useDialog } from "./ui/DialogProvider";
+import {
+  buildAgreementHistory,
+  findRoommateByIdentity,
+  getRoommateAuthId,
+} from "../utils/agreements";
 
 interface AgreementViewProps {
   roommates: Roommate[];
@@ -109,51 +114,10 @@ export default function AgreementView({
       console.log('[AgreementView] Fetched agreements:', { count: data?.length, myAuthId });
       
       if (!error && data) {
-        const aggrMap = new Map<string, any>();
-        
-        // Sort chronologically descending so find() gets the newest first
-        data.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        
-        data.forEach(msg => {
-          let payload: any = null;
-          try {
-            if (msg.text.startsWith('[AGREEMENT_DRAFT]')) payload = JSON.parse(msg.text.replace('[AGREEMENT_DRAFT]', '').trim());
-            if (msg.text.startsWith('[AGREEMENT_SIGNED]')) payload = JSON.parse(msg.text.replace('[AGREEMENT_SIGNED]', '').trim());
-            if (msg.text.startsWith('[AGREEMENT_CANCELLED]')) payload = JSON.parse(msg.text.replace('[AGREEMENT_CANCELLED]', '').trim());
-          } catch(e) {}
-
-          if (payload) {
-             const partner_id = msg.chat_id.replace(myAuthId, '').replace('_', '');
-             const isDraft = msg.text.startsWith('[AGREEMENT_DRAFT]');
-             
-             // Base structure
-             const existing = aggrMap.get(payload.id) || {};
-             const creatorId = isDraft ? msg.sender_id : (existing.creator_id || (msg.sender_id === myAuthId ? partner_id : msg.sender_id));
-             const partnerId = isDraft ? (msg.sender_id === myAuthId ? partner_id : myAuthId) : (existing.partner_id || (msg.sender_id === myAuthId ? myAuthId : partner_id));
-             
-             let currentStatus = payload.status;
-             if (currentStatus === 'pending') {
-               const createdTime = new Date(payload.timestamp || msg.created_at).getTime();
-               if (Date.now() - createdTime > 48 * 60 * 60 * 1000) {
-                 currentStatus = 'cancelled';
-               }
-             }
-             
-             // Since data is sorted newest first, the first time we see an ID it's the latest status
-             if (!aggrMap.has(payload.id)) {
-               aggrMap.set(payload.id, {
-                  id: payload.id,
-                  creator_id: creatorId,
-                  partner_id: partnerId,
-                  status: currentStatus,
-                  rules: payload.rules,
-                  created_at: payload.timestamp || msg.created_at
-               });
-             }
-          }
-        });
-        
-        setAgreements(Array.from(aggrMap.values()));
+        const ownMessages = data.filter((message) =>
+          message.chat_id?.split("_").includes(myAuthId)
+        );
+        setAgreements(buildAgreementHistory(ownMessages, myAuthId));
       }
     };
     
@@ -370,10 +334,11 @@ export default function AgreementView({
 
   const matchedRoommate = roommateName ? (roommates.find((r) => r.name.toLowerCase() === roommateName.toLowerCase()) || 
                           roommates.find((r) => r.name.toLowerCase().includes(roommateName.toLowerCase()))) : null;
+  const partnerAuthId = getRoommateAuthId(matchedRoommate);
 
   const latestAgreementInDb = agreements.find(
-    a => (a.creator_id === currentUserProfile?.id && a.partner_id === matchedRoommate?.id) ||
-         (a.partner_id === currentUserProfile?.id && a.creator_id === matchedRoommate?.id)
+    a => (a.creator_id === currentUser?.id && a.partner_id === partnerAuthId) ||
+         (a.partner_id === currentUser?.id && a.creator_id === partnerAuthId)
   );
 
   const activeAgreement = localPendingPayload || (latestAgreementInDb?.status !== 'cancelled' ? latestAgreementInDb : null);
@@ -382,7 +347,7 @@ export default function AgreementView({
   useEffect(() => {
     let idealId = preSelectedRoommateId;
     
-    let targetRoommate = roommates.find((r) => r.id === idealId);
+    let targetRoommate = findRoommateByIdentity(roommates, idealId || undefined);
 
     if (targetRoommate) {
       setRoommateName(targetRoommate.name);
@@ -464,7 +429,11 @@ export default function AgreementView({
       payload = {
         ...agreementToSign,
         status: 'signed',
-        signedBy: currentUserProfile.id,
+        creator_id: agreementToSign.creator_id || currentUser.id,
+        partner_id: agreementToSign.partner_id || partnerAuthId,
+        signed_by: currentUser.id,
+        signed_by_name: fullName.trim(),
+        signed_at: new Date().toISOString(),
         timestamp: new Date().toISOString()
       };
       messagePrefix = "[AGREEMENT_SIGNED]";
@@ -482,13 +451,18 @@ export default function AgreementView({
         id: crypto.randomUUID(),
         status: 'pending',
         rules,
+        creator_id: currentUser.id,
+        partner_id: partnerAuthId,
+        creator_name: currentUserProfile.name,
+        partner_name: matchedRoommate.name,
+        created_at: new Date().toISOString(),
         timestamp: new Date().toISOString()
       };
       messagePrefix = "[AGREEMENT_DRAFT]";
     }
 
     // CRITICAL: Use auth UUID (currentUser.id) not profile ID to match ChatView logic
-    const chatId = [currentUser.id, matchedRoommate.id].sort().join('_');
+    const chatId = [currentUser.id, partnerAuthId].sort().join('_');
     const { error } = await supabase.from('messages').insert({
       chat_id: chatId,
       sender_id: currentUser.id,
@@ -497,7 +471,7 @@ export default function AgreementView({
 
     if (!error) {
        if (messagePrefix === "[AGREEMENT_SIGNED]") {
-         await supabase.from('roommates').update({ status: 'Đã tìm được' }).in('id', [currentUserProfile.id, matchedRoommate.id]);
+         await supabase.from('roommates').update({ status: 'Đã tìm được' }).in('user_id', [currentUser.id, partnerAuthId]);
        }
        setShowSuccessModal(true);
        setSignedDate(new Date().toLocaleDateString("vi-VN", {
@@ -515,8 +489,14 @@ export default function AgreementView({
     if (ok) {
       const targetPayload = localPendingPayload || activeAgreement;
       if (targetPayload && matchedRoommate) {
-        const payload = { ...targetPayload, status: 'cancelled', timestamp: new Date().toISOString() };
-        const chatId = [currentUser.id, matchedRoommate.id].sort().join('_');
+        const payload = {
+          ...targetPayload,
+          status: 'cancelled',
+          cancelled_by: currentUser.id,
+          cancelled_at: new Date().toISOString(),
+          timestamp: new Date().toISOString()
+        };
+        const chatId = [currentUser.id, partnerAuthId].sort().join('_');
         await supabase.from('messages').insert({
           chat_id: chatId,
           sender_id: currentUser.id,
@@ -536,11 +516,17 @@ export default function AgreementView({
 
     const targetPayload = localPendingPayload || activeAgreement;
     // CRITICAL: Use auth UUID (currentUser.id) not profile ID
-    const chatId = [currentUser.id, matchedRoommate.id].sort().join('_');
+    const chatId = [currentUser.id, partnerAuthId].sort().join('_');
     
     // 1. Cancel the old draft
     if (targetPayload) {
-      const cancelPayload = { ...targetPayload, status: 'cancelled', timestamp: new Date().toISOString() };
+      const cancelPayload = {
+        ...targetPayload,
+        status: 'cancelled',
+        cancelled_by: currentUser.id,
+        cancelled_at: new Date().toISOString(),
+        timestamp: new Date().toISOString()
+      };
       await supabase.from('messages').insert({
         chat_id: chatId,
         sender_id: currentUser.id,
@@ -561,6 +547,11 @@ export default function AgreementView({
       id: crypto.randomUUID(),
       status: 'pending',
       rules,
+      creator_id: currentUser.id,
+      partner_id: partnerAuthId,
+      creator_name: currentUserProfile.name,
+      partner_name: matchedRoommate.name,
+      created_at: new Date().toISOString(),
       timestamp: new Date().toISOString()
     };
     
@@ -654,11 +645,11 @@ export default function AgreementView({
     );
   }
 
-  const isReceivingDraft = localPendingPayload && localPendingPayload.status === 'pending' && localPendingPayload.sender_id !== currentUserProfile.id;
+  const isReceivingDraft = localPendingPayload && localPendingPayload.status === 'pending' && localPendingPayload.sender_id !== currentUser.id;
 
   // Find pending agreements where user is the receiver (need to sign)
   const pendingToSign = agreements.filter(a => 
-    a.status === 'pending' && a.creator_id !== currentUserProfile.id
+    a.status === 'pending' && a.creator_id !== currentUser.id
   );
 
   return (
@@ -681,7 +672,7 @@ export default function AgreementView({
 
             <div className="grid gap-3">
               {pendingToSign.map((agreement, idx) => {
-                const partner = roommates.find(r => r.id === agreement.creator_id);
+                const partner = findRoommateByIdentity(roommates, agreement.creator_id);
                 return (
                   <button
                     key={idx}
@@ -1155,9 +1146,9 @@ export default function AgreementView({
                   onChange={(e) => setFullName(e.target.value)}
                   disabled={
                     (activeAgreement?.status === 'signed') || 
-                    (activeAgreement?.status === 'pending' && activeAgreement.creator_id === currentUserProfile.id) ||
+                    (activeAgreement?.status === 'pending' && activeAgreement.creator_id === currentUser.id) ||
                     (localPendingPayload?.status === 'signed') ||
-                    (localPendingPayload?.status === 'pending' && localPendingPayload.sender_id === currentUserProfile.id)
+                    (localPendingPayload?.status === 'pending' && localPendingPayload.sender_id === currentUser.id)
                   }
                   placeholder="Nhập họ tên đầy đủ để ký số..."
                   className="w-full bg-white border border-emerald-200 rounded-xl px-4 py-3.5 text-[14px] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-slate-800 font-bold placeholder-slate-400 disabled:opacity-70 disabled:bg-slate-50 transition-all duration-200"
@@ -1179,7 +1170,7 @@ export default function AgreementView({
                     <span className="p-1.5 bg-amber-100 rounded-full text-amber-600">
                       <Clock className="h-4 w-4 animate-pulse" />
                     </span>
-                    Đang chờ {activeAgreement.creator_id === currentUserProfile.id ? 'đối tác' : 'bạn'} ký duyệt...
+                    Đang chờ {activeAgreement.creator_id === currentUser.id ? 'đối tác' : 'bạn'} ký duyệt...
                   </div>
                   <button
                     type="button"
@@ -1292,8 +1283,8 @@ export default function AgreementView({
               </div>
             </div>
 
-            {((localPendingPayload?.status === 'pending' && localPendingPayload.sender_id !== currentUserProfile.id) ||
-              (!localPendingPayload && activeAgreement?.status === 'pending' && activeAgreement.creator_id !== currentUserProfile.id)) && !isEditingDraft && (
+            {((localPendingPayload?.status === 'pending' && localPendingPayload.sender_id !== currentUser.id) ||
+              (!localPendingPayload && activeAgreement?.status === 'pending' && activeAgreement.creator_id !== currentUser.id)) && !isEditingDraft && (
               <div className="mt-4 space-y-3">
                 <button
                   type="button"
@@ -1451,8 +1442,8 @@ export default function AgreementView({
 
             <div className="grid gap-3">
               {agreements.map((agreement, idx) => {
-                const partnerId = agreement.creator_id === currentUserProfile.id ? agreement.partner_id : agreement.creator_id;
-                const partner = roommates.find(r => r.id === partnerId);
+                const partnerId = agreement.creator_id === currentUser.id ? agreement.partner_id : agreement.creator_id;
+                const partner = findRoommateByIdentity(roommates, partnerId);
                 
                 return (
                   <div

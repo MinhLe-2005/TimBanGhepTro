@@ -1,7 +1,8 @@
-import { CheckCircle2, Heart, Star, Trash2 } from "lucide-react";
+import { Heart, Star, Trash2 } from "lucide-react";
 import { Roommate } from "../types";
 import { useState } from "react";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { getAverageRating } from "../utils/scoring";
 
 interface RoommateCardProps {
   roommate: Roommate;
@@ -40,10 +41,8 @@ export default function RoommateCard({
     }
   };
 
-  const averageRating = roommate.reviews && roommate.reviews.length > 0 
-    ? (roommate.reviews.reduce((acc, curr) => acc + curr.rating, 0) / roommate.reviews.length).toFixed(1)
-    : "5.0";
   const reviewsCount = roommate.reviews ? roommate.reviews.length : 0;
+  const averageRating = getAverageRating(roommate.reviews);
 
   return (
     <div
@@ -58,14 +57,6 @@ export default function RoommateCard({
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           referrerPolicy="no-referrer"
         />
-
-        {/* Compatibility Match Badge */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex flex-col gap-1.5 items-center w-max">
-          <div className="bg-white/95 backdrop-blur-sm px-3.5 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 border border-slate-100">
-            <Heart className="w-3 h-3 text-slate-400" />
-            <span className="text-[11px] font-bold text-slate-700">Tương thích {roommate.matchScore}%</span>
-          </div>
-        </div>
 
         {/* Saved Like Button - hidden for admin */}
         {onLikeChange && (
@@ -120,17 +111,17 @@ export default function RoommateCard({
             <h3 className="text-xl font-bold text-slate-900 tracking-tight truncate">
               {roommate.name}, {roommate.age}
             </h3>
-            {roommate.isVerified && (
-              <div title="Tài khoản đã xác minh danh tính" className="shrink-0 flex">
-                <CheckCircle2 className="w-4 h-4 text-blue-500 fill-blue-50" />
-              </div>
-            )}
           </div>
-          {/* Rating */}
-          <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
-            <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-            <span>{averageRating}</span>
-          </div>
+          {reviewsCount > 0 && averageRating !== null ? (
+            <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
+              <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+              <span>{averageRating.toFixed(1)} ({reviewsCount})</span>
+            </div>
+          ) : (
+            <div className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
+              Chưa đánh giá
+            </div>
+          )}
         </div>
 
         <div className="text-[13px] text-slate-500 mb-2 truncate" title={`${roommate.role} tại ${roommate.district || roommate.location.split(',')[0]}`}>
@@ -170,15 +161,23 @@ export default function RoommateCard({
             ? "bg-amber-50/80 text-amber-700 border border-amber-100/50"
             : "bg-emerald-50/80 text-emerald-700 border border-emerald-100/50"
         }`}>
-          <span className="relative flex h-2 w-2">
-            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-              roommate.status === "Đã tìm được" ? "bg-red-400" : roommate.status === "Đang trao đổi" ? "bg-amber-400" : "bg-emerald-400"
-            }`}></span>
-            <span className={`relative inline-flex rounded-full h-2 w-2 ${
-              roommate.status === "Đã tìm được" ? "bg-red-500" : roommate.status === "Đang trao đổi" ? "bg-amber-500" : "bg-emerald-500"
-            }`}></span>
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${
+              roommate.status === "Đã tìm được"
+                ? "bg-red-400"
+                : roommate.status === "Đang trao đổi"
+                  ? "bg-amber-400"
+                  : "bg-emerald-400"
+            }`} />
+            <span className={`relative inline-flex h-2 w-2 rounded-full ${
+              roommate.status === "Đã tìm được"
+                ? "bg-red-500"
+                : roommate.status === "Đang trao đổi"
+                  ? "bg-amber-500"
+                  : "bg-emerald-500"
+            }`} />
           </span>
-          {roommate.status === "Đã tìm được" ? "🔴 Đã tìm được roommate" : roommate.status === "Đang trao đổi" ? "🟡 Đang trao đổi" : "🟢 Đang tìm roommate"}
+          {roommate.status === "Đã tìm được" ? "Đã tìm được roommate" : roommate.status === "Đang trao đổi" ? "Đang trao đổi" : "Đang tìm roommate"}
         </div>
 
         {/* Lifestyle Tags - Compact */}

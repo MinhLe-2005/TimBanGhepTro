@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { X, Flame, Shield, MapPin, Bed, Bath, User, MessageSquare, Handshake, Check, Info, Star, Upload, Trash2, Moon, Dog, ChefHat, Compass, Sparkles, Heart, CheckCircle2, Smile, FileText, Phone } from "lucide-react";
+import { X, Flame, Shield, MapPin, Bed, Bath, User, MessageSquare, Handshake, Check, Info, Star, Upload, Trash2, Moon, Dog, ChefHat, Compass, Sparkles, Heart, Smile, FileText, Phone } from "lucide-react";
 import { Room, Roommate } from "../types";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { calculateReputationScore, getReputationLabel } from "../utils/scoring";
 
 interface RoomModalProps {
   room: Room | null;
@@ -36,16 +37,16 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
     name: room.hostName || "Chủ phòng",
     age: hostRoommate?.age || 21,
     role: room.hostRole || "Sinh viên / Thành viên",
-    school: hostRoommate?.school || "ĐH Kinh tế (Ngũ Hành Sơn)",
-    phoneNumber: room.phoneNumber || "0987 123 456",
+    school: hostRoommate?.school || "Chưa cập nhật",
+    phoneNumber: room.phoneNumber || hostRoommate?.phoneNumber || "Chưa cập nhật",
     // PRIORITY: hostRoommate avatar (actual user) > room.hostAvatar (may be stale) > default
     avatar: hostRoommate?.avatar || room.hostAvatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop",
     status: "Đã có phòng",
     location: room.location,
-    matchScore: hostRoommate?.matchScore || 88,
-    reputationScore: hostRoommate?.reputationScore || 96,
+    matchScore: hostRoommate?.matchScore || 0,
+    reputationScore: hostRoommate?.reputationScore || 0,
     tags: room.habits || ["Sạch sẽ", "Không hút thuốc", "Tôn trọng"],
-    isVerified: true,
+    isVerified: hostRoommate?.isVerified || !!room.isVerifiedRoom,
     bio: room.roommateInfo || hostRoommate?.bio || "Chào bạn! Mình là người đăng tin tìm bạn ở ghép cho căn phòng này. Mình thích giữ không gian sạch sẽ, thân thiện, tôn trọng giờ giấc nghỉ ngơi của nhau.",
     budget: room.price,
     gender: room.gender === "Tất cả" ? "Nữ" : (room.gender as any || "Nữ"),
@@ -59,6 +60,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
     },
     reviews: hostRoommate?.reviews || []
   };
+  const hostReputationScore = calculateReputationScore(resolvedRoommate);
 
   const [newName, setNewName] = useState("");
   const [newRating, setNewRating] = useState(5);
@@ -285,10 +287,6 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                       <h5 className="text-xl font-extrabold text-[#0f172a] tracking-tight">
                         {resolvedRoommate.name}, {resolvedRoommate.age || 22} tuổi
                       </h5>
-                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-150 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3 fill-emerald-500 text-white" />
-                        Đã xác minh
-                      </span>
                     </div>
                     <p className="text-xs font-bold text-[#006590] uppercase tracking-wider line-clamp-2">
                       {resolvedRoommate.role} • {resolvedRoommate.school || (resolvedRoommate as any).majorKhoidoi || "Chưa cập nhật trường"}
@@ -299,11 +297,14 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                   </div>
 
                   {/* Reputation / Match score badge */}
-                  <div className="flex flex-col items-center justify-center bg-white border border-sky-100 px-4 py-2.5 rounded-2xl shrink-0 shadow-xs">
+                  <div
+                    title="Điểm quy đổi từ đánh giá sao; không phải bảo chứng an toàn"
+                    className="flex flex-col items-center justify-center bg-white border border-sky-100 px-4 py-2.5 rounded-2xl shrink-0 shadow-xs"
+                  >
                     <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Mức uy tín</div>
                     <div className="text-base font-black text-emerald-600 flex items-center gap-1 leading-none">
                       <Shield className="h-4 w-4 text-emerald-500" />
-                      {resolvedRoommate.reputationScore || 98}%
+                      {getReputationLabel(hostReputationScore)}
                     </div>
                   </div>
                 </div>

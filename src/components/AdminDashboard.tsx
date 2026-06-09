@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, AlertTriangle, Shield, Trash2, Ban, ShieldCheck, FileText, UserCheck } from "lucide-react";
+import { Users, AlertTriangle, Shield, Trash2, Ban, ShieldCheck, FileText, UserCheck, Flag, Check, Star } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { Roommate, Room } from "../types";
 import { useDialog } from "./ui/DialogProvider";
@@ -10,12 +10,14 @@ interface AdminDashboardProps {
   rooms: Room[];
   onDeleteRoommate?: (id: string) => void;
   onDeleteRoom?: (id: string) => void;
+  onReviewDeleted?: (id: string) => void;
 }
 
-export default function AdminDashboard({ currentUser, roommates, rooms, onDeleteRoommate, onDeleteRoom }: AdminDashboardProps) {
+export default function AdminDashboard({ currentUser, roommates, rooms, onDeleteRoommate, onDeleteRoom, onReviewDeleted }: AdminDashboardProps) {
   const { confirm, toast } = useDialog();
-  const [activeTab, setActiveTab] = useState<"reports" | "users" | "listings" | "rooms" | "agreements">("reports");
+  const [activeTab, setActiveTab] = useState<"reports" | "reviewReports" | "users" | "listings" | "rooms" | "agreements">("reviewReports");
   const [reports, setReports] = useState<any[]>([]);
+  const [reviewReports, setReviewReports] = useState<any[]>([]);
   const [bannedUsers, setBannedUsers] = useState<string[]>([]);
   const [agreements, setAgreements] = useState<any[]>([]);
   const [allSupabaseRoommates, setAllSupabaseRoommates] = useState<any[]>([]);
@@ -46,6 +48,70 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
         }).filter(r => r.target_id);
         setReports(parsedReports);
       }
+
+      // Fetch reported feedback from the dedicated table when available.
+      const { data: reviewReportRows } = await supabase
+        .from('review_reports')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      // Also read fallback reports created before the migration was applied.
+      const { data: fallbackReviewReports } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('chat_id', 'SYSTEM_REVIEW_REPORTS');
+
+      const tableReports = (reviewReportRows || []).map(report => ({
+        ...report,
+        source: 'table',
+      }));
+      const messageReports = (fallbackReviewReports || []).map(message => {
+        try {
+          const payload = JSON.parse(message.text.replace('[REVIEW_REPORT]', '').trim());
+          return {
+            ...payload,
+            id: message.id,
+            created_at: message.created_at || message.timestamp,
+            source: 'message',
+          };
+        } catch {
+          return null;
+        }
+      }).filter(Boolean);
+
+      const combinedReviewReports = [...tableReports, ...messageReports];
+      const reviewIds = [...new Set(combinedReviewReports.map(report => report.review_id).filter(Boolean))];
+      let reviewRows: any[] = [];
+      if (reviewIds.length > 0) {
+        const { data } = await supabase.from('reviews').select('*').in('id', reviewIds);
+        reviewRows = data || [];
+      }
+
+      const { data: reviewIdentityMessages } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('chat_id', 'SYSTEM_REVIEW_IDENTITIES');
+      const reviewIdentityMap = new Map();
+      (reviewIdentityMessages || []).forEach(message => {
+        try {
+          const payload = JSON.parse(message.text.replace('[REVIEW_IDENTITY]', '').trim());
+          reviewIdentityMap.set(String(payload.review_id), payload.reviewer_id);
+        } catch {}
+      });
+
+      const reviewMap = new Map(reviewRows.map(review => [
+        String(review.id),
+        {
+          ...review,
+          reviewer_id: review.reviewer_id || reviewIdentityMap.get(String(review.id)),
+        },
+      ]));
+      setReviewReports(
+        combinedReviewReports
+          .map(report => ({ ...report, review: reviewMap.get(String(report.review_id)) }))
+          .filter(report => report.review)
+      );
 
       // Fetch Bans
       const { data: banMsgs } = await supabase.from('messages').select('*').eq('chat_id', 'SYSTEM_BANS');
@@ -86,11 +152,70 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
 
   const handleBanUser = async (userId: string) => {
     const ok = await confirm({ title: 'Khóa tài khoản', message: 'Bạn có chắc muốn khóa vĩnh viễn tài khoản này?', confirmText: 'Khóa ngay', type: 'error' });
-    if (!ok) return;
+    if (!ok) return false;
     const { error } = await supabase.from('messages').insert({
-      id: 'msg_' + Date.now(), chat_id: 'SYSTEM_BANS', sender_id: currentUser.id, text: `[BAN] ${userId}`
+      chat_id: 'SYSTEM_BANS', sender_id: currentUser.id, text: `[BAN] ${userId}`
     });
-    if (!error) { toast('✅ Đã khóa người dùng thành công.', 'success'); fetchAdminData(); }
+    if (!error) {
+      toast('Đã khóa người dùng thành công.', 'success');
+      await fetchAdminData();
+      return true;
+    }
+    toast('Không thể khóa người dùng.', 'error');
+    return false;
+  };
+
+  const resolveReviewReport = async (report: any, status: 'dismissed' | 'review_deleted' | 'user_banned') => {
+    if (report.source === 'table') {
+      await supabase.from('review_reports').update({ status }).eq('id', report.id);
+    } else {
+      await supabase.from('messages').delete().eq('id', report.id);
+    }
+  };
+
+  const handleDismissReviewReport = async (report: any) => {
+    const ok = await confirm({
+      title: 'Bỏ qua báo cáo',
+      message: 'Feedback này bình thường và không cần xử lý?',
+      confirmText: 'Bỏ qua',
+      type: 'success',
+    });
+    if (!ok) return;
+    await resolveReviewReport(report, 'dismissed');
+    toast('Đã bỏ qua báo cáo.', 'success');
+    fetchAdminData();
+  };
+
+  const handleDeleteReportedReview = async (report: any) => {
+    const ok = await confirm({
+      title: 'Xóa feedback',
+      message: 'Xóa vĩnh viễn feedback này khỏi hệ thống?',
+      confirmText: 'Xóa feedback',
+      type: 'error',
+    });
+    if (!ok) return;
+
+    const { error } = await supabase.from('reviews').delete().eq('id', report.review_id);
+    if (error) {
+      toast('Không thể xóa feedback.', 'error');
+      return;
+    }
+    await resolveReviewReport(report, 'review_deleted');
+    onReviewDeleted?.(report.review_id);
+    toast('Đã xóa feedback phản cảm.', 'success');
+    fetchAdminData();
+  };
+
+  const handleBanReviewAuthor = async (report: any) => {
+    const reviewerId = report.review?.reviewer_id;
+    if (!reviewerId) {
+      toast('Feedback cũ chưa gắn tài khoản nên không thể khóa chính xác người viết.', 'warning');
+      return;
+    }
+    const banned = await handleBanUser(reviewerId);
+    if (!banned) return;
+    await resolveReviewReport(report, 'user_banned');
+    fetchAdminData();
   };
 
   const handleUnbanUser = async (userId: string) => {
@@ -172,6 +297,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
 
       <div className="flex flex-wrap gap-3 mb-8">
         {tabBtn("reports", "Báo cáo", reports.length, <AlertTriangle className="w-5 h-5" />, "bg-rose-100 text-rose-700")}
+        {tabBtn("reviewReports", "Feedback bị báo cáo", reviewReports.length, <Flag className="w-5 h-5" />, "bg-amber-100 text-amber-700")}
         {tabBtn("listings", "Bài đăng tìm bạn", listings.length, <Users className="w-5 h-5" />, "bg-sky-100 text-[#006590]")}
         {tabBtn("users", "Hồ sơ người dùng", profiles.length, <UserCheck className="w-5 h-5" />, "bg-purple-100 text-purple-700")}
         {tabBtn("rooms", "Tin đăng phòng", rooms.length, <FileText className="w-5 h-5" />, "bg-emerald-100 text-emerald-700")}
@@ -183,6 +309,81 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
           <div className="text-center py-20 text-slate-400 font-bold animate-pulse">Đang tải dữ liệu...</div>
         ) : (
           <>
+            {/* TAB: REPORTED REVIEWS */}
+            {activeTab === "reviewReports" && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-black text-slate-800">Feedback bị báo cáo</h3>
+                  <p className="text-sm text-slate-500 mt-1">Kiểm tra nội dung rồi bỏ qua, xóa feedback hoặc khóa tài khoản người viết.</p>
+                </div>
+                {reviewReports.length === 0 ? (
+                  <div className="text-center py-10 bg-slate-50 rounded-2xl">
+                    <ShieldCheck className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
+                    <p className="text-slate-500 font-bold">Không có feedback nào đang chờ xử lý.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {reviewReports.map(report => {
+                      const review = report.review;
+                      const reviewerId = review?.reviewer_id;
+                      const isReviewerBanned = reviewerId ? bannedUsers.includes(reviewerId) : false;
+                      return (
+                        <div key={`${report.source}-${report.id}`} className="border border-amber-200 bg-amber-50/30 p-5 rounded-2xl">
+                          <div className="flex flex-col lg:flex-row gap-5">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2 mb-3">
+                                <span className="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-[11px] font-black">CHỜ XỬ LÝ</span>
+                                <span className="text-xs text-slate-500">{report.created_at ? new Date(report.created_at).toLocaleString('vi-VN') : 'Không rõ thời gian'}</span>
+                              </div>
+                              <div className="flex items-center gap-3 mb-3">
+                                <img
+                                  src={review.reviewer_avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop"}
+                                  alt=""
+                                  className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                                />
+                                <div>
+                                  <p className="font-bold text-slate-800">{review.reviewer_name || 'Người dùng cũ'}</p>
+                                  <div className="flex items-center gap-1 text-amber-500">
+                                    {Array.from({ length: 5 }).map((_, index) => (
+                                      <Star key={index} className={`w-3.5 h-3.5 ${index < Number(review.rating) ? 'fill-amber-400' : 'text-slate-300'}`} />
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                              <blockquote className="bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-700 font-medium break-words">
+                                “{review.comment}”
+                              </blockquote>
+                              <div className="mt-3 text-xs text-slate-500 space-y-1">
+                                <p><span className="font-bold">Lý do báo cáo:</span> {report.reason}</p>
+                                <p><span className="font-bold">Người báo cáo:</span> {report.reporter_id}</p>
+                                <p><span className="font-bold">Tài khoản người viết:</span> {reviewerId || 'Legacy, chưa xác định'}</p>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 gap-2 w-full lg:w-44 shrink-0">
+                              <button onClick={() => handleDismissReviewReport(report)} className="flex items-center justify-center gap-2 bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 px-3 py-2.5 rounded-xl text-sm font-bold">
+                                <Check className="w-4 h-4" /> Bỏ qua
+                              </button>
+                              <button onClick={() => handleDeleteReportedReview(report)} className="flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-3 py-2.5 rounded-xl text-sm font-bold">
+                                <Trash2 className="w-4 h-4" /> Xóa feedback
+                              </button>
+                              <button
+                                onClick={() => handleBanReviewAuthor(report)}
+                                disabled={!reviewerId || isReviewerBanned}
+                                className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 text-white px-3 py-2.5 rounded-xl text-sm font-bold disabled:cursor-not-allowed"
+                                title={!reviewerId ? 'Feedback legacy chưa có ID tài khoản' : undefined}
+                              >
+                                <Ban className="w-4 h-4" /> {isReviewerBanned ? 'Đã khóa' : 'Khóa tài khoản'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* TAB: REPORTS */}
             {activeTab === "reports" && (
               <div className="space-y-6">

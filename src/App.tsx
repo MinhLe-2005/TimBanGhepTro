@@ -190,9 +190,10 @@ export default function App() {
         const { data: roommatesData } = await supabase.from('roommates').select('*').order('createdAt', { ascending: false });
         if (roommatesData && roommatesData.length > 0) {
           const { data: reviewsData } = await supabase.from('reviews').select('*');
+          if (reviewsData) setSupabaseReviews(reviewsData);
           const enhancedRoommates = roommatesData.map((rm: any) => ({
             ...rm,
-            reviews: reviewsData?.filter((rev: any) => rev.roommateId === rm.id) || []
+            reviews: []
           }));
           setSupabaseRoommates(enhancedRoommates);
         }
@@ -242,9 +243,10 @@ export default function App() {
             const { data } = await supabase.from('roommates').select('*').order('createdAt', { ascending: false });
             if (data) {
               const { data: reviewsData } = await supabase.from('reviews').select('*');
+              if (reviewsData) setSupabaseReviews(reviewsData);
               const enhanced = data.map((rm: any) => ({
                 ...rm,
-                reviews: reviewsData?.filter((rev: any) => rev.roommateId === rm.id) || []
+                reviews: []
               }));
               setSupabaseRoommates(enhanced);
             }
@@ -302,6 +304,15 @@ export default function App() {
   const [supabaseRoommates, setSupabaseRoommates] = useState<any[]>([]);
   const [supabaseRooms, setSupabaseRooms] = useState<any[]>([]);
   const [isSupabaseLoading, setIsSupabaseLoading] = useState(!!import.meta.env.VITE_SUPABASE_URL);
+
+  useEffect(() => {
+    if (!isSupabaseLoading) return;
+    const timeoutId = window.setTimeout(() => {
+      console.warn("[Supabase] Loading timed out, showing available local data.");
+      setIsSupabaseLoading(false);
+    }, 12000);
+    return () => window.clearTimeout(timeoutId);
+  }, [isSupabaseLoading]);
 
   // Auto-sync profile when logging in or refreshing
   useEffect(() => {
@@ -792,6 +803,7 @@ export default function App() {
   const [selectedRoommate, setSelectedRoommate] = useState<Roommate | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [roomUserHasSignedAgreement, setRoomUserHasSignedAgreement] = useState(false);
+  const [hasTwoWayMessagesWithSelected, setHasTwoWayMessagesWithSelected] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const requireAuth = async () => {
@@ -822,6 +834,69 @@ export default function App() {
       }
     }
   }, [roommates, selectedRoommate]);
+
+  useEffect(() => {
+    let relevantChatIds: string[] = [];
+
+    const checkTwoWayMessages = async () => {
+      const myId = currentUser?.id;
+      if (!selectedRoommate || !myId) {
+        setHasTwoWayMessagesWithSelected(false);
+        return;
+      }
+
+      const partnerIds = [
+        selectedRoommate.user_id,
+        selectedRoommate.auth_id,
+        selectedRoommate.postedBy,
+        selectedRoommate.id,
+      ].filter((id): id is string => !!id && id !== myId);
+
+      relevantChatIds = [...new Set(partnerIds.map((partnerId) => [myId, partnerId].sort().join("_")))];
+      if (relevantChatIds.length === 0) {
+        setHasTwoWayMessagesWithSelected(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("messages")
+        .select("sender_id, text, image_url")
+        .in("chat_id", relevantChatIds);
+
+      if (error || !data) {
+        setHasTwoWayMessagesWithSelected(false);
+        return;
+      }
+
+      const userMessages = data.filter((message) => {
+        const text = String(message.text || "").trim();
+        return !!message.image_url || (text.length > 0 && !text.startsWith("["));
+      });
+      const hasMyMessage = userMessages.some((message) => message.sender_id === myId);
+      const hasPartnerMessage = userMessages.some((message) => partnerIds.includes(message.sender_id));
+      setHasTwoWayMessagesWithSelected(hasMyMessage && hasPartnerMessage);
+    };
+
+    checkTwoWayMessages();
+    const channel = supabase
+      .channel(`phone-unlock-${selectedRoommate?.id || "none"}-${currentUser?.id || "guest"}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        if (relevantChatIds.includes(payload.new.chat_id)) {
+          checkTwoWayMessages();
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [
+    selectedRoommate?.id,
+    selectedRoommate?.user_id,
+    selectedRoommate?.auth_id,
+    selectedRoommate?.postedBy,
+    currentUser?.id,
+  ]);
 
   // Check if user has signed agreement with room host when room modal opens
   useEffect(() => {
@@ -938,7 +1013,6 @@ export default function App() {
     const saved = localStorage.getItem("roomiematch_posted_roommates");
     const customOnes = saved ? JSON.parse(saved) : [];
     
-    const initialIds = INITIAL_ROOMMATES.map(r => r.id);
     const legacyAiIds = ["r1", "r2", "r3", "r4", "r5", "khanh-vy", "minh-anh", "hoang-nam", "trang-le", "duc-tri", "ai_khanh_vy"];
     const aiNames = ["Minh Anh", "Hoàng Nam", "Trang Lê", "Đức Trí", "Khánh Vy"];
     
@@ -954,95 +1028,39 @@ export default function App() {
     });
     const allCandidates = Array.from(uniqueCandidatesMap.values());
 
-    if (currentUserProfile) {
-      const updated = allCandidates.map((r) => {
-        let score = 55; // Base compatibility match
+    const updated = allCandidates.map((r) => {
+      const dbReviews = supabaseReviews
+        .filter(rev => (rev.roommate_id || rev.roommateId) === r.id)
+        .map(rev => ({
+          id: rev.id,
+          reviewerId: rev.reviewer_id,
+          reviewerName: rev.reviewer_name || rev.reviewerName,
+          reviewerAvatar: rev.reviewer_avatar || rev.reviewerAvatar,
+          rating: Number(rev.rating),
+          comment: rev.comment,
+          imageUrl: rev.image_url || rev.imageUrl,
+          createdAt: rev.created_at ? new Date(rev.created_at).toLocaleDateString("vi-VN") : rev.createdAt,
+        }));
+      const localReviews = (r.reviews || []).filter((rev: any) => rev.reviewerName);
+      const mergedReviews = [...dbReviews, ...localReviews].filter((review, index, list) =>
+        list.findIndex((item) => item.id === review.id) === index
+      );
+      const isOwner = !!currentUserProfile && (
+        (currentUser && r.postedBy === currentUser.id) ||
+        r.name === currentUserProfile.name
+      );
 
-        // 1. Sleep matching
-        if (currentUserProfile.lifestyle.sleep === r.lifestyle.sleep) {
-          score += 15;
-        } else if (
-          (currentUserProfile.lifestyle.sleep === "Cú đêm" && r.lifestyle.sleep === "Ngủ sớm") ||
-          (currentUserProfile.lifestyle.sleep === "Ngủ sớm" && r.lifestyle.sleep === "Cú đêm")
-        ) {
-          score -= 10;
-        }
-
-        // 2. Pet tolerance
-        if (currentUserProfile.lifestyle.pets === r.lifestyle.pets || r.lifestyle.pets === "Thoải mái") {
-          score += 15;
-        }
-
-        // 3. Smoke tolerance
-        if (currentUserProfile.lifestyle.smoke === r.lifestyle.smoke) {
-          score += 15;
-        } else if (currentUserProfile.lifestyle.smoke === "Không hút thuốc" && r.lifestyle.smoke.includes("Hút thuốc")) {
-          score -= 15;
-        }
-
-        // 4. Cooking preference
-        if (currentUserProfile.lifestyle.cook === r.lifestyle.cook) {
-          score += 5;
-        }
-
-        // 5. Neatness/Cleanliness comparison
-        if (currentUserProfile.lifestyle.neatness === r.lifestyle.neatness) {
-          score += 10;
-        }
-
-        // Normalization bounds: 65% up to 99%
-        const normalized = Math.min(99, Math.max(65, score));
-        
-        // Merge Supabase reviews
-        const dbReviews = supabaseReviews
-          .filter(rev => rev.roommate_id === r.id)
-          .map(rev => ({
-            id: rev.id,
-            reviewerName: rev.reviewer_name,
-            reviewerAvatar: rev.reviewer_avatar,
-            rating: rev.rating,
-            comment: rev.comment,
-            imageUrl: rev.image_url,
-            createdAt: new Date(rev.created_at).toLocaleDateString("vi-VN"),
-          }));
-
-        const isOwner = (currentUser && r.postedBy === currentUser.id) || r.name === currentUserProfile.name;
-
-        return {
-          ...r,
-          budget: r.budget || 0,
-          matchScore: isOwner && !r.is_listing ? 100 : normalized,
-          reviews: [...dbReviews, ...(r.reviews || [])],
-          // CRITICAL FIX: Keep listing avatar even if user owns it - don't mix with profile avatar
-          avatar: (isOwner && !r.is_listing) ? currentUserProfile.avatar : r.avatar,
-          name: (isOwner && !r.is_listing) ? currentUserProfile.name : r.name,
-          postedBy: isOwner && currentUser ? currentUser.id : r.postedBy,
-        };
-      });
-
-      // Sort by match score from largest to smallest
-      setRoommates(updated.sort((a, b) => b.matchScore - a.matchScore));
-    } else {
-      const updated = allCandidates.map(r => {
-        const dbReviews = supabaseReviews
-          .filter(rev => rev.roommate_id === r.id)
-          .map(rev => ({
-            id: rev.id,
-            reviewerName: rev.reviewer_name,
-            reviewerAvatar: rev.reviewer_avatar,
-            rating: rev.rating,
-            comment: rev.comment,
-            imageUrl: rev.image_url,
-            createdAt: new Date(rev.created_at).toLocaleDateString("vi-VN"),
-          }));
-        return {
-          ...r,
-          budget: r.budget || 0,
-          reviews: [...dbReviews, ...(r.reviews || [])],
-        };
-      });
-      setRoommates(updated);
-    }
+      return {
+        ...r,
+        budget: r.budget || 0,
+        matchScore: 0,
+        reviews: mergedReviews,
+        avatar: isOwner && !r.is_listing ? currentUserProfile.avatar : r.avatar,
+        name: isOwner && !r.is_listing ? currentUserProfile.name : r.name,
+        postedBy: isOwner && currentUser ? currentUser.id : r.postedBy,
+      };
+    });
+    setRoommates(updated);
   }, [currentUserProfile, supabaseReviews, currentUser, supabaseRoommates]);
 
   // Sync rooms with updated profile
@@ -1267,60 +1285,96 @@ export default function App() {
     setTimeout(() => setActiveTab("chat"), 50);
   };
 
-  const handleAddReview = async (roommateId: string, review: { reviewerName: string; rating: number; comment: string; imageUrl?: string }) => {
+  const handleAddReview = async (roommateId: string, review: { rating: number; comment: string; imageUrl?: string }) => {
     const isAuth = await requireAuth();
     if (!isAuth) return false;
 
+    const reviewerName =
+      currentUserProfile?.name ||
+      currentUser?.user_metadata?.full_name ||
+      currentUser?.email?.split("@")[0] ||
+      "Thành viên RoomieMatch";
+    const reviewerAvatar =
+      currentUserProfile?.avatar ||
+      currentUser?.user_metadata?.avatar_url ||
+      null;
+
     const newDbReview = {
       roommate_id: roommateId,
-      reviewer_name: review.reviewerName || "Bạn ở ghép ẩn danh",
-      reviewer_avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop",
+      reviewer_name: reviewerName,
+      reviewer_avatar: reviewerAvatar,
       rating: review.rating,
       comment: review.comment,
       image_url: review.imageUrl || null,
     };
 
-    // 1. Insert into Supabase
-    const { data, error } = await supabase.from('reviews').insert([newDbReview]).select();
+    // Prefer account-linked reviews when the migration has been applied.
+    let { data, error } = await supabase
+      .from('reviews')
+      .insert([{ ...newDbReview, reviewer_id: currentUser?.id }])
+      .select();
+
+    // Keep compatibility with databases that have not run add_review_identity.sql yet.
+    if (error && /reviewer_id/i.test(`${error.message} ${error.details || ""}`)) {
+      const legacyResult = await supabase.from('reviews').insert([newDbReview]).select();
+      data = legacyResult.data;
+      error = legacyResult.error;
+
+      if (!error && data?.[0]?.id && currentUser?.id) {
+        await supabase.from('messages').insert({
+          chat_id: 'SYSTEM_REVIEW_IDENTITIES',
+          sender_id: currentUser.id,
+          text: `[REVIEW_IDENTITY]${JSON.stringify({
+            review_id: data[0].id,
+            reviewer_id: currentUser.id,
+          })}`,
+        });
+      }
+    }
     
     if (!error && data && data.length > 0) {
       // 2. Update local supabaseReviews state so it triggers the useEffect to recalculate roommates
       setSupabaseReviews(prev => [data[0], ...prev]);
     } else {
       console.error("Failed to insert review to Supabase", error);
-      // Fallback: update state anyway if Supabase fails (e.g. RLS issues or offline)
-      setRoommates((prev) =>
-        prev.map((r) => {
-          if (r.id === roommateId) {
-            const fallbackReview = {
-              id: `rev-${Date.now()}`,
-              reviewerName: newDbReview.reviewer_name,
-              reviewerAvatar: newDbReview.reviewer_avatar,
-              rating: newDbReview.rating,
-              comment: newDbReview.comment,
-              imageUrl: newDbReview.image_url || undefined,
-              createdAt: new Date().toLocaleDateString("vi-VN"),
-            };
-            const updatedReviews = [fallbackReview, ...(r.reviews || [])];
-            
-            let newScore = r.reputationScore;
-            if (review.rating >= 4) {
-              newScore = Math.min(100, r.reputationScore + 1);
-            } else {
-              newScore = Math.max(50, r.reputationScore - 10);
-            }
-  
-            return {
-              ...r,
-              reviews: updatedReviews,
-              reputationScore: newScore,
-            };
-          }
-          return r;
-        })
-      );
+      return false;
     }
     return true;
+  };
+
+  const handleReportReview = async (reviewId: string, roommateId: string) => {
+    const isAuth = await requireAuth();
+    if (!isAuth || !currentUser) return false;
+
+    const report = {
+      review_id: reviewId,
+      roommate_id: roommateId,
+      reporter_id: currentUser.id,
+      reason: "Nội dung phản cảm hoặc không phù hợp",
+      status: "pending",
+    };
+
+    const { error } = await supabase.from("review_reports").insert([report]);
+    if (!error) return true;
+    if (error.code === "23505") return true;
+
+    // Compatibility fallback until the review_reports migration is applied.
+    const { error: fallbackError } = await supabase.from("messages").insert({
+      chat_id: "SYSTEM_REVIEW_REPORTS",
+      sender_id: currentUser.id,
+      text: `[REVIEW_REPORT]${JSON.stringify(report)}`,
+    });
+    return !fallbackError;
+  };
+
+  const handleAdminReviewDeleted = (reviewId: string) => {
+    setSupabaseReviews((previous) => previous.filter((review) => review.id !== reviewId));
+    setRoommates((previous) =>
+      previous.map((roommate) => ({
+        ...roommate,
+        reviews: (roommate.reviews || []).filter((review) => review.id !== reviewId),
+      }))
+    );
   };
 
   // Check if currentUser has signed an agreement with the room host
@@ -1398,26 +1452,6 @@ export default function App() {
       setIsBanned(true);
     }
   }, [currentUserProfile, supabaseBannedIds]);
-
-  // Helper calculating specific category matching details for modal displays
-  const getCompatibilityDetails = (roommate: Roommate | null) => {
-    if (!roommate || !currentUserProfile) {
-      return {
-        sleepMatch: true,
-        petsMatch: true,
-        smokeMatch: true,
-        cookMatch: true,
-        neatMatch: true,
-      };
-    }
-    return {
-      sleepMatch: currentUserProfile.lifestyle.sleep === roommate.lifestyle.sleep,
-      petsMatch: currentUserProfile.lifestyle.pets === roommate.lifestyle.pets || roommate.lifestyle.pets === "Thoải mái",
-      smokeMatch: currentUserProfile.lifestyle.smoke === roommate.lifestyle.smoke,
-      cookMatch: currentUserProfile.lifestyle.smoke === roommate.lifestyle.smoke,
-      neatMatch: currentUserProfile.lifestyle.neatness === roommate.lifestyle.neatness,
-    };
-  };
 
   if (isBanned) {
     return (
@@ -1577,6 +1611,7 @@ export default function App() {
               rooms={rooms}
               onDeleteRoommate={handleDeleteRoommate}
               onDeleteRoom={handleDeleteRoom}
+              onReviewDeleted={handleAdminReviewDeleted}
             />
           ) : (
             <div className="flex flex-col items-center justify-center py-20 px-4 min-h-[60vh] animate-fade-in">
@@ -1602,9 +1637,19 @@ export default function App() {
           onClose={handleCloseModal}
           onStartChat={startChatConversation}
           onStartAgreement={startAgreementForm}
-          compatibilityDetails={getCompatibilityDetails(selectedRoommate)}
           onAddReview={handleAddReview}
+          onReportReview={handleReportReview}
+          currentReviewerName={
+            currentUserProfile?.name ||
+            currentUser?.user_metadata?.full_name ||
+            currentUser?.email?.split("@")[0]
+          }
+          currentReviewerAvatar={
+            currentUserProfile?.avatar ||
+            currentUser?.user_metadata?.avatar_url
+          }
           isOwnProfile={!!currentUser && (selectedRoommate.postedBy === currentUser.id || (selectedRoommate as any).user_id === currentUser.id)}
+          hasTwoWayMessages={hasTwoWayMessagesWithSelected}
           hasChatWithRoommate={(() => {
             // Check if there's any real chat history by looking for stored messages
             const myId = currentUser?.id || currentUserProfile?.id;
@@ -1688,7 +1733,7 @@ export default function App() {
             </div>
             <h3 className="text-xl font-extrabold text-[#004e70] mb-2">Cập nhật Hồ sơ</h3>
             <p className="text-slate-500 mb-6 text-[15px]">
-              Bạn cần cập nhật hồ sơ cá nhân (thói quen, tính cách...) trước khi thực hiện chức năng này để hệ thống tính toán độ tương thích.
+              Bạn cần cập nhật hồ sơ cá nhân trước khi sử dụng chức năng này.
             </p>
             <div className="flex gap-3">
               <button
@@ -1722,4 +1767,3 @@ export default function App() {
     </div>
   );
 }
-

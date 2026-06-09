@@ -247,10 +247,10 @@ export default function PostListingModal({
       location: `${rmAddress ? rmAddress + ", " : ""}Quận ${rmDistrict}, Đà Nẵng`,
       district: rmDistrict,
       type: rmType,
-      matchScore: 90,
-      reputationScore: 100, // 100% reputation default for new registered roommate
+      matchScore: 0,
+      reputationScore: 0,
       tags: processedTags.length > 0 ? processedTags : ["Học tập tốt", "Thân thiện"],
-      isVerified: true,
+      isVerified: false,
       status: rmStatus,
       bio: rmBio || `Chào cả nhà! Mình tên là ${rmName}. Mình đang hoạt động tại khu vực ${rmDistrict} Đà Nẵng và rất mong muốn tìm được một người bạn ở ghép chia sẻ chi phí, có lối sống lành mạnh, sạch sẽ.`,
       budget: Number(String(rmBudget).replace(/\D/g, "")),
@@ -303,7 +303,7 @@ export default function PostListingModal({
       features: selectedFeatures,
       isHot: true,
       status: "còn phòng",
-      isVerifiedRoom: true,
+      isVerifiedRoom: false,
       bedrooms: Number(rBedrooms),
       wc: rWc,
       kitchen: rKitchen,
@@ -483,9 +483,9 @@ export default function PostListingModal({
                         <label className="block text-[13px] font-semibold text-slate-700">Trạng thái ghép đôi</label>
                         <select value={rmStatus} onChange={(e) => setRmStatus(e.target.value as any)}
                           className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 transition-all cursor-pointer">
-                          <option value="Đang tìm">🟢 Đang tìm roommate</option>
-                          <option value="Đang trao đổi">🟡 Đang trao đổi với ai đó</option>
-                          <option value="Đã tìm được">🔴 Đã tìm được roommate</option>
+                          <option value="Đang tìm">Đang tìm roommate</option>
+                          <option value="Đang trao đổi">Đang trao đổi với ai đó</option>
+                          <option value="Đã tìm được">Đã tìm được roommate</option>
                         </select>
                       </div>
                     </div>

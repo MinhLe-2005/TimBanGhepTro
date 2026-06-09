@@ -9,7 +9,10 @@ import {
   Sparkles,
   User,
   Mail,
-  MessageSquare
+  MessageSquare,
+  AlertTriangle,
+  Flag,
+  Star
 } from "lucide-react";
 
 export const INFO_TABS = [
@@ -62,7 +65,7 @@ export default function InfoView() {
                   Kết nối từ <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-200 to-white">trái tim</span> đến không gian sống
                 </h2>
                 <p className="text-sky-100 text-sm sm:text-base leading-relaxed">
-                  RoomieMatch ra đời với sứ mệnh mang lại một nền tảng tìm bạn ở ghép và phòng trọ minh bạch, an toàn và thông minh nhất dành cho giới trẻ tại Việt Nam.
+                  RoomieMatch hỗ trợ người dùng đăng tin, trò chuyện, đánh giá và lập thỏa thuận sống chung. Nền tảng cung cấp công cụ giảm rủi ro, nhưng không thể bảo chứng tuyệt đối danh tính, phòng trọ hoặc giao dịch giữa người dùng.
                 </p>
               </div>
               <div className="absolute top-0 right-0 -mt-10 -mr-10 opacity-10">
@@ -76,18 +79,18 @@ export default function InfoView() {
                 <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm mb-4 text-[#004e70]">
                   <Sparkles className="w-6 h-6" />
                 </div>
-                <h3 className="font-bold text-slate-800 mb-2">Ghép Đôi Thông Minh</h3>
+                <h3 className="font-bold text-slate-800 mb-2">Tìm Kiếm Theo Nhu Cầu</h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Ứng dụng thuật toán phân tích phong cách sống, giờ giấc sinh hoạt và mức độ ngăn nắp để tìm ra người bạn cùng phòng lý tưởng nhất.
+                  Lọc hồ sơ theo khu vực, ngân sách, loại hình và thói quen sinh hoạt để chủ động tìm người phù hợp.
                 </p>
               </div>
               <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-100">
                 <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm mb-4 text-emerald-600">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
-                <h3 className="font-bold text-slate-800 mb-2">An Toàn Tuyệt Đối</h3>
+                <h3 className="font-bold text-slate-800 mb-2">Công Cụ An Toàn</h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Khác biệt với các hội nhóm lộn xộn, RoomieMatch cung cấp các tính năng xác minh danh tính và hợp đồng sống chung minh bạch.
+                  Người dùng có thể xem đánh giá, báo cáo nội dung, chặn tài khoản và lưu thỏa thuận. Bạn vẫn cần tự kiểm tra giấy tờ và phòng trước khi giao dịch.
                 </p>
               </div>
               <div className="bg-rose-50 rounded-2xl p-6 border border-rose-100">
@@ -110,7 +113,7 @@ export default function InfoView() {
                 <HelpCircle className="w-8 h-8" />
               </div>
               <h2 className="text-2xl font-black text-slate-800">Chúng tôi có thể giúp gì cho bạn?</h2>
-              <p className="text-sm text-slate-500 mt-2">Đội ngũ CSKH của RoomieMatch luôn sẵn sàng hỗ trợ bạn 24/7</p>
+              <p className="text-sm text-slate-500 mt-2">Gửi thông tin rõ ràng và ảnh minh chứng để được kiểm tra nhanh hơn</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -120,17 +123,24 @@ export default function InfoView() {
                 </div>
                 <h3 className="font-bold text-slate-800">Gửi Email Hỗ Trợ</h3>
                 <p className="text-sm text-slate-500 mt-1">support@roomiematch.vn</p>
-                <p className="text-xs text-slate-400 mt-3">Phản hồi trong vòng 24 giờ làm việc</p>
+                <p className="text-xs text-slate-400 mt-3">Thời gian phản hồi phụ thuộc mức độ và lượng yêu cầu</p>
               </a>
 
               <div className="group block bg-white border border-slate-200 rounded-2xl p-6 hover:border-emerald-300 hover:shadow-lg transition-all duration-300">
                 <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <MessageSquare className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-slate-800">Chat Trực Tuyến</h3>
-                <p className="text-sm text-slate-500 mt-1">Qua tính năng Tin Nhắn</p>
-                <p className="text-xs text-slate-400 mt-3">Hỗ trợ ngay lập tức (8:00 - 22:00)</p>
+                <h3 className="font-bold text-slate-800">Báo Cáo Trong Ứng Dụng</h3>
+                <p className="text-sm text-slate-500 mt-1">Tại hồ sơ hoặc cuộc trò chuyện</p>
+                <p className="text-xs text-slate-400 mt-3">Báo cáo được chuyển tới khu vực quản trị để xem xét</p>
               </div>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-900 leading-relaxed">
+                Nếu đã chuyển tiền hoặc nghi có hành vi chiếm đoạt, hãy lưu tin nhắn, biên lai, số tài khoản và liên hệ ngân hàng hoặc cơ quan công an. Báo cáo trên RoomieMatch giúp quản trị viên kiểm tra tài khoản, không thay thế việc trình báo.
+              </p>
             </div>
           </div>
         );
@@ -148,13 +158,41 @@ export default function InfoView() {
             </div>
 
             <div className="space-y-4">
+              <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200">
+                <h3 className="font-bold text-amber-900 mb-2 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5" />
+                  Không có một dấu hiệu nào bảo đảm an toàn 100%
+                </h3>
+                <p className="text-sm text-amber-800 leading-relaxed">
+                  Tài khoản đăng nhập, điểm uy tín và đánh giá chỉ là dữ liệu tham khảo. Hãy kết hợp nhiều dấu hiệu, gặp trực tiếp và kiểm tra quyền cho thuê trước khi đặt cọc.
+                </p>
+              </div>
+
+              <div className="grid sm:grid-cols-3 gap-3">
+                <div className="border border-slate-200 rounded-xl p-4">
+                  <ShieldCheck className="w-5 h-5 text-sky-600 mb-2" />
+                  <h3 className="font-bold text-slate-800 text-sm">Xác minh danh tính</h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">Website chưa có quy trình xác minh giấy tờ đầy đủ, nên hiện không dùng dấu xác minh để bảo chứng người đăng.</p>
+                </div>
+                <div className="border border-slate-200 rounded-xl p-4">
+                  <Star className="w-5 h-5 text-amber-500 mb-2" />
+                  <h3 className="font-bold text-slate-800 text-sm">Mức uy tín</h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">Được quy đổi từ trung bình đánh giá sao. Ví dụ 4,5/5 tương ứng 90%.</p>
+                </div>
+                <div className="border border-slate-200 rounded-xl p-4">
+                  <Flag className="w-5 h-5 text-rose-500 mb-2" />
+                  <h3 className="font-bold text-slate-800 text-sm">Báo cáo</h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">Giúp quản trị viên xem xét bằng chứng và khóa tài khoản khi xác định có vi phạm.</p>
+                </div>
+              </div>
+
               <div className="flex gap-4 p-5 rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                 <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                   <span className="font-black text-lg">1</span>
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-800 mb-1">Xác minh người đăng tin</h3>
-                  <p className="text-sm text-slate-600 leading-relaxed">Hãy yêu cầu cung cấp Căn cước công dân và hợp đồng thuê nhà gốc (nếu là người nhượng phòng) trước khi quyết định đặt cọc để tránh lừa đảo đa cấp hoặc môi giới ảo.</p>
+                  <p className="text-sm text-slate-600 leading-relaxed">Đối chiếu tên người nhận tiền với giấy tờ và quyền cho thuê. Không yêu cầu người lạ gửi ảnh CCCD đầy đủ qua chat; khi cần đối chiếu, nên gặp trực tiếp và che các thông tin không cần thiết.</p>
                 </div>
               </div>
 
@@ -174,7 +212,7 @@ export default function InfoView() {
                 </div>
                 <div>
                   <h3 className="font-bold text-rose-800 mb-1">Không chuyển khoản nếu chưa xem phòng</h3>
-                  <p className="text-sm text-rose-700 leading-relaxed">Kẻ gian thường hối thúc bạn chuyển tiền cọc "giữ chỗ" vì có nhiều người hỏi. Tuyệt đối KHÔNG giao dịch điện tử nếu chưa đến tận nơi và gặp trực tiếp chủ nhà.</p>
+                  <p className="text-sm text-rose-700 leading-relaxed">Kẻ gian thường hối thúc chuyển tiền cọc “giữ chỗ”. Không chuyển tiền khi chưa xem phòng, xác minh người có quyền cho thuê và đọc rõ điều kiện hoàn cọc bằng văn bản.</p>
                 </div>
               </div>
 
@@ -227,10 +265,10 @@ export default function InfoView() {
               <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
                 <h4 className="font-bold text-slate-800 flex items-start gap-3">
                   <span className="text-sky-500 mt-0.5"><MessageCircleQuestion className="w-5 h-5" /></span>
-                  2. Thuật toán ghép đôi hoạt động thế nào?
+                  2. Mức uy tín được tính như thế nào?
                 </h4>
                 <p className="text-sm text-slate-600 mt-3 ml-8 leading-relaxed">
-                  Dựa trên bộ câu hỏi Lifestyle của bạn (giờ ngủ, độ sạch sẽ, tính cách, nuôi thú cưng, mức độ ồn ào), hệ thống trí tuệ nhân tạo sẽ đối chiếu và chấm điểm phần trăm độ tương hợp với những người dùng khác. Điểm số càng cao, hai bạn càng có khả năng chung sống hòa hợp.
+                  Mức uy tín hiện được quy đổi trực tiếp từ điểm đánh giá trung bình: số sao trung bình chia cho 5 rồi nhân 100. Ví dụ 4,5/5 sao tương ứng 90%. Hãy xem cả số lượng, nội dung và thời gian đánh giá; một đánh giá 5 sao duy nhất chưa đủ để kết luận người đó đáng tin.
                 </p>
               </div>
               <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
@@ -239,7 +277,7 @@ export default function InfoView() {
                   3. Làm sao để biết phòng trọ đó là thật hay lừa đảo?
                 </h4>
                 <p className="text-sm text-slate-600 mt-3 ml-8 leading-relaxed">
-                  RoomieMatch có đội ngũ kiểm duyệt tin đăng liên tục. Những tin có dấu hiệu giá quá rẻ so với mặt bằng chung, hình ảnh copy trên mạng sẽ bị gắn cờ. Tuy nhiên, bạn vẫn phải áp dụng nguyên tắc "đến tận nơi, xem tận mắt" trước khi cọc.
+                  Không thể xác định chắc chắn chỉ từ một tin đăng. Hãy kiểm tra ảnh bằng tìm kiếm hình ảnh ngược, so sánh giá khu vực, gọi video hoặc xem phòng trực tiếp, đối chiếu người nhận tiền với người có quyền cho thuê và yêu cầu văn bản về tiền cọc. Giá quá rẻ, thúc giục chuyển tiền và từ chối gặp mặt là dấu hiệu rủi ro cao.
                 </p>
               </div>
               <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
@@ -248,7 +286,7 @@ export default function InfoView() {
                   4. Tôi có thể báo cáo người dùng có hành vi xấu không?
                 </h4>
                 <p className="text-sm text-slate-600 mt-3 ml-8 leading-relaxed">
-                  Chắc chắn rồi. Nếu ai đó nhắn tin gạ gẫm, quấy rối hoặc đăng tin lừa đảo, bạn hãy bấm vào biểu tượng "..." ở góc phải hồ sơ của họ và chọn "Báo cáo vi phạm". Đội ngũ quản trị sẽ xử lý ngay lập tức.
+                  Có. Bạn có thể báo cáo tại hồ sơ hoặc cuộc trò chuyện và nên đính kèm ảnh minh chứng. Báo cáo sẽ xuất hiện trong khu vực quản trị để xem xét; quản trị viên có thể khóa tài khoản nếu xác định có vi phạm. Trong trường hợp khẩn cấp hoặc đã mất tiền, hãy liên hệ ngân hàng và cơ quan chức năng.
                 </p>
               </div>
               <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
@@ -257,7 +295,7 @@ export default function InfoView() {
                   5. Tôi có thể xóa tài khoản không?
                 </h4>
                 <p className="text-sm text-slate-600 mt-3 ml-8 leading-relaxed">
-                  Có. Bạn có thể vào phần Cài Đặt Cá Nhân và chọn "Xóa tài khoản". Mọi thông tin, tin nhắn và lịch sử ghép đôi của bạn sẽ được xóa khỏi hệ thống hoàn toàn sau 15 ngày làm việc theo đúng quy định bảo vệ dữ liệu.
+                  Website hiện chưa có nút tự xóa tài khoản. Bạn có thể gửi yêu cầu tới support@roomiematch.vn từ email đã đăng ký. Yêu cầu cần được xác minh trước khi xử lý; một số dữ liệu có thể phải lưu trong thời hạn cần thiết để giải quyết khiếu nại, chống gian lận hoặc tuân thủ pháp luật.
                 </p>
               </div>
               <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
@@ -266,7 +304,7 @@ export default function InfoView() {
                   6. Bản cam kết sống chung có giá trị pháp lý không?
                 </h4>
                 <p className="text-sm text-slate-600 mt-3 ml-8 leading-relaxed">
-                  Bản cam kết trên RoomieMatch đóng vai trò như một thỏa thuận dân sự giữa các cá nhân để đảm bảo ý thức chung. Mặc dù không phải là hợp đồng thuê nhà chính thức, nhưng nó cung cấp bằng chứng rõ ràng nếu có tranh chấp xảy ra giữa các bạn cùng phòng.
+                  Đây là bản ghi thỏa thuận về nếp sống và chi phí giữa hai người dùng, không phải hợp đồng thuê nhà và RoomieMatch không bảo đảm giá trị pháp lý của bản ghi. Khi thuê phòng hoặc đặt cọc, hai bên vẫn nên lập hợp đồng riêng, xác định đúng chủ thể và tham khảo người có chuyên môn khi cần.
                 </p>
               </div>
             </div>
@@ -281,7 +319,7 @@ export default function InfoView() {
               </div>
               <div>
                 <h2 className="text-2xl font-black text-slate-800">Điều khoản & Bảo mật</h2>
-                <p className="text-sm text-slate-500">Cập nhật lần cuối: Tháng 6, 2026</p>
+                <p className="text-sm text-slate-500">Cập nhật lần cuối: 09/06/2026</p>
               </div>
             </div>
 
@@ -289,7 +327,7 @@ export default function InfoView() {
               <div>
                 <h3 className="font-bold text-slate-800 text-base mb-2">1. Trách nhiệm người dùng</h3>
                 <p className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                  Người dùng phải cung cấp thông tin trung thực khi đăng tin bài. Hình ảnh phòng trọ phải đúng thực tế. Các hành vi đăng tin sai sự thật, lừa đảo chiếm đoạt tài sản, phân biệt vùng miền hoặc sử dụng ngôn từ đả kích sẽ bị khóa tài khoản vĩnh viễn không cần báo trước và có thể bị báo cáo lên cơ quan chức năng.
+                  Người dùng phải cung cấp thông tin trung thực và chỉ đăng phòng mà mình có quyền cho thuê hoặc giới thiệu. Báo cáo vi phạm sẽ được xem xét dựa trên nội dung và bằng chứng hiện có. Tùy mức độ, RoomieMatch có thể ẩn nội dung, hạn chế hoặc khóa tài khoản; trường hợp có dấu hiệu vi phạm pháp luật có thể được chuyển cho cơ quan có thẩm quyền theo yêu cầu hợp lệ.
                 </p>
               </div>
               
@@ -297,9 +335,9 @@ export default function InfoView() {
                 <h3 className="font-bold text-slate-800 text-base mb-2">2. Thu thập và bảo mật thông tin</h3>
                 <ul className="list-disc pl-5 space-y-2">
                   <li>RoomieMatch cam kết <strong>không bán hoặc chia sẻ trái phép</strong> số điện thoại, email và dữ liệu cá nhân của bạn cho bên thứ ba vì mục đích quảng cáo hoặc thương mại.</li>
-                  <li>Thuật toán ghép đôi chỉ sử dụng các dữ liệu về lối sống mà bạn đã công khai đồng ý chia sẻ trên trang cá nhân để tìm kiếm sự tương hợp.</li>
-                  <li>Hệ thống tin nhắn được mã hóa hai chiều để đảm bảo quyền riêng tư tuyệt đối cho các cuộc trò chuyện của bạn.</li>
-                  <li>Bạn có toàn quyền yêu cầu xóa bỏ hoàn toàn dữ liệu cá nhân của mình khỏi máy chủ của chúng tôi bất cứ lúc nào.</li>
+                  <li>Các thông tin hồ sơ và thói quen bạn nhập được dùng để hiển thị, lọc tìm kiếm và cung cấp chức năng của nền tảng.</li>
+                  <li>Tin nhắn được truyền qua kết nối bảo mật của nhà cung cấp dịch vụ, nhưng hiện không được quảng cáo là mã hóa đầu cuối. Không gửi mật khẩu, mã OTP, ảnh giấy tờ đầy đủ hoặc thông tin ngân hàng qua chat.</li>
+                  <li>Bạn có thể yêu cầu truy cập, chỉnh sửa hoặc xóa dữ liệu qua email hỗ trợ. Việc xử lý phụ thuộc bước xác minh và nghĩa vụ lưu trữ hợp pháp.</li>
                 </ul>
               </div>
 
@@ -313,7 +351,17 @@ export default function InfoView() {
               </div>
 
               <div>
-                <h3 className="font-bold text-slate-800 text-base mb-2">4. Bản quyền nội dung</h3>
+                <h3 className="font-bold text-slate-800 text-base mb-2">4. Giới hạn bảo chứng và xử lý sự cố</h3>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>RoomieMatch là nền tảng kết nối, không phải bên cho thuê, môi giới, ngân hàng hoặc cơ quan xác minh danh tính chuyên trách.</li>
+                  <li>Tài khoản đăng nhập, đánh giá và mức uy tín không phải cam kết rằng người dùng hoặc giao dịch chắc chắn an toàn.</li>
+                  <li>Người dùng chịu trách nhiệm kiểm tra phòng, quyền cho thuê, giấy tờ, hợp đồng và điều kiện thanh toán trước khi giao dịch.</li>
+                  <li>Khi nghi ngờ lừa đảo, hãy dừng chuyển tiền, lưu bằng chứng, báo cáo tài khoản và liên hệ ngân hàng hoặc cơ quan chức năng nếu cần.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-slate-800 text-base mb-2">5. Bản quyền nội dung</h3>
                 <p>
                   Tất cả hình ảnh đồ họa, logo, thuật toán ghép đôi, mã nguồn và giao diện người dùng thuộc sở hữu trí tuệ của nhóm phát triển RoomieMatch. Mọi hành vi sao chép thiết kế, cào dữ liệu tự động (data scraping) từ website mà không có sự cho phép bằng văn bản đều là vi phạm bản quyền.
                 </p>

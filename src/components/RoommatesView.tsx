@@ -461,36 +461,6 @@ export default function RoommatesView({
         </div>
       </div>
 
-      {/* AI Matching alert if customized profile is set up */}
-      {currentUserProfile ? (
-        <div className="bg-gradient-to-r from-sky-50 from-[#006590]/5 to-sky-400/10 border border-sky-100 rounded-2xl p-5 flex items-center justify-between gap-4 shadow-sm">
-          <div className="flex items-center gap-3.5">
-            <span className="p-2.5 bg-white border border-sky-100 shadow-sm rounded-xl text-[#006590]">
-              <Sparkles className="h-5 w-5 animate-pulse" />
-            </span>
-            <div>
-              <p className="text-sm font-extrabold text-slate-800 tracking-tight mb-0.5">Chế độ hiển thị Ghép Đôi AI đang BẬT</p>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">Chỉ số tương thích được thuật toán phân tích thời gian thực theo hồ sơ cá nhân của bạn!</p>
-            </div>
-          </div>
-          <p className="text-xs font-bold text-[#006590] bg-white border border-sky-100/60 px-4 py-2 rounded-xl shadow-sm hidden sm:block">
-            {currentUserProfile.name}
-          </p>
-        </div>
-      ) : (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-[20px] p-5 flex items-start sm:items-center gap-4 text-xs shadow-sm">
-          <div className="p-2.5 bg-white border border-emerald-100 text-emerald-600 shadow-sm rounded-xl shrink-0">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <div className="flex-1">
-            <h4 className="text-sm font-extrabold text-emerald-900 mb-0.5 tracking-tight">Mẹo tìm kiếm thông minh</h4>
-            <p className="text-emerald-800/80 font-medium leading-relaxed text-[13px]">
-              Hãy nhấn nút <span className="font-bold text-emerald-800 bg-emerald-100/80 border border-emerald-200 px-1.5 py-0.5 rounded mx-0.5 shadow-sm">Tạo Hồ Sơ Roommate</span> ở góc trên cùng để thiết lập thói quen sinh hoạt và kích hoạt chế độ <b className="text-emerald-900">Ghép Đôi AI</b>!
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Roommates Grid Results */}
       {filteredRoommates.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6">

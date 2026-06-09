@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Send, CheckCircle2, AlertCircle, Sparkles, MessageSquare, PhoneCall, Image as ImageIcon, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck, Ban, AlertOctagon, UploadCloud, Clock, CheckSquare, Users, CreditCard, Heart, Check, Star, FileEdit } from "lucide-react";
+import { Send, CheckCircle2, AlertCircle, MessageSquare, PhoneCall, Image as ImageIcon, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck, Ban, AlertOctagon, UploadCloud, Clock, CheckSquare, Users, CreditCard, Heart, Check, Star, FileEdit } from "lucide-react";
 import { Roommate, Message } from "../types";
 import { supabase } from "../lib/supabase";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -885,14 +885,8 @@ export default function ChatView({
                       <div className="flex justify-between items-baseline mb-0.5">
                         <h4 className="text-sm font-bold text-slate-800 leading-tight tracking-tight truncate flex items-center gap-1">
                           {r.name}
-                          {r.isVerified && <CheckCircle2 className="h-3.5 w-3.5 text-sky-500 fill-sky-50 shrink-0" />}
                           {blockedUsers.includes(r.id) && <span title="Đã chặn"><Ban className="h-3 w-3 text-red-400 shrink-0" /></span>}
                         </h4>
-                        {r.matchScore > 0 && (
-                          <span className="text-[10px] font-bold text-sky-700 bg-white border border-sky-100 px-1.5 py-0.5 rounded-full">
-                            {r.matchScore}%
-                          </span>
-                        )}
                       </div>
                       <p className="text-xs text-slate-400 truncate leading-snug font-medium select-none">{lastMsg}</p>
                     </div>
@@ -969,7 +963,6 @@ export default function ChatView({
                 <div>
                   <h3 className="text-base font-extrabold text-[#0f172a] leading-none tracking-tight flex items-center gap-1.5">
                     {activeRoommate.name}
-                    {activeRoommate.isVerified && <CheckCircle2 className="h-4.5 w-4.5 text-sky-500 fill-sky-50" />}
                     {/* Block Button - Right next to name */}
                     {isActiveUserBlocked ? (
                       <button
@@ -1021,14 +1014,8 @@ export default function ChatView({
                 </div>
               </div>
 
-              {/* Status or compatibility */}
+              {/* Conversation actions */}
               <div className="flex items-center gap-2">
-                {activeRoommate.matchScore && activeRoommate.matchScore > 0 ? (
-                  <div className="hidden sm:inline-flex items-center gap-1.5 bg-gradient-to-r from-[#dff6ff] to-sky-50 text-[#006590] px-3.5 py-1.5 rounded-full text-xs font-black border border-sky-200 shadow-sm">
-                    <Sparkles className="h-3.5 w-3.5 fill-sky-200" />
-                    <span className="bg-clip-text">Độ tương thích: {activeRoommate.matchScore}%</span>
-                  </div>
-                ) : null}
                 <button
                   onClick={() => setShowMobileNote(!showMobileNote)}
                   className={`p-2.5 rounded-xl border lg:hidden duration-150 cursor-pointer ${
@@ -1759,7 +1746,8 @@ export default function ChatView({
                             // Cancel old draft first
                             const cancelPayload = { ...agreementModalPayload, status: 'cancelled', timestamp: new Date().toISOString() };
                             // CRITICAL: Use auth UUID (currentUser.id) not profile ID to match AgreementView logic
-                            const chatId = [currentUser.id, activeRoommate.id].sort().join('_');
+                            const partnerAuthId = activeRoommate.user_id || activeRoommate.auth_id || activeRoommate.id;
+                            const chatId = [currentUser.id, partnerAuthId].sort().join('_');
                             await supabase.from('messages').insert({
                               chat_id: chatId,
                               sender_id: currentUser.id,
@@ -1770,6 +1758,11 @@ export default function ChatView({
                             const newDraft = {
                               id: crypto.randomUUID ? crypto.randomUUID() : `agr_${Date.now()}`,
                               status: 'pending',
+                              creator_id: currentUser.id,
+                              partner_id: partnerAuthId,
+                              creator_name: currentUserProfile.name,
+                              partner_name: activeRoommate.name,
+                              created_at: new Date().toISOString(),
                               rules: {
                                 quiet: editQuiet,
                                 cleaning: editCleaning,
@@ -1815,7 +1808,7 @@ export default function ChatView({
                           Hủy
                         </button>
                       </>
-                    ) : agreementModalPayload.status === 'pending' && agreementModalPayload.sender_id !== currentUserProfile.id ? (
+                    ) : agreementModalPayload.status === 'pending' && agreementModalPayload.sender_id !== currentUser.id ? (
                       <>
                         {/* Received pending agreement - can accept, edit, or reject */}
                         <button
@@ -1856,13 +1849,20 @@ export default function ChatView({
                             });
                             
                             if (confirmed) {
-                              const payload = { ...agreementModalPayload, status: 'cancelled', timestamp: new Date().toISOString() };
+                              const payload = {
+                                ...agreementModalPayload,
+                                status: 'cancelled',
+                                cancelled_by: currentUser.id,
+                                cancelled_at: new Date().toISOString(),
+                                timestamp: new Date().toISOString()
+                              };
                               // CRITICAL: Use auth UUID (currentUser.id) not profile ID
-                              const chatId = [currentUser.id, activeRoommate.id].sort().join('_');
+                              const partnerAuthId = activeRoommate.user_id || activeRoommate.auth_id || activeRoommate.id;
+                              const chatId = [currentUser.id, partnerAuthId].sort().join('_');
                               await supabase.from('messages').insert({
                                 chat_id: chatId,
                                 sender_id: currentUser.id,
-                                text: `[AGREEMENT_CANCELLED] ${JSON.parse(payload)}`
+                                text: `[AGREEMENT_CANCELLED] ${JSON.stringify(payload)}`
                               });
                               alert('Đã từ chối thỏa thuận!');
                               setIsAgreementModalOpen(false);
@@ -1874,7 +1874,7 @@ export default function ChatView({
                           Từ chối
                         </button>
                       </>
-                    ) : agreementModalPayload.status === 'pending' && agreementModalPayload.sender_id === currentUserProfile.id ? (
+                    ) : agreementModalPayload.status === 'pending' && agreementModalPayload.sender_id === currentUser.id ? (
                       <>
                         {/* Sent draft - can also edit (counter-counter-offer) or cancel */}
                         <div className="bg-sky-50 border border-sky-200 rounded-xl p-4 mb-4 text-center">
@@ -1912,9 +1912,16 @@ export default function ChatView({
                             });
                             
                             if (confirmed) {
-                              const payload = { ...agreementModalPayload, status: 'cancelled', timestamp: new Date().toISOString() };
+                              const payload = {
+                                ...agreementModalPayload,
+                                status: 'cancelled',
+                                cancelled_by: currentUser.id,
+                                cancelled_at: new Date().toISOString(),
+                                timestamp: new Date().toISOString()
+                              };
                               // CRITICAL: Use auth UUID (currentUser.id) not profile ID
-                              const chatId = [currentUser.id, activeRoommate.id].sort().join('_');
+                              const partnerAuthId = activeRoommate.user_id || activeRoommate.auth_id || activeRoommate.id;
+                              const chatId = [currentUser.id, partnerAuthId].sort().join('_');
                               await supabase.from('messages').insert({
                                 chat_id: chatId,
                                 sender_id: currentUser.id,
@@ -2057,8 +2064,9 @@ export default function ChatView({
                     const signedPayload = {
                       ...agreementModalPayload,
                       status: 'signed',
-                      signedBy: currentUserProfile.id,
-                      signedByName: signatureName.trim(),
+                      signed_by: currentUser.id,
+                      signed_by_name: signatureName.trim(),
+                      signed_at: new Date().toISOString(),
                       timestamp: new Date().toISOString()
                     };
 
