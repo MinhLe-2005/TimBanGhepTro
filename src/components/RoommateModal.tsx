@@ -615,7 +615,7 @@ export default function RoommateModal({
                   <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
                     <ShieldAlert className="h-5 w-5 text-amber-600" />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 relative">
                     <h5 className="text-sm font-bold text-amber-900 mb-2">Chưa thể đánh giá</h5>
                     <p className="text-xs text-amber-700 leading-relaxed mb-3">
                       Bạn cần hoàn thành hợp đồng ở ghép với {roommate.name} trước khi có thể viết đánh giá. Điều này đảm bảo tính xác thực và minh bạch cho cộng đồng RoomieMatch.
@@ -625,7 +625,8 @@ export default function RoommateModal({
                         if (hasChatWithRoommate) {
                           onStartAgreement(roommate.id);
                         } else {
-                          alert(`💬 Bạn cần nhắn tin với ${roommate.name} trước khi tạo hợp đồng!`);
+                          setShowAgreementHint(true);
+                          setTimeout(() => setShowAgreementHint(false), 3000);
                         }
                       }}
                       className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer"
@@ -633,6 +634,13 @@ export default function RoommateModal({
                       <FileText className="h-3.5 w-3.5" />
                       Tạo hợp đồng với {roommate.name}
                     </button>
+                    {/* Tooltip khi chưa chat - giống nút vàng */}
+                    {showAgreementHint && !hasChatWithRoommate && (
+                      <div className="absolute -top-12 left-0 bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl whitespace-nowrap shadow-lg animate-fade-in z-50">
+                        💬 Nhắn tin với {roommate.name} trước để tạo thỏa thuận
+                        <div className="absolute top-full left-8 border-4 border-transparent border-t-slate-800"></div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
