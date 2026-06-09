@@ -238,19 +238,8 @@ export default function App() {
             setSupabaseRoommates(prev => prev.map(rm => rm.id === payload.new.id ? payload.new as any : rm));
           } else if (payload.eventType === 'DELETE' && payload.old) {
             setSupabaseRoommates(prev => prev.filter(rm => rm.id !== payload.old.id));
-          } else {
-            // Fallback: refetch if we can't handle the event
-            const { data } = await supabase.from('roommates').select('*').order('createdAt', { ascending: false });
-            if (data) {
-              const { data: reviewsData } = await supabase.from('reviews').select('*');
-              if (reviewsData) setSupabaseReviews(reviewsData);
-              const enhanced = data.map((rm: any) => ({
-                ...rm,
-                reviews: []
-              }));
-              setSupabaseRoommates(enhanced);
-            }
           }
+          // Removed fallback refetch - avoid full reload causing layout shift
         }
       )
       .on(
@@ -1545,6 +1534,7 @@ export default function App() {
               currentUserId={currentUser?.id}
               initialFilters={globalSearchFilters}
               isAdmin={isAdmin}
+              onClearSelectedRoommate={() => setSelectedRoommate(null)}
             />
           )
         )}

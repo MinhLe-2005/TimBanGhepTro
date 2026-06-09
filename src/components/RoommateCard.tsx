@@ -12,6 +12,7 @@ interface RoommateCardProps {
   onStartChat?: (id: string) => void;
   onEdit?: (roommate: Roommate) => void;
   onDelete?: (id: string) => void;
+  onClearSelectedRoommate?: () => void;
   currentUserId?: string;
 }
 
@@ -23,6 +24,7 @@ export default function RoommateCard({
   onStartChat,
   onEdit,
   onDelete,
+  onClearSelectedRoommate,
   currentUserId,
 }: RoommateCardProps) {
   const [isLiked, setIsLiked] = useState(isInitiallyLiked);
@@ -90,6 +92,7 @@ export default function RoommateCard({
               onClick={async (e) => { 
                 e.stopPropagation(); 
                 console.log('[RoommateCard] Delete button clicked for:', roommate.id);
+                onClearSelectedRoommate && onClearSelectedRoommate();
                 const confirmed = await confirm({
                   title: "Xóa tin đăng",
                   message: "Bạn có chắc chắn muốn xóa tin đăng này không?",

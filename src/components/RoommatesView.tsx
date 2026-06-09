@@ -15,6 +15,7 @@ interface RoommatesViewProps {
   onRequireAuth?: () => void;
   onEditRoommate?: (roommate: Roommate) => void;
   onDeleteRoommate?: (id: string) => void;
+  onClearSelectedRoommate?: () => void;
   currentUserId?: string;
   initialFilters?: any;
   isAdmin?: boolean;
@@ -31,6 +32,7 @@ export default function RoommatesView({
   onRequireAuth,
   onEditRoommate,
   onDeleteRoommate,
+  onClearSelectedRoommate,
   currentUserId,
   initialFilters,
   isAdmin = false,
@@ -463,10 +465,10 @@ export default function RoommatesView({
 
       {/* Roommates Grid Results */}
       {filteredRoommates.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6 [contain:layout_style_paint]">
           {filteredRoommates.map((roommate) => (
             <RoommateCard
-              key={roommate.id}
+              key={`roommate-${roommate.id}`}
               roommate={roommate}
               onViewDetails={onViewRoommate}
               onLikeChange={isAdmin ? undefined : onLikeRoommate}
@@ -474,6 +476,7 @@ export default function RoommatesView({
               onStartChat={isAdmin ? undefined : onStartChat}
               onEdit={isAdmin ? undefined : onEditRoommate}
               onDelete={isAdmin ? undefined : onDeleteRoommate}
+              onClearSelectedRoommate={isAdmin ? undefined : onClearSelectedRoommate}
               currentUserId={isAdmin ? undefined : currentUserId}
             />
           ))}
