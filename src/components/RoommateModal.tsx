@@ -699,12 +699,7 @@ export default function RoommateModal({
                         setTimeout(() => setShowAgreementHint(false), 3000);
                       }
                     }}
-                    disabled={!hasChatWithRoommate}
-                    className={`w-full py-3.5 px-6 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-2 text-[15px] border ${
-                      hasChatWithRoommate
-                        ? 'bg-[#f6fafe] hover:bg-sky-100/80 text-[#006590] border-sky-100 active:scale-95 cursor-pointer'
-                        : 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed'
-                    }`}
+                    className="w-full bg-[#f6fafe] hover:bg-sky-100/80 text-[#006590] border border-sky-100 py-3.5 px-6 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-2 text-[15px] active:scale-95 cursor-pointer"
                   >
                     <FileText className="h-5 w-5" />
                     Tạo thỏa thuận sống chung
