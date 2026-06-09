@@ -748,17 +748,22 @@ export default function App() {
       console.log('[Delete] Allowed to delete - is_listing:', roommateData?.is_listing);
     }
     
-    // 2. Remove from local fallback
+    // 2. Close modal if viewing this roommate
+    if (selectedRoommate?.id === id) {
+      setSelectedRoommate(null);
+    }
+    
+    // 3. Remove from local fallback
     const saved = localStorage.getItem("roomiematch_posted_roommates");
     if (saved) {
       const parsed = JSON.parse(saved).filter((r: any) => r.id !== id);
       localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(parsed));
     }
 
-    // 3. Remove from Supabase state optimistically
+    // 4. Remove from Supabase state optimistically
     setSupabaseRoommates((prev) => prev.filter((r) => r.id !== id));
 
-    // 4. Supabase Delete - delete the record
+    // 5. Supabase Delete - delete the record
     if (import.meta.env.VITE_SUPABASE_URL) {
       const { error } = await supabase.from('roommates').delete().eq('id', id);
       if (error) {
