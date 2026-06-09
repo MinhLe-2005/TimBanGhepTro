@@ -516,7 +516,6 @@ export default function PostListingModal({
                           className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-3 py-3 text-[14px] outline-none text-slate-800 transition-all cursor-pointer">
                           <option value="Nam">Nam</option>
                           <option value="Nữ">Nữ</option>
-                          <option value="LGBT">LGBT</option>
                           <option value="Khác">Khác</option>
                         </select>
                       </div>
@@ -742,7 +741,6 @@ export default function PostListingModal({
                         <option value="Tất cả">Mọi giới tính</option>
                         <option value="Nam">Nam</option>
                         <option value="Nữ">Nữ</option>
-                        <option value="LGBT">LGBT</option>
                       </select>
                     </div>
                     <div className="space-y-1.5">
