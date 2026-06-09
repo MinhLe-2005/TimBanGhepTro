@@ -1354,7 +1354,7 @@ export default function App() {
 
         {activeTab === "rooms" && (
           <RoomsView
-            rooms={rooms}
+            rooms={allRooms}
             likedRoomIds={likedRoomIds}
             onLikeRoom={handleLikeRoom}
             onViewRoom={setSelectedRoom}
