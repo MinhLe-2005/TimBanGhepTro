@@ -1572,10 +1572,11 @@ export default function ChatView({
                           onClick={async () => {
                             // Cancel old draft first
                             const cancelPayload = { ...agreementModalPayload, status: 'cancelled', timestamp: new Date().toISOString() };
-                            const chatId = [currentUserProfile.id, activeRoommate.id].sort().join('_');
+                            // CRITICAL: Use auth UUID (currentUser.id) not profile ID to match AgreementView logic
+                            const chatId = [currentUser.id, activeRoommate.id].sort().join('_');
                             await supabase.from('messages').insert({
                               chat_id: chatId,
-                              sender_id: currentUserProfile.id,
+                              sender_id: currentUser.id,
                               text: `[AGREEMENT_CANCELLED] ${JSON.stringify(cancelPayload)}`
                             });
 
@@ -1596,7 +1597,7 @@ export default function ChatView({
 
                             await supabase.from('messages').insert({
                               chat_id: chatId,
-                              sender_id: currentUserProfile.id,
+                              sender_id: currentUser.id,
                               text: `[AGREEMENT_DRAFT] ${JSON.stringify(newDraft)}`
                             });
 
@@ -1662,10 +1663,11 @@ export default function ChatView({
                           onClick={async () => {
                             if (confirm('Bạn có chắc muốn từ chối thỏa thuận này?')) {
                               const payload = { ...agreementModalPayload, status: 'cancelled', timestamp: new Date().toISOString() };
-                              const chatId = [currentUserProfile.id, activeRoommate.id].sort().join('_');
+                              // CRITICAL: Use auth UUID (currentUser.id) not profile ID
+                              const chatId = [currentUser.id, activeRoommate.id].sort().join('_');
                               await supabase.from('messages').insert({
                                 chat_id: chatId,
-                                sender_id: currentUserProfile.id,
+                                sender_id: currentUser.id,
                                 text: `[AGREEMENT_CANCELLED] ${JSON.stringify(payload)}`
                               });
                               alert('Đã từ chối thỏa thuận!');
@@ -1709,10 +1711,11 @@ export default function ChatView({
                           onClick={async () => {
                             if (confirm('Bạn có chắc muốn hủy thỏa thuận này?')) {
                               const payload = { ...agreementModalPayload, status: 'cancelled', timestamp: new Date().toISOString() };
-                              const chatId = [currentUserProfile.id, activeRoommate.id].sort().join('_');
+                              // CRITICAL: Use auth UUID (currentUser.id) not profile ID
+                              const chatId = [currentUser.id, activeRoommate.id].sort().join('_');
                               await supabase.from('messages').insert({
                                 chat_id: chatId,
-                                sender_id: currentUserProfile.id,
+                                sender_id: currentUser.id,
                                 text: `[AGREEMENT_CANCELLED] ${JSON.stringify(payload)}`
                               });
                               alert('Đã hủy thỏa thuận!');
