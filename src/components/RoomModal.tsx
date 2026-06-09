@@ -17,30 +17,32 @@ interface RoomModalProps {
 export default function RoomModal({ room, onClose, onInquire, onAddReview, roommates = [], isOwnProfile = false, onDeleteRoom, onEditRoom, isAdmin = false }: RoomModalProps) {
   if (!room) return null;
 
+  // Try to find matching roommate profile, but prioritize room's host data
   const hostRoommate = roommates.find(
     (r) => r.name.toLowerCase() === room.hostName.toLowerCase()
   ) || roommates.find(
     (r) => r.name.toLowerCase().includes(room.hostName.toLowerCase()) || room.hostName.toLowerCase().includes(r.name.toLowerCase())
   );
 
-  const resolvedRoommate: Roommate = hostRoommate || {
-    id: "fallback-host",
+  // Use room's data as primary source, only use roommate profile as fallback for missing lifestyle data
+  const resolvedRoommate: Roommate = {
+    id: hostRoommate?.id || "fallback-host",
     name: room.hostName || "Chủ phòng",
-    age: 21,
+    age: hostRoommate?.age || 21,
     role: room.hostRole || "Sinh viên / Thành viên",
-    school: "ĐH Kinh tế (Ngũ Hành Sơn)",
+    school: hostRoommate?.school || "ĐH Kinh tế (Ngũ Hành Sơn)",
     phoneNumber: room.phoneNumber || "0987 123 456",
     avatar: room.hostAvatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop",
     status: "Đã có phòng",
     location: room.location,
-    matchScore: 88,
-    reputationScore: 96,
+    matchScore: hostRoommate?.matchScore || 88,
+    reputationScore: hostRoommate?.reputationScore || 96,
     tags: room.habits || ["Sạch sẽ", "Không hút thuốc", "Tôn trọng"],
     isVerified: true,
-    bio: room.roommateInfo || "Chào bạn! Mình là người đăng tin tìm bạn ở ghép cho căn phòng này. Mình thích giữ không gian sạch sẽ, thân thiện, tôn trọng giờ giấc nghỉ ngơi của nhau.",
+    bio: room.roommateInfo || hostRoommate?.bio || "Chào bạn! Mình là người đăng tin tìm bạn ở ghép cho căn phòng này. Mình thích giữ không gian sạch sẽ, thân thiện, tôn trọng giờ giấc nghỉ ngơi của nhau.",
     budget: room.price,
     gender: room.gender === "Tất cả" ? "Nữ" : (room.gender as any || "Nữ"),
-    lifestyle: {
+    lifestyle: hostRoommate?.lifestyle || {
       sleep: "Bình thường",
       pets: room.pets === "thoải mái" ? "Thoải mái" : "Không tiện nuôi",
       smoke: "Không hút thuốc",
@@ -48,7 +50,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
       interaction: "Cân bằng",
       neatness: "Sạch sẽ",
     },
-    reviews: []
+    reviews: hostRoommate?.reviews || []
   };
 
   const [newName, setNewName] = useState("");

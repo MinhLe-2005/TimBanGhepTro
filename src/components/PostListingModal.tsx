@@ -212,6 +212,7 @@ export default function PostListingModal({
       setRmGender(currentProfile.gender || "Nữ");
       setRmAvatar(currentProfile.avatar || AVATAR_PRESETS[0]);
       setRHostName(currentProfile.name || "");
+      setRImage(currentProfile.avatar || ROOM_IMAGE_PRESETS[0]); // Use profile avatar as default room host avatar
     }
   }, [editingData, currentProfile, initialTab]);
 
@@ -307,7 +308,7 @@ export default function PostListingModal({
       wc: rWc,
       kitchen: rKitchen,
       hostName: rHostName,
-      hostAvatar: AVATAR_PRESETS[Math.floor(Math.random() * AVATAR_PRESETS.length)],
+      hostAvatar: currentProfile?.avatar || AVATAR_PRESETS[0], // Use current user's avatar
       hostRole: rHostRole,
       description: rDescription || `Phòng cho thuê rộng rãi, đầy đủ ánh sáng, nội thất tiện nghi căn bản. Tọa lạc tại khu vực an ninh gần các trường học và khu mua sắm tiện ích.`,
       phoneNumber: rPhone,
