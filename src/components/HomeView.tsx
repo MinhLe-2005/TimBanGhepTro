@@ -41,6 +41,8 @@ export default function HomeView({
   const [selectedLocation, setSelectedLocation] = useState("Tất cả Đà Nẵng");
   const [selectedBudget, setSelectedBudget] = useState("Tất cả mức giá");
   const [selectedLifestyle, setSelectedLifestyle] = useState("Mọi phong cách");
+  const [isRoommateCarouselPaused, setIsRoommateCarouselPaused] = useState(false);
+  const [isRoomCarouselPaused, setIsRoomCarouselPaused] = useState(false);
 
   // Carousel Logic
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -49,12 +51,12 @@ export default function HomeView({
   const getScrollAmount = (ref: React.RefObject<HTMLDivElement | null>) => {
     if (!ref.current) return 304;
     const firstChild = ref.current.children[0] as HTMLElement;
-    return firstChild ? firstChild.clientWidth + 24 : 304; // 24 is gap-6
+    return firstChild ? firstChild.clientWidth + 16 : 304;
   };
 
   useEffect(() => {
     const roommateInterval = setInterval(() => {
-      if (carouselRef.current) {
+      if (carouselRef.current && !isRoommateCarouselPaused) {
         const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
         if (scrollLeft + clientWidth >= scrollWidth - 10) {
           carouselRef.current.scrollTo({ left: 0, behavior: "auto" });
@@ -65,7 +67,7 @@ export default function HomeView({
     }, 2500);
 
     const roomInterval = setInterval(() => {
-      if (roomCarouselRef.current) {
+      if (roomCarouselRef.current && !isRoomCarouselPaused) {
         const { scrollLeft, scrollWidth, clientWidth } = roomCarouselRef.current;
         if (scrollLeft + clientWidth >= scrollWidth - 10) {
           roomCarouselRef.current.scrollTo({ left: 0, behavior: "auto" });
@@ -79,7 +81,7 @@ export default function HomeView({
       clearInterval(roommateInterval);
       clearInterval(roomInterval);
     };
-  }, []);
+  }, [isRoommateCarouselPaused, isRoomCarouselPaused]);
 
   const scrollPrev = () => {
     if (carouselRef.current) {
@@ -434,7 +436,13 @@ export default function HomeView({
         </div>
 
         {/* Roommates Carousel */}
-        <div className="relative group">
+        <div
+          className="relative group"
+          onMouseEnter={() => setIsRoommateCarouselPaused(true)}
+          onMouseLeave={() => setIsRoommateCarouselPaused(false)}
+          onTouchStart={() => setIsRoommateCarouselPaused(true)}
+          onTouchEnd={() => setIsRoommateCarouselPaused(false)}
+        >
           {/* Nút Prev */}
           <button 
             onClick={scrollPrev}
@@ -445,12 +453,12 @@ export default function HomeView({
           
           <div 
             ref={carouselRef}
-            className="flex gap-6 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-10 pt-4"
+            className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-8 pt-3"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {/* Chỉ hiển thị listings (is_listing=true), không hiển thị profiles */}
             {[...roommates.filter(r => r.is_listing === true), ...roommates.filter(r => r.is_listing === true), ...roommates.filter(r => r.is_listing === true)].map((rm, index) => (
-              <div key={`${rm.id}-${index}`} className="shrink-0 snap-start w-full sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)]">
+              <div key={`${rm.id}-${index}`} className="shrink-0 snap-start w-[82%] sm:w-[calc(50%-8px)] md:w-[calc(33.333%-11px)] lg:w-[calc(25%-12px)] xl:w-[calc(20%-13px)]">
                 <RoommateCard
                   roommate={rm}
                   onViewDetails={onViewRoommate}
@@ -497,7 +505,13 @@ export default function HomeView({
         </div>
 
         {/* Rooms Carousel */}
-        <div className="relative group">
+        <div
+          className="relative group"
+          onMouseEnter={() => setIsRoomCarouselPaused(true)}
+          onMouseLeave={() => setIsRoomCarouselPaused(false)}
+          onTouchStart={() => setIsRoomCarouselPaused(true)}
+          onTouchEnd={() => setIsRoomCarouselPaused(false)}
+        >
           {/* Nút Prev */}
           <button 
             onClick={scrollRoomPrev}
@@ -508,11 +522,11 @@ export default function HomeView({
           
           <div 
             ref={roomCarouselRef}
-            className="flex gap-6 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-10 pt-4"
+            className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-8 pt-3"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {[...rooms, ...rooms, ...rooms].map((room, index) => (
-              <div key={`${room.id}-${index}`} className="shrink-0 snap-start w-full sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)]">
+              <div key={`${room.id}-${index}`} className="shrink-0 snap-start w-[82%] sm:w-[calc(50%-8px)] md:w-[calc(33.333%-11px)] lg:w-[calc(25%-12px)] xl:w-[calc(20%-13px)]">
                 <RoomCard
                   room={room}
                   onViewDetails={onViewRoom}

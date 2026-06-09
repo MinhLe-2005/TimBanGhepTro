@@ -75,7 +75,7 @@ export default function RoommateCard({
         {/* Owner actions - floating over the image to keep the card visually continuous */}
         {currentUserId && (roommate.postedBy === currentUserId || roommate.user_id === currentUserId) && (
           <div
-            className="absolute bottom-4 right-4 z-20 flex items-center gap-1 rounded-2xl border border-white/60 bg-white/90 p-1.5 shadow-[0_10px_30px_rgba(15,23,42,0.20)] backdrop-blur-md"
+            className="absolute bottom-3 right-3 z-20 flex items-center gap-0.5 rounded-xl border border-white/70 bg-white/92 p-1 shadow-[0_6px_18px_rgba(15,23,42,0.16)] backdrop-blur-md"
             onClick={(e) => e.stopPropagation()}
           >
             {onEdit && (
@@ -84,14 +84,14 @@ export default function RoommateCard({
                   e.stopPropagation();
                   onEdit(roommate);
                 }}
-                className="flex h-9 items-center gap-1.5 rounded-xl px-3 text-[11px] font-bold text-[#006590] transition-all hover:bg-sky-50 active:scale-95"
+                className="flex h-8 items-center gap-1 rounded-lg px-2.5 text-[10px] font-bold text-[#006590] transition-all hover:bg-sky-50 active:scale-95"
                 title="Chỉnh sửa tin đăng"
               >
-                <Pencil className="h-3.5 w-3.5" />
+                <Pencil className="h-3 w-3" />
                 <span>Sửa</span>
               </button>
             )}
-            {onEdit && onDelete && <span className="h-5 w-px bg-slate-200" />}
+            {onEdit && onDelete && <span className="h-4 w-px bg-slate-200" />}
             {onDelete && (
               <button
                 onClick={async (e) => {
@@ -108,10 +108,10 @@ export default function RoommateCard({
                     onDelete(roommate.id);
                   }
                 }}
-                className="flex h-9 items-center gap-1.5 rounded-xl px-3 text-[11px] font-bold text-red-600 transition-all hover:bg-red-50 active:scale-95"
+                className="flex h-8 items-center gap-1 rounded-lg px-2.5 text-[10px] font-bold text-red-600 transition-all hover:bg-red-50 active:scale-95"
                 title="Xóa tin đăng"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3 w-3" />
                 <span>Xóa</span>
               </button>
             )}

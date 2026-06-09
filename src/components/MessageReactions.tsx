@@ -7,8 +7,10 @@ interface MessageReactionsProps {
   reactions?: Record<string, string[]>; // { "❤️": ["user1", "user2"], "😂": ["user3"] }
   currentUserId: string;
   currentUserName?: string;
+  currentUserAvatar?: string;
   partnerName?: string;
   partnerId?: string;
+  partnerAvatar?: string;
   onAddReaction: (emoji: string) => void;
   onRemoveReaction: (emoji: string) => void;
   isMyMessage: boolean;
@@ -20,8 +22,10 @@ export default function MessageReactions({
   reactions = {},
   currentUserId,
   currentUserName = 'Bạn',
+  currentUserAvatar,
   partnerName = 'Đối phương',
   partnerId,
+  partnerAvatar,
   onAddReaction,
   onRemoveReaction,
   isMyMessage,
@@ -142,8 +146,10 @@ export default function MessageReactions({
         reactions={normalizedReactions}
         currentUserId={currentUserId}
         currentUserName={currentUserName}
+        currentUserAvatar={currentUserAvatar}
         partnerName={partnerName}
         partnerId={partnerId}
+        partnerAvatar={partnerAvatar}
         onRemoveReaction={onRemoveReaction}
       />
     </>

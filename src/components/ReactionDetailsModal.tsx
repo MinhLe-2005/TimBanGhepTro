@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
@@ -8,8 +8,10 @@ interface ReactionDetailsModalProps {
   reactions: Record<string, string[]>;
   currentUserId: string;
   currentUserName?: string;
+  currentUserAvatar?: string;
   partnerName?: string;
   partnerId?: string;
+  partnerAvatar?: string;
   onRemoveReaction: (emoji: string) => void;
 }
 
@@ -19,12 +21,17 @@ export default function ReactionDetailsModal({
   reactions,
   currentUserId,
   currentUserName = 'Bạn',
+  currentUserAvatar,
   partnerName = 'Đối phương',
   partnerId,
+  partnerAvatar,
   onRemoveReaction,
 }: ReactionDetailsModalProps) {
+  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
+
   useEffect(() => {
     if (!isOpen) return;
+    setSelectedEmoji(null);
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -48,8 +55,9 @@ export default function ReactionDetailsModal({
 
   const totalReactions = reactionTabs.reduce((sum, [_, users]) => sum + users.length, 0);
 
-  // For now, just show "Tất cả" tab
-  const allUsers = reactionTabs.flatMap(([emoji, users]) =>
+  const visibleUsers = reactionTabs
+    .filter(([emoji]) => selectedEmoji === null || emoji === selectedEmoji)
+    .flatMap(([emoji, users]) =>
     users.map(userId => ({ userId, emoji }))
   );
 
@@ -79,14 +87,26 @@ export default function ReactionDetailsModal({
 
         {/* Tabs */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-200 overflow-x-auto">
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-100 border-2 border-sky-400 text-sky-700 font-bold text-sm cursor-pointer">
+          <button
+            onClick={() => setSelectedEmoji(null)}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold transition-colors ${
+              selectedEmoji === null
+                ? "border-2 border-sky-400 bg-sky-100 text-sky-700"
+                : "border-2 border-transparent bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
             <span>Tất cả</span>
             <span className="text-xs">{totalReactions}</span>
           </button>
           {reactionTabs.map(([emoji, users]) => (
             <button
               key={emoji}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition-colors cursor-pointer"
+              onClick={() => setSelectedEmoji(emoji)}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
+                selectedEmoji === emoji
+                  ? "border-2 border-sky-400 bg-sky-100 text-sky-700"
+                  : "border-2 border-transparent bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
             >
               <span className="text-base">{emoji}</span>
               <span className="text-xs">{users.length}</span>
@@ -96,7 +116,7 @@ export default function ReactionDetailsModal({
 
         {/* User list */}
         <div className="max-h-96 overflow-y-auto p-4">
-          {allUsers.map(({ userId, emoji }, idx) => {
+          {visibleUsers.map(({ userId, emoji }, idx) => {
             const isCurrentUser = userId === currentUserId;
             // Check if this is the partner by comparing userId with partnerId
             const isPartner = partnerId && userId === partnerId;
@@ -105,6 +125,9 @@ export default function ReactionDetailsModal({
             const displayName = isCurrentUser 
               ? (currentUserName || 'Bạn')
               : (isPartner ? (partnerName || 'Đối phương') : `Người dùng ${idx + 1}`);
+            const avatarUrl = isCurrentUser
+              ? currentUserAvatar
+              : (isPartner ? partnerAvatar : undefined);
             
             return (
               <div
@@ -112,10 +135,18 @@ export default function ReactionDetailsModal({
                 className="flex items-center justify-between py-3 hover:bg-slate-50 rounded-lg px-2 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  {/* Avatar placeholder */}
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-white font-bold">
-                    {isCurrentUser ? 'B' : (isPartner && partnerName ? partnerName.charAt(0).toUpperCase() : 'U')}
-                  </div>
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={displayName}
+                      className="h-10 w-10 rounded-full border border-slate-200 object-cover shadow-sm"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-blue-500 font-bold text-white">
+                      {displayName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div>
                     <div className="font-semibold text-slate-800">
                       {displayName}

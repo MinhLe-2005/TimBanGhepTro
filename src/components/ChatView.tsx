@@ -191,20 +191,37 @@ export default function ChatView({
   };
 
   const handleUnblock = async (userId: string) => {
-    const updated = blockedUsers.filter(id => id !== userId);
-    setBlockedUsers(updated);
-    localStorage.setItem('roomiematch_blocked_users', JSON.stringify(updated));
-
     const myId = currentUser?.id || currentUserProfile?.id;
-    if (myId && import.meta.env.VITE_SUPABASE_URL) {
-      const chatId = [myId, userId].sort().join('_');
-      await supabase.from('messages').insert({
-        id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+    const targetRoommate = roommates.find(
+      (roommate) =>
+        roommate.id === userId ||
+        roommate.user_id === userId ||
+        roommate.auth_id === userId
+    );
+    const partnerId =
+      targetRoommate?.user_id ||
+      targetRoommate?.auth_id ||
+      userId;
+
+    if (myId && partnerId && import.meta.env.VITE_SUPABASE_URL) {
+      const chatId = [myId, partnerId].sort().join('_');
+      const { error } = await supabase.from('messages').insert({
         chat_id: chatId,
         sender_id: myId,
         text: "[SYSTEM_UNBLOCK]"
       });
+
+      if (error) {
+        console.error("[Chat] Error unblocking user:", error);
+        toast("Không thể hủy chặn lúc này. Vui lòng thử lại.", "error");
+        return;
+      }
     }
+
+    const updated = blockedUsers.filter(id => id !== userId);
+    setBlockedUsers(updated);
+    localStorage.setItem('roomiematch_blocked_users', JSON.stringify(updated));
+    toast("Đã hủy chặn người dùng.", "success");
   };
 
   // ✅ Message Reactions Handlers
@@ -301,15 +318,45 @@ export default function ChatView({
     }
   };
 
+  const attachImageFile = (file: File, source: "picker" | "clipboard" = "picker") => {
+    if (!file.type.startsWith("image/")) {
+      toast("Chỉ hỗ trợ dán hoặc gửi tệp hình ảnh.", "warning");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast("Ảnh quá lớn. Vui lòng chọn ảnh dưới 5MB.", "warning");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAttachedImage(reader.result as string);
+      if (source === "clipboard") {
+        toast("Đã dán ảnh từ clipboard.", "success");
+      }
+    };
+    reader.onerror = () => toast("Không thể đọc ảnh. Vui lòng thử lại.", "error");
+    reader.readAsDataURL(file);
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAttachedImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (file) attachImageFile(file);
+    e.target.value = "";
+  };
+
+  const handleChatPaste = (e: React.ClipboardEvent<HTMLFormElement>) => {
+    const imageItem = Array.from(e.clipboardData.items).find((item) =>
+      item.type.startsWith("image/")
+    );
+    if (!imageItem) return;
+
+    const imageFile = imageItem.getAsFile();
+    if (!imageFile) return;
+
+    e.preventDefault();
+    attachImageFile(imageFile, "clipboard");
   };
 
   // Set first conversation active by default if none selected
@@ -1168,21 +1215,29 @@ export default function ChatView({
                           
                           if (confirmed) {
                             const myId = currentUser?.id || currentUserProfile?.id;
-                            if (myId && activeRoommate && import.meta.env.VITE_SUPABASE_URL) {
-                              // ALWAYS use partner.id as the key
-                              const partnerId = activeRoommate.id;
-                              const updated = [...blockedUsers, partnerId];
-                              setBlockedUsers(updated);
-                              localStorage.setItem('roomiematch_blocked_users', JSON.stringify(updated));
-                              
-                              // Send system message
-                              const chatIdForBlock = [myId, activeRoommateId].sort().join('_');
-                              supabase.from('messages').insert({
-                                id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                            if (myId && partnerChatId && activeRoommate && import.meta.env.VITE_SUPABASE_URL) {
+                              const chatIdForBlock = [myId, partnerChatId].sort().join('_');
+                              const { error } = await supabase.from('messages').insert({
                                 chat_id: chatIdForBlock,
                                 sender_id: myId,
                                 text: "[SYSTEM_BLOCK]"
                               });
+
+                              if (error) {
+                                console.error("[Chat] Error blocking user:", error);
+                                toast("Không thể chặn người dùng lúc này. Vui lòng thử lại.", "error");
+                                return;
+                              }
+
+                              const partnerKey = activeRoommate.id;
+                              const updated = blockedUsers.includes(partnerKey)
+                                ? blockedUsers
+                                : [...blockedUsers, partnerKey];
+                              setBlockedUsers(updated);
+                              localStorage.setItem('roomiematch_blocked_users', JSON.stringify(updated));
+                              setAttachedImage(null);
+                              setInputText("");
+                              toast(`${activeRoommate.name} sẽ không thể nhắn tin cho bạn.`, "success");
                             }
                           }
                         }}
@@ -1401,8 +1456,10 @@ export default function ChatView({
                             reactions={msg.reactions}
                             currentUserId={currentUser?.id || ''}
                             currentUserName={currentUserProfile?.name || 'Bạn'}
+                            currentUserAvatar={currentUserProfile?.avatar}
                             partnerName={activeRoommate?.name || 'Đối phương'}
                             partnerId={activeRoommate?.user_id || activeRoommate?.id}
+                            partnerAvatar={activeRoommate?.avatar}
                             onAddReaction={(emoji) => handleAddReaction(msg.id, emoji)}
                             onRemoveReaction={(emoji) => handleRemoveReaction(msg.id, emoji)}
                             isMyMessage={isMe}
@@ -1474,14 +1531,20 @@ export default function ChatView({
             )}
 
             {/* Text Send Form area with image sending */}
-            <form onSubmit={handleSend} className={`p-4 border-t border-slate-100 bg-white shrink-0 space-y-2 ${isBlockedByPartner ? 'opacity-50 pointer-events-none' : ''}`}>
+            <form
+              onSubmit={handleSend}
+              onPaste={handleChatPaste}
+              className={`p-4 border-t border-slate-100 bg-white shrink-0 space-y-2 ${
+                isBlockedByPartner ? 'opacity-60' : ''
+              }`}
+            >
               {attachedImage && (
                 <div className="p-2.5 bg-slate-50 border border-slate-150 rounded-xl flex items-center justify-between animate-fade-in">
                   <div className="flex items-center gap-2.5">
                     <div className="w-12 h-12 object-cover rounded-lg border border-slate-200 overflow-hidden shrink-0">
                       <img src={attachedImage} alt="Preview" className="w-full h-full object-cover" />
                     </div>
-                    <span className="text-xs text-slate-500 font-medium font-mono">Đã load xong 1 ảnh</span>
+                    <span className="text-xs text-slate-500 font-medium">Ảnh đã sẵn sàng để gửi</span>
                   </div>
                   <button
                     type="button"
@@ -1503,8 +1566,10 @@ export default function ChatView({
                 />
                 <label
                   htmlFor="chat-image-input"
-                  className={`bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-[#006590] w-12 h-12 rounded-full duration-150 flex items-center justify-center cursor-pointer transition-all shrink-0 ${isActiveUserBlocked ? 'opacity-40 pointer-events-none' : ''}`}
-                  title="Gửi hình ảnh"
+                  className={`bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-[#006590] w-12 h-12 rounded-full duration-150 flex items-center justify-center cursor-pointer transition-all shrink-0 ${
+                    isActiveUserBlocked || isBlockedByPartner ? 'opacity-40 pointer-events-none' : ''
+                  }`}
+                  title="Chọn ảnh hoặc dán ảnh bằng Ctrl+V"
                 >
                   <ImageIcon className="h-5 w-5" />
                 </label>
@@ -1513,9 +1578,17 @@ export default function ChatView({
                   type="text"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder={isActiveUserBlocked ? 'Bạn đã chặn người dùng này' : `Nhắn tin cùng ${activeRoommate.name}...`}
-                  disabled={isActiveUserBlocked}
-                  className={`flex-1 bg-slate-50 border border-slate-200 rounded-full px-5 py-3.5 text-sm outline-none focus:border-sky-500/50 focus:bg-white transition-all shadow-inner ${isActiveUserBlocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  placeholder={
+                    isActiveUserBlocked
+                      ? 'Bạn đã chặn người dùng này'
+                      : isBlockedByPartner
+                        ? 'Bạn không thể nhắn tin vì đã bị chặn'
+                        : 'Nhắn tin hoặc dán ảnh bằng Ctrl+V...'
+                  }
+                  disabled={isActiveUserBlocked || isBlockedByPartner}
+                  className={`flex-1 bg-slate-50 border border-slate-200 rounded-full px-5 py-3.5 text-sm outline-none focus:border-sky-500/50 focus:bg-white transition-all shadow-inner ${
+                    isActiveUserBlocked || isBlockedByPartner ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 />
                 {isActiveUserBlocked ? (
                   <button
@@ -1529,7 +1602,7 @@ export default function ChatView({
                 ) : (
                   <button
                     type="submit"
-                    disabled={(!inputText.trim() && !attachedImage) || isTyping}
+                    disabled={(!inputText.trim() && !attachedImage) || isTyping || isBlockedByPartner}
                     className="bg-gradient-to-r from-sky-500 to-[#006590] text-white w-12 h-12 rounded-full hover:shadow-lg disabled:opacity-50 disabled:from-slate-300 disabled:to-slate-400 duration-150 flex items-center justify-center cursor-pointer transition-all hover:scale-105 shrink-0"
                   >
                     <Send className="h-5 w-5 -ml-0.5 mt-0.5" />

@@ -210,6 +210,34 @@ export default function RoommateModal({
   const averageRating = getAverageRating(roommate.reviews);
   const reviewsCount = roommate.reviews?.length || 0;
   const reputationScore = calculateReputationScore(roommate);
+  const reputationTone =
+    reputationScore === null
+      ? {
+          card: "border-slate-200 bg-gradient-to-br from-slate-50 to-white",
+          icon: "bg-slate-200 text-slate-600",
+          score: "text-slate-700",
+          bar: "bg-slate-400",
+        }
+      : reputationScore >= 70
+        ? {
+            card: "border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-emerald-100/70",
+            icon: "bg-emerald-500 text-white",
+            score: "text-emerald-700",
+            bar: "bg-emerald-500",
+          }
+        : reputationScore >= 50
+          ? {
+              card: "border-amber-200 bg-gradient-to-br from-amber-50 to-white shadow-amber-100/70",
+              icon: "bg-amber-500 text-white",
+              score: "text-amber-700",
+              bar: "bg-amber-500",
+            }
+          : {
+              card: "border-rose-200 bg-gradient-to-br from-rose-50 to-white shadow-rose-100/80",
+              icon: "bg-rose-500 text-white",
+              score: "text-rose-700",
+              bar: "bg-rose-500",
+            };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -313,6 +341,7 @@ export default function RoommateModal({
                   sub: reviewsCount > 0 ? `${reviewsCount} đánh giá` : "Chưa có đánh giá",
                   icon: ShieldCheck,
                   color: "bg-emerald-50 text-emerald-700",
+                  isReputation: true,
                 },
                 {
                   label: "Trường học",
@@ -337,17 +366,42 @@ export default function RoommateModal({
                 return (
                   <div
                     key={item.label}
-                    className={`group min-w-0 rounded-2xl border border-slate-100 bg-white px-3 py-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+                    className={`group min-w-0 rounded-2xl border px-3 py-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+                      item.isReputation
+                        ? `${reputationTone.card} shadow-[0_8px_22px_rgba(15,23,42,0.08)] ring-1 ring-inset ring-white/60`
+                        : "border-slate-100 bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)]"
+                    } ${
                       index === 4 ? "col-span-2 sm:col-span-1" : ""
                     }`}
                   >
-                    <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-xl ${item.color}`}>
+                    <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-xl shadow-sm ${
+                      item.isReputation ? reputationTone.icon : item.color
+                    }`}>
                       <Icon className="h-4 w-4" />
                     </div>
-                    <p className="text-[10px] font-semibold text-slate-500">{item.label}</p>
-                    <p className="mt-1 break-words text-[12px] font-bold leading-snug text-slate-800">
-                      {item.value}
+                    <p className={`text-[10px] font-semibold ${item.isReputation ? reputationTone.score : "text-slate-500"}`}>
+                      {item.label}
                     </p>
+                    {item.isReputation ? (
+                      <>
+                        <p className={`mt-0.5 text-[18px] font-black leading-none ${reputationTone.score}`}>
+                          {reputationScore === null ? "--" : `${reputationScore}%`}
+                        </p>
+                        <p className="mt-1 text-[10px] font-bold leading-tight text-slate-600">
+                          {getReputationLabel(reputationScore).replace(/^\d+%\s*/, "")}
+                        </p>
+                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/80 shadow-inner">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${reputationTone.bar}`}
+                            style={{ width: `${reputationScore || 0}%` }}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <p className="mt-1 break-words text-[12px] font-bold leading-snug text-slate-800">
+                        {item.value}
+                      </p>
+                    )}
                     {item.sub && <p className="mt-0.5 text-[10px] font-semibold text-slate-400">{item.sub}</p>}
                   </div>
                 );
