@@ -1313,7 +1313,7 @@ export default function ChatView({
                       key={msg.id}
                       className={`flex ${isMe ? "justify-end" : "justify-start"} animate-fade-in`}
                     >
-                      <div className={`flex items-end gap-1 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+                      <div className="relative">
                         <div
                           className={`max-w-[85%] px-4 py-3 rounded-2xl text-[14.5px] leading-relaxed shadow-[0_2px_4px_rgba(15,23,42,0.01)] ${
                             isSpecialMessage 
@@ -1387,16 +1387,18 @@ export default function ChatView({
                         </span>
                       </div>
                       
-                      {/* ✅ Message Reactions - beside message */}
+                      {/* ✅ Message Reactions - positioned below message corner */}
                       {!isSpecialMessage && (
-                        <MessageReactions
-                          messageId={msg.id}
-                          reactions={msg.reactions}
-                          currentUserId={currentUser?.id || ''}
-                          onAddReaction={(emoji) => handleAddReaction(msg.id, emoji)}
-                          onRemoveReaction={(emoji) => handleRemoveReaction(msg.id, emoji)}
-                          isMyMessage={isMe}
-                        />
+                        <div className={`absolute -bottom-2 ${isMe ? 'left-0' : 'right-0'}`}>
+                          <MessageReactions
+                            messageId={msg.id}
+                            reactions={msg.reactions}
+                            currentUserId={currentUser?.id || ''}
+                            onAddReaction={(emoji) => handleAddReaction(msg.id, emoji)}
+                            onRemoveReaction={(emoji) => handleRemoveReaction(msg.id, emoji)}
+                            isMyMessage={isMe}
+                          />
+                        </div>
                       )}
                       </div>
                     </div>
