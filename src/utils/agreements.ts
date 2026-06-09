@@ -15,6 +15,8 @@ export interface AgreementRecord {
   id: string;
   creator_id: string;
   partner_id: string;
+  creator_name?: string;
+  partner_name?: string;
   status: AgreementStatus;
   rules: AgreementRules;
   created_at: string;
@@ -110,6 +112,8 @@ export function buildAgreementHistory(messages: AgreementMessage[], currentUserI
         id: payload.id,
         creator_id: creatorId,
         partner_id: partnerId,
+        creator_name: payload.creator_name || payload.creatorName || existing?.creator_name,
+        partner_name: payload.partner_name || payload.partnerName || existing?.partner_name,
         status,
         rules: payload.rules || existing?.rules || {},
         created_at: createdAt,

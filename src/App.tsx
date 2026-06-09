@@ -24,17 +24,17 @@ export default function App() {
   const { toast } = useDialog();
   const [activeTab, setActiveTab] = useState<string>(() => {
     const path = window.location.pathname.replace(/^\/+/, "");
-    if (path && ["home", "roommates", "rooms", "chat", "agreement", "info", "admin"].includes(path)) {
+    if (path && ["home", "roommates", "rooms", "chat", "agreement", "history", "info", "admin"].includes(path)) {
       return path;
     }
     const hash = window.location.hash.replace("#", "").split("?")[0];
-    return hash && ["home", "roommates", "rooms", "chat", "agreement", "info", "admin"].includes(hash) ? hash : "home";
+    return hash && ["home", "roommates", "rooms", "chat", "agreement", "history", "info", "admin"].includes(hash) ? hash : "home";
   });
   
   useEffect(() => {
     const handleGlobalHash = () => {
       const hash = window.location.hash.replace("#", "").split("?")[0];
-      if (hash && ["home", "roommates", "rooms", "chat", "agreement", "info"].includes(hash)) {
+      if (hash && ["home", "roommates", "rooms", "chat", "agreement", "history", "info"].includes(hash)) {
         setActiveTab(hash);
       }
     };

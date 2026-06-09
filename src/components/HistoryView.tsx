@@ -153,6 +153,11 @@ export default function HistoryView({
                     : agreement.creator_id;
                 const partner = findRoommateByIdentity(roommates, partnerId);
                 const isCreator = agreement.creator_id === myAuthId;
+                
+                // ✅ Ưu tiên hiển thị tên từ agreement record (cached) trước, sau đó mới tìm trong roommates
+                const partnerName = isCreator 
+                  ? (agreement.partner_name || partner?.name || "Người dùng RoomieMatch")
+                  : (agreement.creator_name || partner?.name || "Người dùng RoomieMatch");
 
                 return (
                   <article
@@ -167,7 +172,7 @@ export default function HistoryView({
                       />
                       <div className="min-w-0">
                         <h2 className="text-base font-bold text-slate-800 truncate">
-                          {partner?.name || "Người dùng RoomieMatch"}
+                          {partnerName}
                         </h2>
                         <p className="text-xs text-slate-500 mt-1">
                           Tạo lúc {formatDateTime(agreement.created_at)}
@@ -257,10 +262,17 @@ function AgreementDetailModal({
   const partnerId =
     agreement.creator_id === currentUserId ? agreement.partner_id : agreement.creator_id;
   const partner = findRoommateByIdentity(roommates, partnerId);
+  
+  // ✅ Ưu tiên tên từ agreement record
   const creatorName =
     agreement.creator_id === currentUserId
       ? currentUserName
-      : findRoommateByIdentity(roommates, agreement.creator_id)?.name || "Người dùng RoomieMatch";
+      : agreement.creator_name || findRoommateByIdentity(roommates, agreement.creator_id)?.name || "Người dùng RoomieMatch";
+  
+  const partnerName = agreement.creator_id === currentUserId
+    ? (agreement.partner_name || partner?.name || "Người dùng RoomieMatch")
+    : (agreement.creator_name || partner?.name || "Người dùng RoomieMatch");
+    
   const signerName =
     agreement.signed_by_name ||
     (agreement.signed_by === currentUserId
@@ -323,7 +335,7 @@ function AgreementDetailModal({
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
           <div className="grid gap-3 sm:grid-cols-2">
             <InfoRow label="Người đề xuất" value={creatorName} />
-            <InfoRow label="Người còn lại" value={partner?.name || "Người dùng RoomieMatch"} />
+            <InfoRow label="Người còn lại" value={partnerName} />
             <InfoRow label="Ngày tạo" value={formatDateTime(agreement.created_at)} />
             <InfoRow
               label={agreement.status === "cancelled" ? "Ngày hủy" : "Ngày ký"}
