@@ -367,8 +367,8 @@ function AgreementDetailModal({
             )}
           </section>
 
-          <p className="text-xs text-slate-400 flex items-start gap-2">
-            <UserRound className="w-4 h-4 shrink-0" />
+          <p className="flex items-start gap-2 text-xs font-semibold leading-relaxed text-red-500">
+            <UserRound className="w-4 h-4 shrink-0 text-red-400" />
             Đây là thỏa thuận sống chung giữa hai người dùng, không thay thế hợp đồng thuê nhà có giá trị pháp lý.
           </p>
         </div>
