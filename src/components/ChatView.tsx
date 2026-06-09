@@ -66,6 +66,7 @@ export default function ChatView({
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportImageFile, setReportImageFile] = useState<File | null>(null);
+  const [reportImagePreview, setReportImagePreview] = useState<string | null>(null);
   const [isUploadingReport, setIsUploadingReport] = useState(false);
 
   const handleSendReport = async () => {
@@ -136,6 +137,7 @@ export default function ChatView({
        setIsReportModalOpen(false);
        setReportReason("");
        setReportImageFile(null);
+       setReportImagePreview(null);
        setIsUploadingReport(false);
     } else {
        alert("Lỗi hệ thống, không thể gửi báo cáo lúc này.");
@@ -1141,15 +1143,28 @@ export default function ChatView({
                      disabled={isUploadingReport}
                      onChange={e => {
                        if (e.target.files && e.target.files[0]) {
-                         setReportImageFile(e.target.files[0]);
+                         const file = e.target.files[0];
+                         setReportImageFile(file);
+                         // Create preview
+                         const reader = new FileReader();
+                         reader.onloadend = () => {
+                           setReportImagePreview(reader.result as string);
+                         };
+                         reader.readAsDataURL(file);
                        }
                      }}
                    />
-                   {reportImageFile ? (
-                     <div className="flex flex-col items-center gap-2">
-                       <CheckCircle2 className="w-8 h-8 text-emerald-500" />
-                       <span className="text-sm font-bold text-emerald-600 truncate max-w-[200px]">{reportImageFile.name}</span>
-                       <span className="text-xs text-slate-500">Nhấn để chọn ảnh khác</span>
+                   {reportImageFile && reportImagePreview ? (
+                     <div className="flex flex-col items-center gap-3 w-full">
+                       {/* Image Preview */}
+                       <div className="w-full max-w-xs rounded-lg overflow-hidden border-2 border-emerald-500 shadow-md">
+                         <img src={reportImagePreview} alt="Preview" className="w-full h-auto object-contain max-h-48" />
+                       </div>
+                       <div className="flex flex-col items-center gap-1">
+                         <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                         <span className="text-sm font-bold text-emerald-600 truncate max-w-[200px]">{reportImageFile.name}</span>
+                         <span className="text-xs text-slate-500">Nhấn để chọn ảnh khác</span>
+                       </div>
                      </div>
                    ) : (
                      <div className="flex flex-col items-center gap-2 text-slate-500">
