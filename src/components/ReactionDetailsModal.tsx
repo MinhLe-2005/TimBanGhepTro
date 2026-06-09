@@ -37,14 +37,14 @@ export default function ReactionDetailsModal({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - darker */}
       <div
-        className="fixed inset-0 bg-black/50 z-50 animate-fade-in"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] animate-fade-in"
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 animate-fade-in">
+      {/* Modal - centered on screen */}
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-[100] animate-fade-in mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
           <h3 className="text-lg font-bold text-slate-800">Cảm xúc về tin nhắn</h3>
