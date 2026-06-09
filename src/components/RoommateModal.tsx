@@ -748,35 +748,12 @@ export default function RoommateModal({
               )}
             </>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <button
-              onClick={async () => {
-                  const confirmMessage = roommate.is_listing 
-                    ? "Bạn có chắc chắn muốn xóa tin đăng này? Hành động này không thể hoàn tác."
-                    : "Bạn có chắc chắn muốn xóa hồ sơ này? Hành động này không thể hoàn tác.";
-                  const ok = await confirm({ 
-                    title: roommate.is_listing ? 'Xóa tin đăng' : 'Xóa hồ sơ', 
-                    message: confirmMessage, 
-                    confirmText: 'Xóa ngay', 
-                    type: 'error' 
-                  });
-                  if (ok && onDeleteProfile) {
-                    onDeleteProfile(roommate.id);
-                    // Close modal after deletion
-                    onClose();
-                  }
-                }}
-                className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-4 px-6 rounded-[16px] font-black active:scale-95 duration-200 text-center cursor-pointer text-[15px] border border-red-100"
-              >
-                {roommate.is_listing ? 'Xóa tin đăng' : 'Xóa hồ sơ'}
-              </button>
-              <button
-                onClick={onClose}
-                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-4 px-6 rounded-[16px] font-black active:scale-95 duration-200 text-center cursor-pointer text-[15px] border border-slate-200"
-              >
-                Đóng
-              </button>
-            </div>
+            <button
+              onClick={onClose}
+              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-4 px-6 rounded-[16px] font-black active:scale-95 duration-200 text-center cursor-pointer text-[15px] border border-slate-200"
+            >
+              Đóng
+            </button>
           )}
         </div>
         </div>
