@@ -1155,11 +1155,27 @@ export default function App() {
     if (!isAuth) return;
     if (window.history.state?.modal) { window.history.back(); } else { setSelectedRoommate(null); setSelectedRoom(null); }
     
-    // Tra DB lấy user_id (Auth UUID) của partner để chat_id luôn đồng bộ mọi thiết bị
+    // CRITICAL FIX: Tra DB lấy user_id (Auth UUID) của partner để chat_id luôn đồng bộ
+    // Nếu roommateId là listing ID (rm-...), phải tìm user_id từ listing record
     let effectivePartnerId = roommateId;
     if (import.meta.env.VITE_SUPABASE_URL) {
-      const { data } = await supabase.from('roommates').select('user_id').eq('id', roommateId).maybeSingle();
-      if (data?.user_id) effectivePartnerId = data.user_id; // dùng Auth UUID của partner
+      console.log('[App] Finding user_id for roommateId:', roommateId);
+      
+      // Query để lấy user_id (works cho cả profile và listing)
+      const { data, error } = await supabase
+        .from('roommates')
+        .select('user_id, id, name, is_listing')
+        .eq('id', roommateId)
+        .maybeSingle();
+      
+      console.log('[App] Query result:', { data, error });
+      
+      if (data?.user_id) {
+        effectivePartnerId = data.user_id; // Dùng Auth UUID của partner
+        console.log('[App] Using user_id:', effectivePartnerId, 'for', data.name);
+      } else {
+        console.warn('[App] No user_id found for roommateId:', roommateId, '- using roommateId as fallback');
+      }
     }
     
     setActiveChatRoommateId(effectivePartnerId);

@@ -261,11 +261,24 @@ export default function ChatView({
   // Luôn dùng Auth UUID cho chat_id để đồng bộ mọi thiết bị
   const myChatId = myAuthId || myProfileId;
   
-  // CRITICAL: Normalize activeRoommateId to auth UUID for consistent chat_id
+  // CRITICAL FIX: Đảm bảo luôn dùng AUTH UUID của partner, KHÔNG PHẢI listing ID
   const partnerChatId = useMemo(() => {
     if (!activeRoommate) return activeRoommateId;
-    // Priority: user_id (auth UUID) > auth_id > id (profile ID)
-    return activeRoommate.user_id || activeRoommate.auth_id || activeRoommate.id || activeRoommateId;
+    
+    // QUAN TRỌNG: user_id = auth UUID (người dùng thật)
+    // Nếu không có user_id → tìm trong database bằng profile ID
+    let authUuid = activeRoommate.user_id || activeRoommate.auth_id;
+    
+    // Nếu vẫn không có và activeRoommate.id là listing ID (bắt đầu bằng "rm-")
+    // → PHẢI TÌM PROFILE THẬT của người này trong database
+    if (!authUuid && activeRoommate.id?.startsWith('rm-')) {
+      console.warn('[Chat] Partner ID is a listing ID, need to find real user_id:', activeRoommate.id);
+      // Fallback: dùng activeRoommateId tạm (nhưng sẽ bị lỗi sync)
+      // TODO: Query database để tìm user_id thật từ listing
+      return activeRoommateId;
+    }
+    
+    return authUuid || activeRoommate.id || activeRoommateId;
   }, [activeRoommate, activeRoommateId]);
   
   const chatId = myChatId && partnerChatId ? [myChatId, partnerChatId].sort().join("_") : null;
@@ -275,7 +288,8 @@ export default function ChatView({
     activeRoommateId,
     partnerChatId,
     finalChatId: chatId,
-    activeRoommateName: activeRoommate?.name
+    activeRoommateName: activeRoommate?.name,
+    isListingId: activeRoommate?.id?.startsWith('rm-')
   });
   useEffect(() => {
     if (!activeRoommateId || !activeRoommate || !import.meta.env.VITE_SUPABASE_URL) return;

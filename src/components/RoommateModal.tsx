@@ -685,6 +685,21 @@ export default function RoommateModal({
                     <MessageSquare className="h-5 w-5" />
                     Nhắn tin ngay
                   </button>
+                  
+                  {/* Show "View Listing" button if this person has a listing post */}
+                  {roommate.is_listing && (
+                    <button
+                      onClick={() => {
+                        // This modal is already showing the listing, so just scroll to top or show a hint
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 px-6 rounded-2xl font-black shadow-lg shadow-emerald-900/20 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 text-[15px]"
+                      title="Bạn đang xem bài đăng này"
+                    >
+                      <Eye className="h-5 w-5" />
+                      Đang xem bài đăng
+                    </button>
+                  )}
                 </div>
               )}
 
