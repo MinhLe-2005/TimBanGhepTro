@@ -49,7 +49,7 @@ export default function RoommateCard({
   return (
     <div
       onClick={() => onViewDetails(roommate)}
-      className="group flex flex-col h-full bg-white rounded-[24px] overflow-hidden border border-slate-100 cursor-pointer shadow-[0_4px_20px_rgba(15,23,42,0.04)] hover:shadow-[0_15px_35px_rgba(15,23,42,0.08)] hover:-translate-y-1 transition-all duration-300"
+      className="group relative flex flex-col h-full bg-white rounded-[24px] overflow-hidden border border-slate-100 cursor-pointer shadow-[0_4px_20px_rgba(15,23,42,0.04)] hover:shadow-[0_15px_35px_rgba(15,23,42,0.08)] hover:-translate-y-1 transition-all duration-300"
     >
       {/* Profile Image & Top Badges */}
       <div className="relative aspect-[4/5] overflow-hidden bg-slate-50 shrink-0">
