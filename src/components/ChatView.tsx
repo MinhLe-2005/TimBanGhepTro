@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Send, CheckCircle2, AlertCircle, Sparkles, MessageSquare, PhoneCall, Image as ImageIcon, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck, Ban, AlertOctagon, UploadCloud, Clock, CheckSquare, Users, CreditCard, Heart, Check, Star, FileEdit } from "lucide-react";
 import { Roommate, Message } from "../types";
 import { supabase } from "../lib/supabase";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 
 interface ChatViewProps {
   roommates: Roommate[];
@@ -30,6 +31,12 @@ export default function ChatView({
   onStartAgreement,
   onViewProfile,
 }: ChatViewProps) {
+  // Confirm Dialog Hook
+  const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
+  
+  // Show hidden chats tab
+  const [showHiddenChats, setShowHiddenChats] = useState(false);
+  
   // Chat records list
   const [chats, setChats] = useState<{ [roommateId: string]: Message[] }>(() => {
     const records: { [roommateId: string]: Message[] } = {};
@@ -793,6 +800,31 @@ export default function ChatView({
       <div className="w-[300px] h-full flex flex-col bg-slate-50/50 shrink-0 hidden md:flex">
         <div className="p-5 border-b border-slate-100 bg-white">
           <h3 className="text-lg font-extrabold text-[#0f172a] tracking-tight mb-4">Tin Nhắn</h3>
+          
+          {/* Tab Toggle: Active / Hidden */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setShowHiddenChats(false)}
+              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                !showHiddenChats
+                  ? "bg-sky-100 text-sky-700 border-2 border-sky-300"
+                  : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+              }`}
+            >
+              Đang chat ({conversations.filter(c => !hiddenConversations[c.partner.user_id || c.partner.id]).length})
+            </button>
+            <button
+              onClick={() => setShowHiddenChats(true)}
+              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                showHiddenChats
+                  ? "bg-amber-100 text-amber-700 border-2 border-amber-300"
+                  : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+              }`}
+            >
+              Đã ẩn ({Object.keys(hiddenConversations).length})
+            </button>
+          </div>
+          
           {/* Search Bar */}
           <div className="relative group">
             <input
@@ -818,9 +850,11 @@ export default function ChatView({
                 if (!conv.partner.name.toLowerCase().includes(friendSearchQuery.toLowerCase())) {
                   return false;
                 }
-                // Filter out hidden conversations
+                // Filter by tab: show hidden or active
                 const canonicalId = conv.partner.user_id || conv.partner.id;
-                return !hiddenConversations[canonicalId]; // Check if exists in hidden map
+                const isHidden = !!hiddenConversations[canonicalId];
+                
+                return showHiddenChats ? isHidden : !isHidden;
               })
               .map((conv) => {
               const r = conv.partner;
@@ -828,6 +862,8 @@ export default function ChatView({
               const lastMsg = conv.lastMessage;
               const canonicalId = r.user_id || r.id;
               const hasAgreement = conversationsWithAgreements[canonicalId];
+              const isHidden = !!hiddenConversations[canonicalId];
+              
               return (
                 <div
                   key={r.id}
@@ -863,30 +899,55 @@ export default function ChatView({
                   </div>
                   
                   {/* Agreement badge notification */}
-                  {hasAgreement && (
+                  {hasAgreement && !showHiddenChats && (
                     <div className="shrink-0">
                       <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" title="Có thỏa thuận mới" />
                     </div>
                   )}
                   
-                  {/* Delete conversation button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm(`Ẩn cuộc trò chuyện với ${r.name}? Tin nhắn vẫn được giữ, sẽ hiện lại khi có tin nhắn mới.`)) {
-                        // Hide conversation (add to hidden list)
-                        const canonicalId = r.user_id || r.id;
-                        const updated = { ...hiddenConversations, [canonicalId]: Date.now() };
+                  {/* Hide/Unhide button */}
+                  {showHiddenChats ? (
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        // Unhide conversation
+                        const updated = { ...hiddenConversations };
+                        delete updated[canonicalId];
                         setHiddenConversations(updated);
                         localStorage.setItem('roomiematch_hidden_conversations', JSON.stringify(updated));
-                        console.log('[Chat] Hiding conversation:', canonicalId);
-                      }
-                    }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-lg text-red-500 shrink-0"
-                    title="Ẩn cuộc trò chuyện"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                        console.log('[Chat] Unhiding conversation:', canonicalId);
+                      }}
+                      className="opacity-100 p-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-emerald-600 shrink-0 transition-colors"
+                      title="Hiện lại cuộc trò chuyện"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const confirmed = await confirm({
+                          title: "Ẩn cuộc trò chuyện",
+                          message: `Ẩn cuộc trò chuyện với ${r.name}? Tin nhắn vẫn được giữ, sẽ hiện lại khi có tin nhắn mới.`,
+                          confirmText: "Ẩn đi",
+                          cancelText: "Hủy",
+                          type: "warning"
+                        });
+                        
+                        if (confirmed) {
+                          // Hide conversation (add to hidden list)
+                          const updated = { ...hiddenConversations, [canonicalId]: Date.now() };
+                          setHiddenConversations(updated);
+                          localStorage.setItem('roomiematch_hidden_conversations', JSON.stringify(updated));
+                          console.log('[Chat] Hiding conversation:', canonicalId);
+                        }
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-lg text-red-500 shrink-0"
+                      title="Ẩn cuộc trò chuyện"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               );
             })
@@ -920,8 +981,16 @@ export default function ChatView({
                       </button>
                     ) : (
                       <button
-                        onClick={() => {
-                          if (window.confirm(`Bạn có chắc chắn muốn chặn ${activeRoommate.name}? Bạn sẽ không thể nhắn tin với người này nữa.`)) {
+                        onClick={async () => {
+                          const confirmed = await confirm({
+                            title: "Chặn người dùng",
+                            message: `Bạn có chắc chắn muốn chặn ${activeRoommate.name}? Bạn sẽ không thể nhắn tin với người này nữa.`,
+                            confirmText: "Chặn",
+                            cancelText: "Hủy",
+                            type: "danger"
+                          });
+                          
+                          if (confirmed) {
                             const myId = currentUser?.id || currentUserProfile?.id;
                             if (myId && activeRoommateId && import.meta.env.VITE_SUPABASE_URL) {
                               const updated = [...blockedUsers, activeRoommateId];
@@ -1778,14 +1847,22 @@ export default function ChatView({
                         </button>
                         <button
                           onClick={async () => {
-                            if (confirm('Bạn có chắc muốn từ chối thỏa thuận này?')) {
+                            const confirmed = await confirm({
+                              title: "Từ chối thỏa thuận",
+                              message: "Bạn có chắc muốn từ chối thỏa thuận này?",
+                              confirmText: "Từ chối",
+                              cancelText: "Hủy",
+                              type: "danger"
+                            });
+                            
+                            if (confirmed) {
                               const payload = { ...agreementModalPayload, status: 'cancelled', timestamp: new Date().toISOString() };
                               // CRITICAL: Use auth UUID (currentUser.id) not profile ID
                               const chatId = [currentUser.id, activeRoommate.id].sort().join('_');
                               await supabase.from('messages').insert({
                                 chat_id: chatId,
                                 sender_id: currentUser.id,
-                                text: `[AGREEMENT_CANCELLED] ${JSON.stringify(payload)}`
+                                text: `[AGREEMENT_CANCELLED] ${JSON.parse(payload)}`
                               });
                               alert('Đã từ chối thỏa thuận!');
                               setIsAgreementModalOpen(false);
@@ -1826,7 +1903,15 @@ export default function ChatView({
                         </button>
                         <button
                           onClick={async () => {
-                            if (confirm('Bạn có chắc muốn hủy thỏa thuận này?')) {
+                            const confirmed = await confirm({
+                              title: "Hủy thỏa thuận",
+                              message: "Bạn có chắc muốn hủy thỏa thuận này?",
+                              confirmText: "Hủy thỏa thuận",
+                              cancelText: "Không",
+                              type: "danger"
+                            });
+                            
+                            if (confirmed) {
                               const payload = { ...agreementModalPayload, status: 'cancelled', timestamp: new Date().toISOString() };
                               // CRITICAL: Use auth UUID (currentUser.id) not profile ID
                               const chatId = [currentUser.id, activeRoommate.id].sort().join('_');
@@ -2028,6 +2113,9 @@ export default function ChatView({
           </div>
         </div>
       )}
+      
+      {/* Confirm Dialog */}
+      <ConfirmDialogComponent />
     </div>
   );
 }
