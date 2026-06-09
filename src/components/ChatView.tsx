@@ -730,6 +730,13 @@ export default function ChatView({
           .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         
         console.log('[Chat] Setting conversations:', conversationsArray.length, 'conversations (', conversationMap.size, 'map entries)');
+        conversationsArray.forEach((conv, idx) => {
+          console.log(`[Chat] Conv ${idx}:`, {
+            name: conv.partner.name,
+            partnerId: conv.partnerId,
+            hasMessages: !!chats[conv.partnerId]
+          });
+        });
         setConversations(conversationsArray);
         setConversationsWithAgreements(agreementMap);
         
@@ -952,6 +959,7 @@ export default function ChatView({
 
         {/* Inbox chat list wrapper */}
         <div className="flex-grow overflow-y-auto p-3 space-y-1.5 scrollbar-thin">
+          {console.log('[Chat] Rendering inbox, conversations:', conversations.length, 'showHidden:', showHiddenChats, 'showBlocked:', showBlockedUsers) && false}
           {conversations.length === 0 ? (
             <div className="text-center py-8 text-slate-400 font-medium text-sm">
               Chưa có cuộc trò chuyện nào.
