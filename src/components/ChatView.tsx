@@ -1313,15 +1313,16 @@ export default function ChatView({
                       key={msg.id}
                       className={`flex ${isMe ? "justify-end" : "justify-start"} animate-fade-in`}
                     >
-                      <div
-                        className={`max-w-[85%] px-4 py-3 rounded-2xl text-[14.5px] leading-relaxed shadow-[0_2px_4px_rgba(15,23,42,0.01)] ${
-                          isSpecialMessage 
-                            ? (isAgreementSigned ? "bg-emerald-50 text-emerald-900 border border-emerald-200" : isAgreementCancelled ? "bg-red-50 text-red-900 border border-red-200" : "bg-sky-50 text-sky-900 border border-sky-200")
-                            : (isMe
-                                ? "bg-[#006590] text-white rounded-br-none font-medium"
-                                : "bg-white text-slate-800 border border-slate-100 rounded-bl-none font-medium")
-                        }`}
-                      >
+                      <div className={`flex items-end gap-1 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+                        <div
+                          className={`max-w-[85%] px-4 py-3 rounded-2xl text-[14.5px] leading-relaxed shadow-[0_2px_4px_rgba(15,23,42,0.01)] ${
+                            isSpecialMessage 
+                              ? (isAgreementSigned ? "bg-emerald-50 text-emerald-900 border border-emerald-200" : isAgreementCancelled ? "bg-red-50 text-red-900 border border-red-200" : "bg-sky-50 text-sky-900 border border-sky-200")
+                              : (isMe
+                                  ? "bg-[#006590] text-white rounded-br-none font-medium"
+                                  : "bg-white text-slate-800 border border-slate-100 rounded-bl-none font-medium")
+                          }`}
+                        >
                         {msg.imageUrl && (
                           <div className="mb-2 max-w-full overflow-hidden rounded-xl border border-slate-100/10 dark:border-slate-800">
                             <img src={msg.imageUrl} alt="Đính kèm" className="max-h-60 object-cover w-full rounded-lg" referrerPolicy="no-referrer" />
@@ -1386,7 +1387,7 @@ export default function ChatView({
                         </span>
                       </div>
                       
-                      {/* ✅ Message Reactions */}
+                      {/* ✅ Message Reactions - beside message */}
                       {!isSpecialMessage && (
                         <MessageReactions
                           messageId={msg.id}
@@ -1397,6 +1398,7 @@ export default function ChatView({
                           isMyMessage={isMe}
                         />
                       )}
+                      </div>
                     </div>
                   );
                 })

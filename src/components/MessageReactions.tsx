@@ -54,23 +54,22 @@ export default function MessageReactions({
     .sort(([, a], [, b]) => b.length - a.length);
 
   return (
-    <div className={`flex items-center gap-1 ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
-      {/* Reaction bubbles */}
+    <div className={`flex flex-col items-center gap-0.5 mb-1`}>
+      {/* Reaction bubbles - stacked vertically */}
       {sortedReactions.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-col gap-0.5">
           {sortedReactions.map(([emoji, users]) => (
             <button
               key={emoji}
               onClick={() => handleEmojiClick(emoji)}
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+              className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-sm transition-all cursor-pointer ${
                 currentUserReaction === emoji
-                  ? "bg-sky-100 border-2 border-sky-400 text-sky-700"
-                  : "bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                  ? "bg-sky-100 border-2 border-sky-400"
+                  : "bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50"
               }`}
               title={`${users.length} người`}
             >
-              <span className="text-sm">{emoji}</span>
-              {users.length > 1 && <span className="text-[10px]">{users.length}</span>}
+              {emoji}
             </button>
           ))}
         </div>
@@ -95,8 +94,8 @@ export default function MessageReactions({
                 className="fixed inset-0 z-40"
                 onClick={() => setShowPicker(false)}
               />
-              {/* Popup */}
-              <div className="absolute bottom-full left-0 mb-2 bg-white border border-slate-200 rounded-2xl shadow-xl p-2 flex gap-1 z-50 animate-fade-in">
+              {/* Popup - position to left/right based on message side */}
+              <div className={`absolute bottom-0 ${isMyMessage ? 'right-full mr-2' : 'left-full ml-2'} bg-white border border-slate-200 rounded-2xl shadow-xl p-2 flex flex-col gap-1 z-50 animate-fade-in`}>
                 {REACTION_EMOJIS.map((emoji) => (
                   <button
                     key={emoji}
