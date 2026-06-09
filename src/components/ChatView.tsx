@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Send, CheckCircle2, AlertCircle, Sparkles, MessageSquare, PhoneCall, Image as ImageIcon, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck, Ban, AlertOctagon, UploadCloud, Clock, CheckSquare, Users, CreditCard, Heart, Check } from "lucide-react";
+import { Send, CheckCircle2, AlertCircle, Sparkles, MessageSquare, PhoneCall, Image as ImageIcon, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck, Ban, AlertOctagon, UploadCloud, Clock, CheckSquare, Users, CreditCard, Heart, Check, Star } from "lucide-react";
 import { Roommate, Message } from "../types";
 import { supabase } from "../lib/supabase";
 
@@ -52,6 +52,12 @@ export default function ChatView({
 
   // Track conversations with unread agreements
   const [conversationsWithAgreements, setConversationsWithAgreements] = useState<Record<string, boolean>>({});
+  
+  // Track if chat has 2-way messages (to show phone number)
+  const [hasTwoWayMessages, setHasTwoWayMessages] = useState(false);
+  
+  // Track if signed agreement exists (to show review button)
+  const [hasSignedAgreement, setHasSignedAgreement] = useState(false);
 
   const [inputText, setInputText] = useState("");
   const [friendSearchQuery, setFriendSearchQuery] = useState("");
@@ -347,6 +353,26 @@ export default function ChatView({
 
     return () => { channels.forEach(ch => supabase.removeChannel(ch)); };
   }, [activeRoommateId, activeRoommate, myChatId]);
+  
+  // Check if 2-way messages exist & signed agreement exists
+  useEffect(() => {
+    if (!activeRoommateId || !activeRoommate) {
+      setHasTwoWayMessages(false);
+      setHasSignedAgreement(false);
+      return;
+    }
+    
+    const messages = chats[activeRoommateId] || [];
+    
+    // Check 2-way messages
+    const myMessages = messages.filter(m => m.senderId === myChatId);
+    const theirMessages = messages.filter(m => m.senderId !== myChatId);
+    setHasTwoWayMessages(myMessages.length > 0 && theirMessages.length > 0);
+    
+    // Check signed agreement
+    const signedAgreement = messages.find(m => m.text?.includes('[AGREEMENT_SIGNED]'));
+    setHasSignedAgreement(!!signedAgreement);
+  }, [activeRoommateId, activeRoommate, chats, myChatId]);
 
   // Fetch Inbox Conversations
 
@@ -1259,6 +1285,33 @@ export default function ChatView({
                 </div>
               </div>
             </div>
+            
+            {/* Phone Number - Show when 2-way messages exist */}
+            {hasTwoWayMessages && activeRoommate.phoneNumber && (
+              <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-4 space-y-2">
+                <h5 className="text-xs font-black text-emerald-900 uppercase tracking-wider flex items-center gap-2">
+                  <PhoneCall className="h-4 w-4" />
+                  Số điện thoại
+                </h5>
+                <a
+                  href={`tel:${activeRoommate.phoneNumber.replace(/\s/g, "")}`}
+                  className="block text-center bg-white hover:bg-emerald-50 text-emerald-700 font-black text-base py-3 rounded-xl border-2 border-emerald-300 hover:border-emerald-400 transition-all cursor-pointer"
+                >
+                  📞 {activeRoommate.phoneNumber}
+                </a>
+              </div>
+            )}
+            
+            {/* Review Button - Show when signed agreement exists */}
+            {hasSignedAgreement && onViewProfile && (
+              <button
+                onClick={() => onViewProfile(activeRoommate)}
+                className="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold py-3 rounded-2xl border-2 border-amber-200 hover:border-amber-300 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                Đánh giá {activeRoommate.name}
+              </button>
+            )}
           </div>
           
           <div className="text-[11px] text-slate-400 font-bold px-4 py-3.5 bg-slate-100/50 rounded-2xl mt-6 leading-relaxed border border-slate-200/50 backdrop-blur-sm flex items-start gap-2.5">

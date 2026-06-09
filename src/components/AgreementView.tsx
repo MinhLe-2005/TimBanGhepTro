@@ -16,7 +16,8 @@ import {
   Lock,
   X,
   FileEdit,
-  Send
+  Send,
+  Eye
 } from "lucide-react";
 import { Roommate } from "../types";
 import { supabase } from "../lib/supabase";
@@ -126,7 +127,7 @@ export default function AgreementView({
              // Base structure
              const existing = aggrMap.get(payload.id) || {};
              const creatorId = isDraft ? msg.sender_id : (existing.creator_id || (msg.sender_id === myAuthId ? partner_id : msg.sender_id));
-             const partnerId = isDraft ? (msg.sender_id === myAuthId ? partner_id : myAuthId) : (existing.partner_id || (msg.sender_id === myAuthId ? myAuthId : partnerId));
+             const partnerId = isDraft ? (msg.sender_id === myAuthId ? partner_id : myAuthId) : (existing.partner_id || (msg.sender_id === myAuthId ? myAuthId : partner_id));
              
              let currentStatus = payload.status;
              if (currentStatus === 'pending') {
@@ -155,6 +156,33 @@ export default function AgreementView({
     };
     
     fetchAgreements();
+    
+    // ✅ REALTIME SYNC: Subscribe to new agreement messages
+    const myAuthId = currentUser.id;
+    const channel = supabase
+      .channel('agreements-realtime')
+      .on(
+        'postgres_changes',
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'messages',
+          filter: `chat_id=like.*${myAuthId}*`
+        },
+        (payload) => {
+          console.log('[AgreementView] Realtime agreement message:', payload);
+          const msg = payload.new;
+          if (msg.text && msg.text.includes('[AGREEMENT_')) {
+            // Refetch all agreements to rebuild the map correctly
+            fetchAgreements();
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [currentUserProfile?.id, currentUser?.id]);
 
   // Radioactive option ids and local input states
@@ -1400,6 +1428,75 @@ export default function AgreementView({
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* QUẢN LÝ HỢP ĐỒNG SECTION - Show all agreements history */}
+      {agreements.length > 0 && (
+        <div className="max-w-5xl mx-auto mt-12">
+          <div className="bg-white border border-slate-200 rounded-[24px] p-6 space-y-4 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-sky-50 text-sky-600 rounded-xl flex items-center justify-center">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-slate-900">📋 Quản Lý Hợp Đồng</h2>
+                  <p className="text-xs text-slate-500">Tổng cộng {agreements.length} hợp đồng</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              {agreements.map((agreement, idx) => {
+                const partnerId = agreement.creator_id === currentUserProfile.id ? agreement.partner_id : agreement.creator_id;
+                const partner = roommates.find(r => r.id === partnerId);
+                
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200 hover:border-sky-300 hover:shadow-sm transition-all"
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      <img 
+                        src={partner?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb"} 
+                        alt="" 
+                        className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm" 
+                      />
+                      <div className="flex-1">
+                        <p className="font-bold text-slate-800">{partner?.name || "Người lạ"}</p>
+                        <p className="text-xs text-slate-500">
+                          {new Date(agreement.created_at).toLocaleDateString('vi-VN')} • 
+                          <span className={`ml-1 font-bold ${
+                            agreement.status === 'signed' ? 'text-emerald-600' :
+                            agreement.status === 'pending' ? 'text-amber-600' :
+                            'text-slate-400'
+                          }`}>
+                            {agreement.status === 'signed' ? 'Đã ký kết' :
+                             agreement.status === 'pending' ? 'Chờ ký' :
+                             'Đã hủy'}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={() => {
+                        if (partner) {
+                          setRoommateName(partner.name);
+                          setLocalPendingPayload(agreement);
+                        }
+                      }}
+                      className="px-4 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold text-sm rounded-xl border border-sky-200 hover:border-sky-300 transition-all cursor-pointer flex items-center gap-2"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Xem chi tiết
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
