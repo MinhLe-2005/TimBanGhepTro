@@ -32,8 +32,8 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
 
   const handleProviderSelect = async (provider: "google" | "facebook") => {
     try {
-      // Use full URL with callback path for OAuth
-      const callbackUrl = `${window.location.origin}/home`;
+      // Use root URL for OAuth callback to avoid Supabase redirect config issues
+      const callbackUrl = window.location.origin;
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
