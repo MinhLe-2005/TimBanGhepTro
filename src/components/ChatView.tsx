@@ -41,6 +41,13 @@ export default function ChatView({
 
   const [conversations, setConversations] = useState<any[]>([]);
   const fetchInboxRef = useRef<(() => void) | null>(null);
+  
+  // Hidden conversations (local only, not deleted from DB)
+  const [hiddenConversations, setHiddenConversations] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('roomiematch_hidden_conversations') || '[]');
+    } catch { return []; }
+  });
 
   const [inputText, setInputText] = useState("");
   const [friendSearchQuery, setFriendSearchQuery] = useState("");
@@ -513,6 +520,22 @@ export default function ChatView({
         
         console.log('[Chat] Setting conversations:', conversationsArray.length, 'conversations (', conversationMap.size, 'map entries)');
         setConversations(conversationsArray);
+        
+        // Auto-unhide conversations that receive new messages
+        const hiddenList = JSON.parse(localStorage.getItem('roomiematch_hidden_conversations') || '[]');
+        if (hiddenList.length > 0) {
+          const updatedHidden = hiddenList.filter((hiddenId: string) => {
+            // Check if this hidden conversation has any messages
+            return !conversationsArray.some(conv => 
+              conv.partner.id === hiddenId || 
+              conv.partner.user_id === hiddenId
+            );
+          });
+          if (updatedHidden.length !== hiddenList.length) {
+            localStorage.setItem('roomiematch_hidden_conversations', JSON.stringify(updatedHidden));
+            setHiddenConversations(updatedHidden);
+          }
+        }
       } else if (error) {
         console.error('[Chat] Error fetching inbox:', error);
       }
@@ -523,7 +546,22 @@ export default function ChatView({
     const inboxChannel = supabase
       .channel('inbox_updates')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        if ((payload.new as any).chat_id?.includes(myAuthId)) fetchInbox();
+        const newMsg = payload.new as any;
+        if (newMsg.chat_id?.includes(myAuthId)) {
+          // When new message arrives, unhide the conversation if it was hidden
+          const ids = newMsg.chat_id.split('_');
+          const partnerId = ids[0] === myAuthId ? ids[1] : ids[0];
+          
+          const hiddenList = JSON.parse(localStorage.getItem('roomiematch_hidden_conversations') || '[]');
+          if (hiddenList.includes(partnerId)) {
+            const updated = hiddenList.filter((id: string) => id !== partnerId);
+            localStorage.setItem('roomiematch_hidden_conversations', JSON.stringify(updated));
+            setHiddenConversations(updated);
+            console.log('[Chat] Auto-unhiding conversation from:', partnerId, '(new message received)');
+          }
+          
+          fetchInbox();
+        }
       })
       .subscribe();
 
@@ -655,7 +693,15 @@ export default function ChatView({
             </div>
           ) : (
             conversations
-              .filter(conv => conv.partner.name.toLowerCase().includes(friendSearchQuery.toLowerCase()))
+              .filter(conv => {
+                // Filter by search query
+                if (!conv.partner.name.toLowerCase().includes(friendSearchQuery.toLowerCase())) {
+                  return false;
+                }
+                // Filter out hidden conversations
+                const canonicalId = conv.partner.user_id || conv.partner.id;
+                return !hiddenConversations.includes(canonicalId);
+              })
               .map((conv) => {
               const r = conv.partner;
               const isActive = r.id === activeRoommateId;
@@ -697,12 +743,17 @@ export default function ChatView({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (window.confirm(`Xóa cuộc trò chuyện với ${r.name}? Tin nhắn sẽ không bị xóa, chỉ ẩn khỏi danh sách.`)) {
-                        setConversations(prev => prev.filter(c => c.partner.id !== r.id));
+                      if (window.confirm(`Ẩn cuộc trò chuyện với ${r.name}? Tin nhắn vẫn được giữ, sẽ hiện lại khi có tin nhắn mới.`)) {
+                        // Hide conversation (add to hidden list)
+                        const canonicalId = r.user_id || r.id;
+                        const updated = [...hiddenConversations, canonicalId];
+                        setHiddenConversations(updated);
+                        localStorage.setItem('roomiematch_hidden_conversations', JSON.stringify(updated));
+                        console.log('[Chat] Hiding conversation:', canonicalId);
                       }
                     }}
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-lg text-red-500 shrink-0"
-                    title="Xóa cuộc trò chuyện"
+                    title="Ẩn cuộc trò chuyện"
                   >
                     <X className="h-4 w-4" />
                   </button>
