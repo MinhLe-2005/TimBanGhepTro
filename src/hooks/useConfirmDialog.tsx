@@ -47,18 +47,22 @@ export function useConfirmDialog() {
     setIsOpen(false);
   };
 
-  const Dialog = () => isOpen ? (
-    <ConfirmDialog
-      isOpen={isOpen}
-      onClose={handleCancel}
-      onConfirm={handleConfirm}
-      title={options.title}
-      message={options.message}
-      confirmText={options.confirmText}
-      cancelText={options.cancelText}
-      type={options.type}
-    />
-  ) : null;
+  const Dialog = () => {
+    if (!isOpen) return null;
+    
+    return (
+      <ConfirmDialog
+        isOpen={isOpen}
+        onClose={handleCancel}
+        onConfirm={handleConfirm}
+        title={options.title}
+        message={options.message}
+        confirmText={options.confirmText}
+        cancelText={options.cancelText}
+        type={options.type}
+      />
+    );
+  };
 
   return { confirm, Dialog };
 }

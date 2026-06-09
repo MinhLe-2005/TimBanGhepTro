@@ -1,4 +1,5 @@
 import { X, AlertCircle, CheckCircle, Info, AlertTriangle } from "lucide-react";
+import { createPortal } from "react-dom";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -61,7 +62,7 @@ export default function ConfirmDialog({
   const style = typeStyles[type];
   const Icon = style.icon;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-fade-in">
       {/* Backdrop */}
       <div 
@@ -116,6 +117,7 @@ export default function ConfirmDialog({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
