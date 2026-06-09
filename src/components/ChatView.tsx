@@ -93,6 +93,10 @@ export default function ChatView({
   const [reportImagePreview, setReportImagePreview] = useState<string | null>(null);
   const [isUploadingReport, setIsUploadingReport] = useState(false);
 
+  // Signature modal for agreement signing
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
+  const [signatureName, setSignatureName] = useState("");
+
   const handleSendReport = async () => {
     if (!reportReason.trim() || !reportImageFile) {
       alert("Vui lòng nhập lý do và đính kèm ảnh minh chứng để báo cáo.");
@@ -1628,24 +1632,10 @@ export default function ChatView({
                       <>
                         {/* Received pending agreement - can accept, edit, or reject */}
                         <button
-                          onClick={async () => {
-                            // Sign the agreement
-                            const payload = {
-                              ...agreementModalPayload,
-                              status: 'signed',
-                              signedBy: currentUserProfile.id,
-                              timestamp: new Date().toISOString()
-                            };
-                            const chatId = [currentUserProfile.id, activeRoommate.id].sort().join('_');
-                            await supabase.from('messages').insert({
-                              chat_id: chatId,
-                              sender_id: currentUserProfile.id,
-                              text: `[AGREEMENT_SIGNED] ${JSON.stringify(payload)}`
-                            });
-                            await supabase.from('roommates').update({ status: 'Đã tìm được' }).in('id', [currentUserProfile.id, activeRoommate.id]);
-                            alert('Đã ký thỏa thuận thành công!');
-                            setIsAgreementModalOpen(false);
-                            setAgreementModalPayload(null);
+                          onClick={() => {
+                            // Open signature modal to confirm signing
+                            setSignatureName(""); // Reset signature input
+                            setIsSignatureModalOpen(true);
                           }}
                           className="flex-1 py-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
                         >
@@ -1773,6 +1763,147 @@ export default function ChatView({
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Signature Modal for Agreement Signing */}
+      {isSignatureModalOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-[28px] shadow-2xl max-w-md w-full p-8 space-y-6 animate-scale-in border border-slate-100">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+                  <FileEdit className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-800">Xác nhận ký kết</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Vui lòng nhập tên đầy đủ của bạn</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setIsSignatureModalOpen(false);
+                  setSignatureName("");
+                }}
+                className="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-600" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-sky-50 border border-sky-200 rounded-2xl p-4">
+                <p className="text-sm text-sky-900 font-bold mb-2">📝 Xác thực chữ ký số</p>
+                <p className="text-xs text-sky-700">
+                  Bạn đang ký kết thỏa thuận sống chung với <span className="font-bold">{activeRoommate?.name}</span>. 
+                  Vui lòng nhập tên đầy đủ của bạn để xác nhận.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-slate-700">
+                  Họ và tên đầy đủ <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={signatureName}
+                  onChange={(e) => setSignatureName(e.target.value)}
+                  placeholder="Ví dụ: Nguyễn Văn A"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all"
+                  autoFocus
+                />
+                <p className="text-xs text-slate-500">
+                  Tên phải khớp với tên trong hồ sơ: <span className="font-bold text-slate-700">{currentUserProfile?.name}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={() => {
+                  setIsSignatureModalOpen(false);
+                  setSignatureName("");
+                }}
+                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={async () => {
+                  // Validate signature name
+                  if (!signatureName.trim()) {
+                    alert("Vui lòng nhập họ và tên đầy đủ!");
+                    return;
+                  }
+
+                  // Check if name matches profile (case insensitive)
+                  const normalizedSignature = signatureName.trim().toLowerCase().replace(/\s+/g, ' ');
+                  const normalizedProfile = currentUserProfile?.name?.trim().toLowerCase().replace(/\s+/g, ' ');
+                  
+                  if (normalizedSignature !== normalizedProfile) {
+                    alert(`Tên không khớp! Vui lòng nhập đúng tên trong hồ sơ: "${currentUserProfile?.name}"`);
+                    return;
+                  }
+
+                  // All validation passed - proceed with signing
+                  try {
+                    const signedPayload = {
+                      ...agreementModalPayload,
+                      status: 'signed',
+                      signedBy: currentUserProfile.id,
+                      signedByName: signatureName.trim(),
+                      timestamp: new Date().toISOString()
+                    };
+
+                    // CRITICAL FIX: Use auth UUID consistently
+                    const myChatId = currentUser?.id || currentUserProfile?.id;
+                    const partnerChatId = activeRoommate?.user_id || activeRoommate?.auth_id || activeRoommate?.id;
+                    const chatId = [myChatId, partnerChatId].sort().join('_');
+
+                    console.log('[Signature] Signing agreement:', {
+                      chatId,
+                      myChatId,
+                      partnerChatId,
+                      signedByName: signatureName.trim()
+                    });
+
+                    const { error } = await supabase.from('messages').insert({
+                      id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                      chat_id: chatId,
+                      sender_id: myChatId,
+                      text: `[AGREEMENT_SIGNED] ${JSON.stringify(signedPayload)}`
+                    });
+
+                    if (error) {
+                      console.error('[Signature] Error signing agreement:', error);
+                      alert('Lỗi khi ký kết thỏa thuận! Vui lòng thử lại.');
+                      return;
+                    }
+
+                    // Update roommate status to "Đã tìm được"
+                    await supabase.from('roommates')
+                      .update({ status: 'Đã tìm được' })
+                      .in('user_id', [myChatId, partnerChatId]);
+
+                    alert('✅ Ký kết thành công! Thỏa thuận đã có hiệu lực.');
+                    
+                    // Close modals
+                    setIsSignatureModalOpen(false);
+                    setSignatureName("");
+                    setIsAgreementModalOpen(false);
+                    setAgreementModalPayload(null);
+                  } catch (err) {
+                    console.error('[Signature] Unexpected error:', err);
+                    alert('Lỗi không xác định! Vui lòng thử lại.');
+                  }
+                }}
+                className="flex-1 py-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+              >
+                <Check className="h-5 w-5" />
+                Xác nhận ký
+              </button>
             </div>
           </div>
         </div>

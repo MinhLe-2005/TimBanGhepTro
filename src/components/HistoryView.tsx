@@ -7,22 +7,64 @@ export default function HistoryView({ currentUserProfile, currentUser, roommates
   const [agreements, setAgreements] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!currentUserProfile) return;
+    if (!currentUserProfile || !currentUser) return;
+    
     const fetchAgreements = async () => {
+      // CRITICAL FIX: Fetch from messages table using auth UUID
+      const myAuthId = currentUser.id;
+      
       const { data } = await supabase
-        .from('agreements')
+        .from('messages')
         .select('*')
-        .or(`creator_id.eq.${currentUserProfile.id},partner_id.eq.${currentUserProfile.id}`)
-        .order('created_at', { ascending: false });
-      if (data) setAgreements(data);
+        .like('chat_id', `%${myAuthId}%`)
+        .like('text', '%[AGREEMENT_%')
+        .order('timestamp', { ascending: false });
+      
+      console.log('[HistoryView] Fetched agreements:', { count: data?.length, myAuthId });
+      
+      if (data) {
+        // Group by agreement ID, keep only SIGNED ones for history
+        const aggrMap = new Map<string, any>();
+        
+        data.forEach(msg => {
+          let payload: any = null;
+          try {
+            if (msg.text.startsWith('[AGREEMENT_DRAFT]')) payload = JSON.parse(msg.text.replace('[AGREEMENT_DRAFT]', '').trim());
+            if (msg.text.startsWith('[AGREEMENT_SIGNED]')) payload = JSON.parse(msg.text.replace('[AGREEMENT_SIGNED]', '').trim());
+            if (msg.text.startsWith('[AGREEMENT_CANCELLED]')) payload = JSON.parse(msg.text.replace('[AGREEMENT_CANCELLED]', '').trim());
+          } catch(e) {}
+          
+          if (payload) {
+            const partner_id = msg.chat_id.replace(myAuthId, '').replace('_', '');
+            
+            // Show both signed AND pending agreements in history
+            if (payload.status === 'signed' || payload.status === 'pending') {
+              if (!aggrMap.has(payload.id)) {
+                aggrMap.set(payload.id, {
+                  id: payload.id,
+                  creator_id: msg.sender_id,
+                  partner_id: msg.sender_id === myAuthId ? partner_id : myAuthId,
+                  status: payload.status,
+                  rules: payload.rules,
+                  created_at: payload.timestamp || msg.timestamp || msg.created_at
+                });
+              }
+            }
+          }
+        });
+        
+        setAgreements(Array.from(aggrMap.values()));
+      }
     };
+    
     fetchAgreements();
 
+    // Realtime updates
     const sub = supabase.channel('history_channel')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'agreements' }, fetchAgreements)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `text=ilike.%[AGREEMENT_SIGNED]%` }, fetchAgreements)
       .subscribe();
     return () => { supabase.removeChannel(sub); };
-  }, [currentUserProfile]);
+  }, [currentUserProfile, currentUser]);
 
   if (!currentUser) {
     return (

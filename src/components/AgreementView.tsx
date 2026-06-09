@@ -90,15 +90,20 @@ export default function AgreementView({
 
   // Fetch agreements when component mounts
   useEffect(() => {
-    if (!import.meta.env.VITE_SUPABASE_URL || !currentUserProfile) return;
+    if (!import.meta.env.VITE_SUPABASE_URL || !currentUserProfile || !currentUser) return;
     
     const fetchAgreements = async () => {
+      // CRITICAL FIX: Use auth UUID (currentUser.id) not profile ID
+      const myAuthId = currentUser.id;
+      
       // Fetch messages that contain AGREEMENT tags for the current user
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .like('chat_id', `%${currentUserProfile.id}%`)
+        .like('chat_id', `%${myAuthId}%`)
         .like('text', '%[AGREEMENT_%');
+      
+      console.log('[AgreementView] Fetched agreements:', { count: data?.length, myAuthId });
       
       if (!error && data) {
         const aggrMap = new Map<string, any>();
@@ -115,13 +120,13 @@ export default function AgreementView({
           } catch(e) {}
 
           if (payload) {
-             const partner_id = msg.chat_id.replace(currentUserProfile.id, '').replace('_', '');
+             const partner_id = msg.chat_id.replace(myAuthId, '').replace('_', '');
              const isDraft = msg.text.startsWith('[AGREEMENT_DRAFT]');
              
              // Base structure
              const existing = aggrMap.get(payload.id) || {};
-             const creatorId = isDraft ? msg.sender_id : (existing.creator_id || (msg.sender_id === currentUserProfile.id ? partner_id : msg.sender_id));
-             const partnerId = isDraft ? (msg.sender_id === currentUserProfile.id ? partner_id : currentUserProfile.id) : (existing.partner_id || (msg.sender_id === currentUserProfile.id ? currentUserProfile.id : partnerId));
+             const creatorId = isDraft ? msg.sender_id : (existing.creator_id || (msg.sender_id === myAuthId ? partner_id : msg.sender_id));
+             const partnerId = isDraft ? (msg.sender_id === myAuthId ? partner_id : myAuthId) : (existing.partner_id || (msg.sender_id === myAuthId ? myAuthId : partnerId));
              
              let currentStatus = payload.status;
              if (currentStatus === 'pending') {
@@ -150,7 +155,7 @@ export default function AgreementView({
     };
     
     fetchAgreements();
-  }, [currentUserProfile]);
+  }, [currentUserProfile, currentUser]);
 
   // Radioactive option ids and local input states
   const [quietOption, setQuietOption] = useState("chuan");
@@ -614,8 +619,62 @@ export default function AgreementView({
 
   const isReceivingDraft = localPendingPayload && localPendingPayload.status === 'pending' && localPendingPayload.sender_id !== currentUserProfile.id;
 
+  // Find pending agreements where user is the receiver (need to sign)
+  const pendingToSign = agreements.filter(a => 
+    a.status === 'pending' && a.creator_id !== currentUserProfile.id
+  );
+
   return (
     <div className="space-y-8 animate-fade-in pb-16 relative">
+      {/* PENDING AGREEMENTS SECTION - Show agreements waiting for user signature */}
+      {pendingToSign.length > 0 && (
+        <div className="max-w-5xl mx-auto">
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-[24px] p-6 space-y-4 shadow-md">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-amber-100 text-amber-700 rounded-xl flex items-center justify-center animate-pulse">
+                  <AlertCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-amber-900">🔔 Thỏa Thuận Chờ Ký Kết</h2>
+                  <p className="text-sm text-amber-800">Bạn có {pendingToSign.length} thỏa thuận chờ bạn ký kết</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              {pendingToSign.map((agreement, idx) => {
+                const partner = roommates.find(r => r.id === agreement.creator_id);
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      // Auto-select this partner and load their agreement
+                      if (partner) {
+                        setRoommateName(partner.name);
+                        setLocalPendingPayload(agreement);
+                      }
+                    }}
+                    className="flex items-center justify-between p-4 rounded-xl bg-white border-2 border-amber-200 hover:border-amber-400 hover:shadow-md transition-all group"
+                  >
+                    <div className="flex items-center gap-4 text-left">
+                      <img src={partner?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb"} alt="" className="w-12 h-12 rounded-full object-cover border border-slate-200" />
+                      <div>
+                        <p className="font-bold text-slate-800 group-hover:text-amber-700 transition-colors">{partner?.name || "Người lạ"}</p>
+                        <p className="text-xs text-slate-500">Gửi vào {new Date(agreement.created_at).toLocaleDateString('vi-VN')}</p>
+                      </div>
+                    </div>
+                    <div className="text-amber-700 font-bold text-sm">
+                      Ký kết →
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* 2 Column Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
