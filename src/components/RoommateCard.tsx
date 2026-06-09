@@ -73,10 +73,13 @@ export default function RoommateCard({
 
       {/* Owner actions - centered below image */}
       {currentUserId && (roommate.postedBy === currentUserId || roommate.user_id === currentUserId) && (
-        <div className="flex justify-center gap-2 px-3 py-3 bg-slate-50 border-b border-slate-100">
+        <div className="flex justify-center gap-2 px-3 py-3 bg-slate-50 border-b border-slate-100" onClick={(e) => e.stopPropagation()}>
           {onEdit && (
             <button
-              onClick={(e) => { e.stopPropagation(); onEdit(roommate); }}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                onEdit(roommate); 
+              }}
               className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-blue-50 text-[#006590] text-[12px] font-bold shadow-sm border border-blue-200 transition-all duration-200"
             >
               Sửa tin
