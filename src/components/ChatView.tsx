@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, CheckCircle2, AlertCircle, Sparkles, MessageSquare, PhoneCall, Image as ImageIcon, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck, Ban, AlertOctagon, UploadCloud } from "lucide-react";
+import { Send, CheckCircle2, AlertCircle, Sparkles, MessageSquare, PhoneCall, Image as ImageIcon, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck, Ban, AlertOctagon, UploadCloud, Clock, CheckSquare, Users, CreditCard, Heart, Check } from "lucide-react";
 import { Roommate, Message } from "../types";
 import { supabase } from "../lib/supabase";
 
@@ -43,11 +43,15 @@ export default function ChatView({
   const fetchInboxRef = useRef<(() => void) | null>(null);
   
   // Hidden conversations (local only, not deleted from DB)
-  const [hiddenConversations, setHiddenConversations] = useState<string[]>(() => {
+  // Store as { partnerId: hideTimestamp } to check if new messages arrived after hiding
+  const [hiddenConversations, setHiddenConversations] = useState<Record<string, number>>(() => {
     try {
-      return JSON.parse(localStorage.getItem('roomiematch_hidden_conversations') || '[]');
-    } catch { return []; }
+      return JSON.parse(localStorage.getItem('roomiematch_hidden_conversations') || '{}');
+    } catch { return {}; }
   });
+
+  // Track conversations with unread agreements
+  const [conversationsWithAgreements, setConversationsWithAgreements] = useState<Record<string, boolean>>({});
 
   const [inputText, setInputText] = useState("");
   const [friendSearchQuery, setFriendSearchQuery] = useState("");
@@ -69,6 +73,19 @@ export default function ChatView({
       return JSON.parse(localStorage.getItem('roomiematch_blocked_users') || '[]');
     } catch { return []; }
   });
+
+  // Agreement modal state
+  const [isAgreementModalOpen, setIsAgreementModalOpen] = useState(false);
+  const [agreementModalPayload, setAgreementModalPayload] = useState<any>(null);
+  const [isEditingAgreement, setIsEditingAgreement] = useState(false);
+  
+  // Editable agreement fields
+  const [editQuiet, setEditQuiet] = useState('');
+  const [editCleaning, setEditCleaning] = useState('');
+  const [editVisitors, setEditVisitors] = useState('');
+  const [editBills, setEditBills] = useState('');
+  const [editPets, setEditPets] = useState('');
+  const [editOtherNotes, setEditOtherNotes] = useState('');
 
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
@@ -369,7 +386,9 @@ export default function ChatView({
               user_id: r.user_id,
               budget: r.budget,
               hasLifestyle: !!r.lifestyle,
-              bio: r.bio?.substring(0, 30)
+              bio: r.bio?.substring(0, 30),
+              avatar: r.avatar?.substring(0, 50), // Log avatar
+              avatarType: r.avatar?.startsWith('data:') ? 'base64' : r.avatar?.startsWith('http') ? 'url' : 'unknown'
             });
             if (!dbPartnerMap.has(r.id)) dbPartnerMap.set(r.id, r);
             if (r.user_id && !dbPartnerMap.has(r.user_id)) dbPartnerMap.set(r.user_id, r);
@@ -386,18 +405,28 @@ export default function ChatView({
           console.log('[Chat] Total profiles loaded:', dbPartnerMap.size);
         }
 
+        // Track agreements for badge notifications
+        const agreementMap: Record<string, boolean> = {};
+
         data.forEach(msg => {
           const ids = msg.chat_id.split('_');
           const partnerId = ids[0] === myAuthId ? ids[1] : ids[0];
           if (partnerId === myAuthId) return;
 
+          // Check if message is an unread agreement draft
+          if (msg.text?.startsWith('[AGREEMENT_DRAFT]') && msg.sender_id !== myAuthId) {
+            agreementMap[partnerId] = true;
+          }
+
           console.log('[Chat] Processing message from partner:', partnerId, 'existing:', conversationMap.has(partnerId));
 
-          // Try to get partner from: 1. roommates list, 2. Supabase profiles/roommates, 3. default
-          let partner = roommates.find(r => r.id === partnerId || r.user_id === partnerId);
+          // Try to get partner - PRIORITIZE database over props
+          // 1. Try database first (most up-to-date)
+          let partner = dbPartnerMap.get(partnerId);
           
+          // 2. Fallback to roommates list from props
           if (!partner) {
-            partner = dbPartnerMap.get(partnerId);
+            partner = roommates.find(r => r.id === partnerId || r.user_id === partnerId);
           }
           
           if (!partner) {
@@ -520,18 +549,30 @@ export default function ChatView({
         
         console.log('[Chat] Setting conversations:', conversationsArray.length, 'conversations (', conversationMap.size, 'map entries)');
         setConversations(conversationsArray);
+        setConversationsWithAgreements(agreementMap);
         
-        // Auto-unhide conversations that receive new messages
-        const hiddenList = JSON.parse(localStorage.getItem('roomiematch_hidden_conversations') || '[]');
-        if (hiddenList.length > 0) {
-          const updatedHidden = hiddenList.filter((hiddenId: string) => {
-            // Check if this hidden conversation has any messages
-            return !conversationsArray.some(conv => 
-              conv.partner.id === hiddenId || 
-              conv.partner.user_id === hiddenId
-            );
+        // Auto-unhide conversations that have NEW messages (after hide timestamp)
+        const hiddenMap = JSON.parse(localStorage.getItem('roomiematch_hidden_conversations') || '{}');
+        if (Object.keys(hiddenMap).length > 0) {
+          const updatedHidden = { ...hiddenMap };
+          let changed = false;
+          
+          conversationsArray.forEach(conv => {
+            const canonicalId = conv.partner.user_id || conv.partner.id;
+            const hideTimestamp = hiddenMap[canonicalId];
+            
+            if (hideTimestamp) {
+              const lastMessageTime = new Date(conv.timestamp).getTime();
+              // Only unhide if last message is AFTER the hide timestamp
+              if (lastMessageTime > hideTimestamp) {
+                console.log('[Chat] Auto-unhiding conversation:', conv.partner.name, '(new message after hide)');
+                delete updatedHidden[canonicalId];
+                changed = true;
+              }
+            }
           });
-          if (updatedHidden.length !== hiddenList.length) {
+          
+          if (changed) {
             localStorage.setItem('roomiematch_hidden_conversations', JSON.stringify(updatedHidden));
             setHiddenConversations(updatedHidden);
           }
@@ -552,12 +593,18 @@ export default function ChatView({
           const ids = newMsg.chat_id.split('_');
           const partnerId = ids[0] === myAuthId ? ids[1] : ids[0];
           
-          const hiddenList = JSON.parse(localStorage.getItem('roomiematch_hidden_conversations') || '[]');
-          if (hiddenList.includes(partnerId)) {
-            const updated = hiddenList.filter((id: string) => id !== partnerId);
-            localStorage.setItem('roomiematch_hidden_conversations', JSON.stringify(updated));
-            setHiddenConversations(updated);
-            console.log('[Chat] Auto-unhiding conversation from:', partnerId, '(new message received)');
+          const hiddenMap = JSON.parse(localStorage.getItem('roomiematch_hidden_conversations') || '{}');
+          if (hiddenMap[partnerId]) {
+            const newMsgTime = new Date(newMsg.timestamp).getTime();
+            const hideTime = hiddenMap[partnerId];
+            
+            // Only unhide if this message is AFTER the hide timestamp
+            if (newMsgTime > hideTime) {
+              delete hiddenMap[partnerId];
+              localStorage.setItem('roomiematch_hidden_conversations', JSON.stringify(hiddenMap));
+              setHiddenConversations(hiddenMap);
+              console.log('[Chat] Auto-unhiding conversation from:', partnerId, '(new message received)');
+            }
           }
           
           fetchInbox();
@@ -700,12 +747,14 @@ export default function ChatView({
                 }
                 // Filter out hidden conversations
                 const canonicalId = conv.partner.user_id || conv.partner.id;
-                return !hiddenConversations.includes(canonicalId);
+                return !hiddenConversations[canonicalId]; // Check if exists in hidden map
               })
               .map((conv) => {
               const r = conv.partner;
               const isActive = r.id === activeRoommateId;
               const lastMsg = conv.lastMessage;
+              const canonicalId = r.user_id || r.id;
+              const hasAgreement = conversationsWithAgreements[canonicalId];
               return (
                 <div
                   key={r.id}
@@ -739,6 +788,14 @@ export default function ChatView({
                       <p className="text-xs text-slate-400 truncate leading-snug font-medium select-none">{lastMsg}</p>
                     </div>
                   </div>
+                  
+                  {/* Agreement badge notification */}
+                  {hasAgreement && (
+                    <div className="shrink-0">
+                      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" title="Có thỏa thuận mới" />
+                    </div>
+                  )}
+                  
                   {/* Delete conversation button */}
                   <button
                     onClick={(e) => {
@@ -746,7 +803,7 @@ export default function ChatView({
                       if (window.confirm(`Ẩn cuộc trò chuyện với ${r.name}? Tin nhắn vẫn được giữ, sẽ hiện lại khi có tin nhắn mới.`)) {
                         // Hide conversation (add to hidden list)
                         const canonicalId = r.user_id || r.id;
-                        const updated = [...hiddenConversations, canonicalId];
+                        const updated = { ...hiddenConversations, [canonicalId]: Date.now() };
                         setHiddenConversations(updated);
                         localStorage.setItem('roomiematch_hidden_conversations', JSON.stringify(updated));
                         console.log('[Chat] Hiding conversation:', canonicalId);
@@ -806,7 +863,15 @@ export default function ChatView({
                   <FileText className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => onStartAgreement ? onStartAgreement(activeRoommate.id) : (onNavigateToTab && onNavigateToTab('agreement'))}
+                  onClick={() => {
+                    // Mark agreement as read when opening from action button
+                    const partnerId = activeRoommate.user_id || activeRoommate.id;
+                    setConversationsWithAgreements(prev => ({ ...prev, [partnerId]: false }));
+                    
+                    // Open agreement modal directly in chat
+                    setAgreementModalPayload(null);
+                    setIsAgreementModalOpen(true);
+                  }}
                   className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#006590] to-sky-600 hover:shadow-lg hover:-translate-y-0.5 text-white text-[13px] font-bold transition-all duration-300 cursor-pointer flex items-center gap-2"
                 >
                   <BadgeCheck className="h-4 w-4" />
@@ -897,20 +962,33 @@ export default function ChatView({
                               </span>
                             </div>
                             <div className={`p-3 rounded-xl text-sm font-medium ${isAgreementSigned ? "bg-emerald-100/50" : isAgreementCancelled ? "bg-red-100/50" : "bg-white/60"}`}>
-                              {isAgreementSigned ? "Hợp đồng sống chung đã có hiệu lực. Bạn có thể xem lại chi tiết trong phần Thỏa Thuận." : isAgreementCancelled ? "Thỏa thuận này đã bị vô hiệu hóa." : "Hãy xem qua các điều khoản và ký xác nhận nếu bạn đồng ý."}
+                              {isAgreementSigned ? "Hợp đồng sống chung đã có hiệu lực. Bạn có thể xem lại chi tiết trong phần Thỏa Thuận." : isAgreementCancelled ? "Thỏa thuận này đã bị vô hiệu hóa. Bạn có thể tạo thỏa thuận mới để thương lượng lại." : "Hãy xem qua các điều khoản và ký xác nhận nếu bạn đồng ý."}
                             </div>
-                            {!isAgreementCancelled && (
-                              <button
-                                onClick={() => onStartAgreement ? onStartAgreement(activeRoommate.id, agreementPayload) : undefined}
-                                className={`mt-2 py-2.5 px-4 w-full rounded-xl text-sm font-bold flex justify-center items-center gap-2 transition-all ${
-                                  isAgreementSigned 
-                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
+                            <button
+                              onClick={() => {
+                                // Mark agreement as read for this partner
+                                const partnerId = activeRoommate.user_id || activeRoommate.id;
+                                setConversationsWithAgreements(prev => ({ ...prev, [partnerId]: false }));
+                                
+                                if (isAgreementCancelled) {
+                                  // For cancelled agreements, navigate to agreement tab to create new one
+                                  onNavigateToTab && onNavigateToTab('agreement');
+                                } else {
+                                  // Open agreement modal with payload
+                                  setAgreementModalPayload(agreementPayload);
+                                  setIsAgreementModalOpen(true);
+                                }
+                              }}
+                              className={`mt-2 py-2.5 px-4 w-full rounded-xl text-sm font-bold flex justify-center items-center gap-2 transition-all ${
+                                isAgreementSigned 
+                                  ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
+                                  : isAgreementCancelled
+                                    ? "bg-amber-600 hover:bg-amber-700 text-white shadow-md"
                                     : "bg-sky-600 hover:bg-sky-700 text-white shadow-md"
-                                }`}
-                              >
-                                {isAgreementSigned ? "Xem bản ký kết" : "Xem & Ký Thỏa Thuận"}
-                              </button>
-                            )}
+                              }`}
+                            >
+                              {isAgreementSigned ? "Xem bản ký kết" : isAgreementCancelled ? "Tạo thỏa thuận mới" : "Xem & Ký Thỏa Thuận"}
+                            </button>
                           </div>
                         ) : (
                           msg.text && <p>{msg.text}</p>
@@ -1086,19 +1164,6 @@ export default function ChatView({
               </div>
               <h4 className="text-[18px] font-black text-[#0f172a] tracking-tight">{activeRoommate.name}</h4>
               <p className="text-[12px] text-sky-600 font-extrabold uppercase tracking-widest mt-1 bg-sky-50 inline-block px-3 py-1 rounded-full mb-3">{activeRoommate.role}</p>
-              
-              {onViewProfile && activeRoommate && (
-                <button 
-                  onClick={() => {
-                    console.log('[Chat] View profile clicked for:', activeRoommate.id, activeRoommate.name);
-                    // Pass the full activeRoommate object instead of just ID
-                    onViewProfile(activeRoommate);
-                  }}
-                  className="w-full bg-slate-900 hover:bg-[#006590] text-white text-[13px] font-bold py-2.5 rounded-xl transition-colors duration-200 shadow-md cursor-pointer"
-                >
-                  Xem hồ sơ chi tiết
-                </button>
-              )}
             </div>
 
             {/* Private Notes form */}
@@ -1235,6 +1300,405 @@ export default function ChatView({
                  {isUploadingReport ? "Đang gửi..." : "Gửi Báo Cáo"}
                </button>
              </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Agreement Modal - Displayed inline in chat */}
+      {isAgreementModalOpen && activeRoommate && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-sky-50 to-white">
+              <div className="flex items-center gap-3">
+                <FileText className="h-6 w-6 text-[#006590]" />
+                <div>
+                  <h2 className="text-xl font-black text-slate-800 tracking-tight">Thỏa Thuận Sống Chung</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Với {activeRoommate.name}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setIsAgreementModalOpen(false);
+                  setAgreementModalPayload(null);
+                }}
+                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-600" />
+              </button>
+            </div>
+
+            {/* Modal Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {agreementModalPayload ? (
+                <>
+                  {/* Display existing agreement */}
+                  <div className="bg-gradient-to-br from-sky-50 to-emerald-50 rounded-2xl p-6 border border-sky-200">
+                    <div className="flex items-center gap-2 mb-4">
+                      {agreementModalPayload.status === 'signed' ? (
+                        <BadgeCheck className="h-5 w-5 text-emerald-600" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-sky-600" />
+                      )}
+                      <h3 className="font-bold text-slate-800">
+                        {agreementModalPayload.status === 'signed' ? 'Hợp đồng đã được ký kết' : 'Đề xuất thỏa thuận'}
+                      </h3>
+                    </div>
+
+                    {/* Agreement Rules - Editable or Display */}
+                    <div className="space-y-3 bg-white rounded-xl p-4">
+                      {isEditingAgreement ? (
+                        <>
+                          {/* Editable fields */}
+                          <div className="flex gap-3">
+                            <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center shrink-0">
+                              <Clock className="h-4 w-4 text-sky-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Giờ yên tĩnh</p>
+                              <textarea
+                                value={editQuiet}
+                                onChange={(e) => setEditQuiet(e.target.value)}
+                                className="w-full text-sm text-slate-700 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                                rows={2}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex gap-3">
+                            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
+                              <CheckSquare className="h-4 w-4 text-green-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Dọn dẹp</p>
+                              <textarea
+                                value={editCleaning}
+                                onChange={(e) => setEditCleaning(e.target.value)}
+                                className="w-full text-sm text-slate-700 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                                rows={2}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex gap-3">
+                            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
+                              <Users className="h-4 w-4 text-purple-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Khách đến chơi</p>
+                              <textarea
+                                value={editVisitors}
+                                onChange={(e) => setEditVisitors(e.target.value)}
+                                className="w-full text-sm text-slate-700 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                                rows={2}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex gap-3">
+                            <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
+                              <CreditCard className="h-4 w-4 text-amber-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Chi phí</p>
+                              <textarea
+                                value={editBills}
+                                onChange={(e) => setEditBills(e.target.value)}
+                                className="w-full text-sm text-slate-700 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                                rows={2}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex gap-3">
+                            <div className="w-8 h-8 bg-rose-100 rounded-lg flex items-center justify-center shrink-0">
+                              <Heart className="h-4 w-4 text-rose-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Thú cưng</p>
+                              <textarea
+                                value={editPets}
+                                onChange={(e) => setEditPets(e.target.value)}
+                                className="w-full text-sm text-slate-700 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                                rows={2}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex gap-3">
+                            <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center shrink-0">
+                              <FileText className="h-4 w-4 text-slate-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Ghi chú khác</p>
+                              <textarea
+                                value={editOtherNotes}
+                                onChange={(e) => setEditOtherNotes(e.target.value)}
+                                className="w-full text-sm text-slate-700 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                                rows={3}
+                                placeholder="Thêm các quy định khác..."
+                              />
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {/* Display mode */}
+                          {agreementModalPayload.rules?.quiet && (
+                            <div className="flex gap-3">
+                              <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center shrink-0">
+                                <Clock className="h-4 w-4 text-sky-600" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Giờ yên tĩnh</p>
+                                <p className="text-sm text-slate-700">{agreementModalPayload.rules.quiet}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {agreementModalPayload.rules?.cleaning && (
+                            <div className="flex gap-3">
+                              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
+                                <CheckSquare className="h-4 w-4 text-green-600" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Dọn dẹp</p>
+                                <p className="text-sm text-slate-700">{agreementModalPayload.rules.cleaning}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {agreementModalPayload.rules?.visitors && (
+                            <div className="flex gap-3">
+                              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
+                                <Users className="h-4 w-4 text-purple-600" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Khách đến chơi</p>
+                                <p className="text-sm text-slate-700">{agreementModalPayload.rules.visitors}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {agreementModalPayload.rules?.bills && (
+                            <div className="flex gap-3">
+                              <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
+                                <CreditCard className="h-4 w-4 text-amber-600" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Chi phí</p>
+                                <p className="text-sm text-slate-700">{agreementModalPayload.rules.bills}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {agreementModalPayload.rules?.pets && (
+                            <div className="flex gap-3">
+                              <div className="w-8 h-8 bg-rose-100 rounded-lg flex items-center justify-center shrink-0">
+                                <Heart className="h-4 w-4 text-rose-600" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Thú cưng</p>
+                                <p className="text-sm text-slate-700">{agreementModalPayload.rules.pets}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {agreementModalPayload.rules?.otherNotes && (
+                            <div className="flex gap-3">
+                              <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center shrink-0">
+                                <FileText className="h-4 w-4 text-slate-600" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Ghi chú khác</p>
+                                <p className="text-sm text-slate-700">{agreementModalPayload.rules.otherNotes}</p>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {agreementModalPayload.status === 'signed' && (
+                      <div className="mt-4 p-3 bg-emerald-100 rounded-xl flex items-center gap-2">
+                        <BadgeCheck className="h-5 w-5 text-emerald-600" />
+                        <p className="text-sm font-bold text-emerald-800">
+                          Đã ký kết vào {new Date(agreementModalPayload.timestamp).toLocaleDateString('vi-VN')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex gap-3 pt-2">
+                    {isEditingAgreement ? (
+                      <>
+                        {/* Save edited agreement as new counter-offer */}
+                        <button
+                          onClick={async () => {
+                            // Cancel old draft first
+                            const cancelPayload = { ...agreementModalPayload, status: 'cancelled', timestamp: new Date().toISOString() };
+                            const chatId = [currentUserProfile.id, activeRoommate.id].sort().join('_');
+                            await supabase.from('messages').insert({
+                              chat_id: chatId,
+                              sender_id: currentUserProfile.id,
+                              text: `[AGREEMENT_CANCELLED] ${JSON.stringify(cancelPayload)}`
+                            });
+
+                            // Send new draft with edits
+                            const newDraft = {
+                              id: crypto.randomUUID ? crypto.randomUUID() : `agr_${Date.now()}`,
+                              status: 'pending',
+                              rules: {
+                                quiet: editQuiet,
+                                cleaning: editCleaning,
+                                visitors: editVisitors,
+                                bills: editBills,
+                                pets: editPets,
+                                otherNotes: editOtherNotes
+                              },
+                              timestamp: new Date().toISOString()
+                            };
+
+                            await supabase.from('messages').insert({
+                              chat_id: chatId,
+                              sender_id: currentUserProfile.id,
+                              text: `[AGREEMENT_DRAFT] ${JSON.stringify(newDraft)}`
+                            });
+
+                            alert('Đã gửi đề xuất chỉnh sửa cho đối tác!');
+                            setIsEditingAgreement(false);
+                            setIsAgreementModalOpen(false);
+                            setAgreementModalPayload(null);
+                          }}
+                          className="flex-1 py-3 bg-gradient-to-r from-[#006590] to-sky-600 hover:from-[#005176] hover:to-sky-700 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+                        >
+                          <Send className="h-5 w-5" />
+                          Gửi đề xuất chỉnh sửa
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsEditingAgreement(false);
+                            // Restore original values
+                            if (agreementModalPayload?.rules) {
+                              setEditQuiet(agreementModalPayload.rules.quiet || '');
+                              setEditCleaning(agreementModalPayload.rules.cleaning || '');
+                              setEditVisitors(agreementModalPayload.rules.visitors || '');
+                              setEditBills(agreementModalPayload.rules.bills || '');
+                              setEditPets(agreementModalPayload.rules.pets || '');
+                              setEditOtherNotes(agreementModalPayload.rules.otherNotes || '');
+                            }
+                          }}
+                          className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                        >
+                          Hủy
+                        </button>
+                      </>
+                    ) : agreementModalPayload.status === 'pending' && agreementModalPayload.sender_id !== currentUserProfile.id ? (
+                      <>
+                        {/* Received pending agreement - can accept, edit, or reject */}
+                        <button
+                          onClick={async () => {
+                            // Sign the agreement
+                            const payload = {
+                              ...agreementModalPayload,
+                              status: 'signed',
+                              signedBy: currentUserProfile.id,
+                              timestamp: new Date().toISOString()
+                            };
+                            const chatId = [currentUserProfile.id, activeRoommate.id].sort().join('_');
+                            await supabase.from('messages').insert({
+                              chat_id: chatId,
+                              sender_id: currentUserProfile.id,
+                              text: `[AGREEMENT_SIGNED] ${JSON.stringify(payload)}`
+                            });
+                            await supabase.from('roommates').update({ status: 'Đã tìm được' }).in('id', [currentUserProfile.id, activeRoommate.id]);
+                            alert('Đã ký thỏa thuận thành công!');
+                            setIsAgreementModalOpen(false);
+                            setAgreementModalPayload(null);
+                          }}
+                          className="flex-1 py-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+                        >
+                          <Check className="h-5 w-5" />
+                          Đồng ý & Ký kết
+                        </button>
+                        <button
+                          onClick={() => {
+                            // Enter edit mode
+                            setIsEditingAgreement(true);
+                            setEditQuiet(agreementModalPayload.rules?.quiet || '');
+                            setEditCleaning(agreementModalPayload.rules?.cleaning || '');
+                            setEditVisitors(agreementModalPayload.rules?.visitors || '');
+                            setEditBills(agreementModalPayload.rules?.bills || '');
+                            setEditPets(agreementModalPayload.rules?.pets || '');
+                            setEditOtherNotes(agreementModalPayload.rules?.otherNotes || '');
+                          }}
+                          className="px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors flex items-center gap-2"
+                        >
+                          <PencilLine className="h-4 w-4" />
+                          Sửa lại
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (confirm('Bạn có chắc muốn từ chối thỏa thuận này?')) {
+                              const payload = { ...agreementModalPayload, status: 'cancelled', timestamp: new Date().toISOString() };
+                              const chatId = [currentUserProfile.id, activeRoommate.id].sort().join('_');
+                              await supabase.from('messages').insert({
+                                chat_id: chatId,
+                                sender_id: currentUserProfile.id,
+                                text: `[AGREEMENT_CANCELLED] ${JSON.stringify(payload)}`
+                              });
+                              alert('Đã từ chối thỏa thuận!');
+                              setIsAgreementModalOpen(false);
+                              setAgreementModalPayload(null);
+                            }
+                          }}
+                          className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                        >
+                          Từ chối
+                        </button>
+                      </>
+                    ) : agreementModalPayload.status === 'signed' ? (
+                      <button
+                        onClick={() => {
+                          setIsAgreementModalOpen(false);
+                          setAgreementModalPayload(null);
+                        }}
+                        className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors"
+                      >
+                        Đóng
+                      </button>
+                    ) : (
+                      // Sent draft waiting for response
+                      <button
+                        onClick={() => {
+                          setIsAgreementModalOpen(false);
+                          setAgreementModalPayload(null);
+                        }}
+                        className="flex-1 py-3 bg-slate-600 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors"
+                      >
+                        Đóng (Chờ phản hồi)
+                      </button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-12 text-slate-500">
+                  <FileText className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                  <p className="font-bold mb-2">Chưa có thỏa thuận nào</p>
+                  <p className="text-sm">Vui lòng chuyển sang tab "Thỏa Thuận" để tạo thỏa thuận mới</p>
+                  <button
+                    onClick={() => {
+                      setIsAgreementModalOpen(false);
+                      onNavigateToTab && onNavigateToTab('agreement');
+                    }}
+                    className="mt-4 px-6 py-2.5 bg-[#006590] hover:bg-[#005176] text-white font-bold rounded-xl transition-colors"
+                  >
+                    Đến trang Thỏa Thuận
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

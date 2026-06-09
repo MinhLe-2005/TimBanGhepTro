@@ -1489,6 +1489,12 @@ export default function App() {
           }}
           onEditRoom={handleEditRoom}
           isAdmin={isAdmin}
+          onViewHostProfile={(roommate) => {
+            console.log('[App] View host profile from RoomModal:', roommate);
+            setSelectedRoommate(roommate);
+            setActiveTab('roommates');
+          }}
+          onNavigateToTab={setActiveTab}
         />
       )}
 

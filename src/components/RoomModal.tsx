@@ -12,9 +12,11 @@ interface RoomModalProps {
   onEditRoom?: (room: Room) => void;
   onInquire: (hostName: string) => void;
   isAdmin?: boolean;
+  onViewHostProfile?: (roommate: Roommate) => void;
+  onNavigateToTab?: (tab: string) => void;
 }
 
-export default function RoomModal({ room, onClose, onInquire, onAddReview, roommates = [], isOwnProfile = false, onDeleteRoom, onEditRoom, isAdmin = false }: RoomModalProps) {
+export default function RoomModal({ room, onClose, onInquire, onAddReview, roommates = [], isOwnProfile = false, onDeleteRoom, onEditRoom, isAdmin = false, onViewHostProfile, onNavigateToTab }: RoomModalProps) {
   if (!room) return null;
 
   // Try to find matching roommate profile, but prioritize room's host data
@@ -24,7 +26,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
     (r) => r.name.toLowerCase().includes(room.hostName.toLowerCase()) || room.hostName.toLowerCase().includes(r.name.toLowerCase())
   );
 
-  // Use room's data as primary source, only use roommate profile as fallback for missing lifestyle data
+  // Use room's data as primary source, but PRIORITIZE avatar from actual user profile
   const resolvedRoommate: Roommate = {
     id: hostRoommate?.id || "fallback-host",
     name: room.hostName || "Chủ phòng",
@@ -32,7 +34,8 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
     role: room.hostRole || "Sinh viên / Thành viên",
     school: hostRoommate?.school || "ĐH Kinh tế (Ngũ Hành Sơn)",
     phoneNumber: room.phoneNumber || "0987 123 456",
-    avatar: room.hostAvatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop",
+    // PRIORITY: hostRoommate avatar (actual user) > room.hostAvatar (may be stale) > default
+    avatar: hostRoommate?.avatar || room.hostAvatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop",
     status: "Đã có phòng",
     location: room.location,
     matchScore: hostRoommate?.matchScore || 88,
@@ -396,6 +399,30 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                     </span>
                   ))}
                 </div>
+
+                {/* View Full Profile Button */}
+                {onViewHostProfile && hostRoommate && (
+                  <div className="pt-4 border-t border-sky-100 mt-4">
+                    <button
+                      onClick={() => {
+                        console.log('[RoomModal] View host profile clicked:', hostRoommate);
+                        // Navigate to "Tìm Bạn" tab and show their profile
+                        onNavigateToTab && onNavigateToTab('roommates');
+                        // Delay to let tab switch, then open modal
+                        setTimeout(() => {
+                          onViewHostProfile(hostRoommate);
+                        }, 150);
+                      }}
+                      className="w-full bg-gradient-to-r from-[#006590] to-sky-600 hover:from-[#005176] hover:to-sky-700 text-white font-bold text-[14px] py-3.5 px-5 rounded-2xl shadow-lg shadow-sky-500/20 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2.5"
+                    >
+                      <User className="h-5 w-5" />
+                      Xem hồ sơ đầy đủ của {resolvedRoommate.name}
+                    </button>
+                    <p className="text-[11px] text-slate-500 text-center mt-2 font-medium">
+                      Xem chi tiết nhu cầu tìm phòng, sở thích, và thông tin liên hệ đầy đủ
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
