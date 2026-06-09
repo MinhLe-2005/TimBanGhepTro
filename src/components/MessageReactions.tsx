@@ -21,15 +21,28 @@ export default function MessageReactions({
 }: MessageReactionsProps) {
   const [showPicker, setShowPicker] = useState(false);
 
-  // Check if current user reacted with specific emoji
-  const hasUserReacted = (emoji: string) => {
-    return reactions[emoji]?.includes(currentUserId) || false;
+  // Check if current user has reacted (with any emoji)
+  const getUserReaction = (): string | null => {
+    for (const [emoji, users] of Object.entries(reactions)) {
+      if (users.includes(currentUserId)) {
+        return emoji;
+      }
+    }
+    return null;
   };
 
+  const currentUserReaction = getUserReaction();
+
   const handleEmojiClick = (emoji: string) => {
-    if (hasUserReacted(emoji)) {
+    // If user already reacted with this emoji, remove it
+    if (currentUserReaction === emoji) {
       onRemoveReaction(emoji);
     } else {
+      // If user reacted with different emoji, remove old one first
+      if (currentUserReaction) {
+        onRemoveReaction(currentUserReaction);
+      }
+      // Add new reaction
       onAddReaction(emoji);
     }
     setShowPicker(false);
@@ -49,8 +62,8 @@ export default function MessageReactions({
             <button
               key={emoji}
               onClick={() => handleEmojiClick(emoji)}
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold transition-all ${
-                hasUserReacted(emoji)
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                currentUserReaction === emoji
                   ? "bg-sky-100 border-2 border-sky-400 text-sky-700"
                   : "bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
               }`}
@@ -68,7 +81,7 @@ export default function MessageReactions({
         <div className="relative">
           <button
             onClick={() => setShowPicker(!showPicker)}
-            className="w-6 h-6 rounded-full bg-white border border-slate-200 hover:border-sky-300 hover:bg-sky-50 flex items-center justify-center transition-all"
+            className="w-6 h-6 rounded-full bg-white border border-slate-200 hover:border-sky-300 hover:bg-sky-50 flex items-center justify-center transition-all cursor-pointer"
             title="Thêm reaction"
           >
             <Smile className="w-3.5 h-3.5 text-slate-400" />
@@ -88,8 +101,8 @@ export default function MessageReactions({
                   <button
                     key={emoji}
                     onClick={() => handleEmojiClick(emoji)}
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-2xl transition-all hover:bg-sky-50 hover:scale-125 ${
-                      hasUserReacted(emoji) ? "bg-sky-100 scale-110" : ""
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-2xl transition-all hover:bg-sky-50 hover:scale-125 cursor-pointer ${
+                      currentUserReaction === emoji ? "bg-sky-100 scale-110" : ""
                     }`}
                     title={emoji}
                   >
