@@ -367,11 +367,24 @@ export default function ChatView({
     // Check 2-way messages
     const myMessages = messages.filter(m => m.senderId === myChatId);
     const theirMessages = messages.filter(m => m.senderId !== myChatId);
-    setHasTwoWayMessages(myMessages.length > 0 && theirMessages.length > 0);
+    const has2Way = myMessages.length > 0 && theirMessages.length > 0;
     
     // Check signed agreement
     const signedAgreement = messages.find(m => m.text?.includes('[AGREEMENT_SIGNED]'));
-    setHasSignedAgreement(!!signedAgreement);
+    const hasSigned = !!signedAgreement;
+    
+    console.log('[Chat] Check 2-way messages:', {
+      activeRoommateName: activeRoommate.name,
+      totalMessages: messages.length,
+      myMessages: myMessages.length,
+      theirMessages: theirMessages.length,
+      has2Way,
+      hasSigned,
+      phoneNumber: activeRoommate.phoneNumber
+    });
+    
+    setHasTwoWayMessages(has2Way);
+    setHasSignedAgreement(hasSigned);
   }, [activeRoommateId, activeRoommate, chats, myChatId]);
 
   // Fetch Inbox Conversations
@@ -896,6 +909,42 @@ export default function ChatView({
                   <h3 className="text-base font-extrabold text-[#0f172a] leading-none tracking-tight flex items-center gap-1.5">
                     {activeRoommate.name}
                     {activeRoommate.isVerified && <CheckCircle2 className="h-4.5 w-4.5 text-sky-500 fill-sky-50" />}
+                    {/* Block Button - Right next to name */}
+                    {isActiveUserBlocked ? (
+                      <button
+                        onClick={() => activeRoommateId && handleUnblock(activeRoommateId)}
+                        className="ml-2 p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors duration-200 cursor-pointer"
+                        title="Hủy chặn người dùng"
+                      >
+                        <Ban className="h-4 w-4" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`Bạn có chắc chắn muốn chặn ${activeRoommate.name}? Bạn sẽ không thể nhắn tin với người này nữa.`)) {
+                            const myId = currentUser?.id || currentUserProfile?.id;
+                            if (myId && activeRoommateId && import.meta.env.VITE_SUPABASE_URL) {
+                              const updated = [...blockedUsers, activeRoommateId];
+                              setBlockedUsers(updated);
+                              localStorage.setItem('roomiematch_blocked_users', JSON.stringify(updated));
+                              
+                              // Send system message
+                              const chatIdForBlock = [myId, activeRoommateId].sort().join('_');
+                              supabase.from('messages').insert({
+                                id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                                chat_id: chatIdForBlock,
+                                sender_id: myId,
+                                text: "[SYSTEM_BLOCK]"
+                              });
+                            }
+                          }
+                        }}
+                        className="ml-2 p-1.5 rounded-lg bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors duration-200 cursor-pointer"
+                        title="Chặn người dùng"
+                      >
+                        <Ban className="h-4 w-4" />
+                      </button>
+                    )}
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
                     {activeRoommate.role} • {activeRoommate.location}
@@ -1287,18 +1336,24 @@ export default function ChatView({
             </div>
             
             {/* Phone Number - Show when 2-way messages exist */}
-            {hasTwoWayMessages && activeRoommate.phoneNumber && (
+            {hasTwoWayMessages && (
               <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-4 space-y-2">
                 <h5 className="text-xs font-black text-emerald-900 uppercase tracking-wider flex items-center gap-2">
                   <PhoneCall className="h-4 w-4" />
                   Số điện thoại
                 </h5>
-                <a
-                  href={`tel:${activeRoommate.phoneNumber.replace(/\s/g, "")}`}
-                  className="block text-center bg-white hover:bg-emerald-50 text-emerald-700 font-black text-base py-3 rounded-xl border-2 border-emerald-300 hover:border-emerald-400 transition-all cursor-pointer"
-                >
-                  📞 {activeRoommate.phoneNumber}
-                </a>
+                {activeRoommate.phoneNumber ? (
+                  <a
+                    href={`tel:${activeRoommate.phoneNumber.replace(/\s/g, "")}`}
+                    className="block text-center bg-white hover:bg-emerald-50 text-emerald-700 font-black text-base py-3 rounded-xl border-2 border-emerald-300 hover:border-emerald-400 transition-all cursor-pointer"
+                  >
+                    📞 {activeRoommate.phoneNumber}
+                  </a>
+                ) : (
+                  <div className="text-center bg-white text-slate-500 font-medium text-sm py-3 rounded-xl border-2 border-slate-200">
+                    Chưa cập nhật SĐT
+                  </div>
+                )}
               </div>
             )}
             
