@@ -154,10 +154,10 @@ export default function HistoryView({
                 const partner = findRoommateByIdentity(roommates, partnerId);
                 const isCreator = agreement.creator_id === myAuthId;
                 
-                // ✅ Ưu tiên hiển thị tên từ agreement record (cached) trước, sau đó mới tìm trong roommates
-                const partnerName = isCreator 
-                  ? (agreement.partner_name || partner?.name || "Người dùng RoomieMatch")
-                  : (agreement.creator_name || partner?.name || "Người dùng RoomieMatch");
+                // ✅ Ưu tiên hiển thị tên và avatar từ profile HIỆN TẠI, fallback về cached name nếu không tìm thấy
+                const partnerName = partner?.name || (isCreator 
+                  ? (agreement.partner_name || "Người dùng RoomieMatch")
+                  : (agreement.creator_name || "Người dùng RoomieMatch"));
 
                 return (
                   <article
@@ -263,15 +263,16 @@ function AgreementDetailModal({
     agreement.creator_id === currentUserId ? agreement.partner_id : agreement.creator_id;
   const partner = findRoommateByIdentity(roommates, partnerId);
   
-  // ✅ Ưu tiên tên từ agreement record
+  // ✅ Ưu tiên tên và avatar từ profile HIỆN TẠI, fallback về cached name
+  const creatorProfile = findRoommateByIdentity(roommates, agreement.creator_id);
   const creatorName =
     agreement.creator_id === currentUserId
       ? currentUserName
-      : agreement.creator_name || findRoommateByIdentity(roommates, agreement.creator_id)?.name || "Người dùng RoomieMatch";
+      : (creatorProfile?.name || agreement.creator_name || "Người dùng RoomieMatch");
   
-  const partnerName = agreement.creator_id === currentUserId
-    ? (agreement.partner_name || partner?.name || "Người dùng RoomieMatch")
-    : (agreement.creator_name || partner?.name || "Người dùng RoomieMatch");
+  const partnerName = partner?.name || (agreement.creator_id === currentUserId
+    ? agreement.partner_name
+    : agreement.creator_name) || "Người dùng RoomieMatch";
     
   const signerName =
     agreement.signed_by_name ||
