@@ -1658,6 +1658,62 @@ export default function ChatView({
                           Từ chối
                         </button>
                       </>
+                    ) : agreementModalPayload.status === 'pending' && agreementModalPayload.sender_id === currentUserProfile.id ? (
+                      <>
+                        {/* Sent draft - can also edit (counter-counter-offer) or cancel */}
+                        <div className="bg-sky-50 border border-sky-200 rounded-xl p-4 mb-4 text-center">
+                          <p className="text-sm font-bold text-sky-900">
+                            ⏳ Đang chờ đối tác phản hồi...
+                          </p>
+                          <p className="text-xs text-sky-700 mt-1">
+                            Bạn có thể chỉnh sửa lại đề xuất hoặc hủy thỏa thuận này
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            // Allow sender to edit their own draft (useful for counter-counter-offer)
+                            setIsEditingAgreement(true);
+                            setEditQuiet(agreementModalPayload.rules?.quiet || '');
+                            setEditCleaning(agreementModalPayload.rules?.cleaning || '');
+                            setEditVisitors(agreementModalPayload.rules?.visitors || '');
+                            setEditBills(agreementModalPayload.rules?.bills || '');
+                            setEditPets(agreementModalPayload.rules?.pets || '');
+                            setEditOtherNotes(agreementModalPayload.rules?.otherNotes || '');
+                          }}
+                          className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+                        >
+                          <PencilLine className="h-4 w-4" />
+                          Chỉnh sửa lại đề xuất
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (confirm('Bạn có chắc muốn hủy thỏa thuận này?')) {
+                              const payload = { ...agreementModalPayload, status: 'cancelled', timestamp: new Date().toISOString() };
+                              const chatId = [currentUserProfile.id, activeRoommate.id].sort().join('_');
+                              await supabase.from('messages').insert({
+                                chat_id: chatId,
+                                sender_id: currentUserProfile.id,
+                                text: `[AGREEMENT_CANCELLED] ${JSON.stringify(payload)}`
+                              });
+                              alert('Đã hủy thỏa thuận!');
+                              setIsAgreementModalOpen(false);
+                              setAgreementModalPayload(null);
+                            }
+                          }}
+                          className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                        >
+                          Hủy thỏa thuận
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsAgreementModalOpen(false);
+                            setAgreementModalPayload(null);
+                          }}
+                          className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors"
+                        >
+                          Đóng
+                        </button>
+                      </>
                     ) : agreementModalPayload.status === 'signed' ? (
                       <button
                         onClick={() => {
@@ -1667,17 +1723,6 @@ export default function ChatView({
                         className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors"
                       >
                         Đóng
-                      </button>
-                    ) : (
-                      // Sent draft waiting for response
-                      <button
-                        onClick={() => {
-                          setIsAgreementModalOpen(false);
-                          setAgreementModalPayload(null);
-                        }}
-                        className="flex-1 py-3 bg-slate-600 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors"
-                      >
-                        Đóng (Chờ phản hồi)
                       </button>
                     )}
                   </div>
