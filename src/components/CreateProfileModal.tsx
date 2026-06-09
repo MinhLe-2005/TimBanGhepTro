@@ -58,8 +58,8 @@ export default function CreateProfileModal({
     "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop",
   ];
   
-  // Auto-fill avatar from Google/Facebook if available, otherwise use profile avatar or default
-  const defaultAvatar = currentUser?.avatar || currentProfile?.avatar || avatars[4];
+  // ✅ Ưu tiên profile avatar (user đã chọn) trước auth avatar (Google/Facebook)
+  const defaultAvatar = currentProfile?.avatar || currentUser?.avatar || avatars[4];
   const [selectedAvatar, setSelectedAvatar] = useState(defaultAvatar);
   const [status, setStatus] = useState<"Đang tìm" | "Đang trao đổi" | "Đã tìm được">(
     currentProfile?.status || "Đang tìm"

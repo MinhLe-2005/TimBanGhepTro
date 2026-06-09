@@ -967,10 +967,11 @@ export default function ChatView({
                     {isActiveUserBlocked ? (
                       <button
                         onClick={() => activeRoommateId && handleUnblock(activeRoommateId)}
-                        className="ml-2 p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors duration-200 cursor-pointer"
+                        className="ml-2 px-2.5 py-1 rounded-lg bg-red-100 hover:bg-red-50 text-red-600 transition-colors duration-200 cursor-pointer text-xs font-bold border border-red-200"
                         title="Hủy chặn người dùng"
                       >
-                        <Ban className="h-4 w-4" />
+                        <Ban className="h-3.5 w-3.5 inline mr-1" />
+                        Đã chặn
                       </button>
                     ) : (
                       <button
@@ -1001,10 +1002,11 @@ export default function ChatView({
                             }
                           }
                         }}
-                        className="ml-2 p-1.5 rounded-lg bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors duration-200 cursor-pointer"
+                        className="ml-2 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 transition-colors duration-200 cursor-pointer text-xs font-bold border border-slate-200 hover:border-red-200"
                         title="Chặn người dùng"
                       >
-                        <Ban className="h-4 w-4" />
+                        <Ban className="h-3.5 w-3.5 inline mr-1" />
+                        Chặn
                       </button>
                     )}
                   </h3>
@@ -1044,20 +1046,49 @@ export default function ChatView({
                 </button>
                 <button
                   onClick={() => setIsReportModalOpen(true)}
-                  className="px-3.5 py-2.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 transition-colors duration-200 cursor-pointer flex items-center gap-2 font-bold text-[13px]"
-                  title="Báo cáo người dùng"
+                  className="px-3.5 py-2.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 transition-colors duration-200 cursor-pointer flex items-center gap-2 font-bold text-[13px] border border-rose-200 hover:border-rose-300"
+                  title="Báo cáo vi phạm"
                 >
                   <AlertOctagon className="h-4 w-4" />
+                  <span className="hidden sm:inline">Báo cáo</span>
                 </button>
               </div>
             </div>
 
-            {activeMessages.some(m => m.text?.startsWith('[AGREEMENT_SIGNED]')) && (
-              <div className="bg-emerald-50 text-emerald-700 px-6 py-3 border-b border-emerald-100 flex items-center justify-center gap-2 shadow-sm shrink-0 font-bold text-[13px] animate-fade-in z-10">
-                <BadgeCheck className="w-5 h-5 text-emerald-600" />
-                🎉 Hai bạn đã ký thỏa thuận sống chung thành công!
-              </div>
-            )}
+            {(() => {
+              // ✅ Chỉ hiển thị banner nếu agreement SIGNED là message mới nhất (chưa bị CANCELLED)
+              const signedMessages = activeMessages.filter(m => m.text?.startsWith('[AGREEMENT_SIGNED]'));
+              const cancelledMessages = activeMessages.filter(m => m.text?.startsWith('[AGREEMENT_CANCELLED]'));
+              
+              if (signedMessages.length === 0) return null;
+              
+              // Lấy agreement ID từ signed message cuối cùng
+              const lastSigned = signedMessages[signedMessages.length - 1];
+              let signedAgreementId = null;
+              try {
+                const payload = JSON.parse(lastSigned.text?.replace('[AGREEMENT_SIGNED]', '').trim() || '{}');
+                signedAgreementId = payload.id;
+              } catch {}
+              
+              // Kiểm tra xem agreement này có bị cancel sau đó không
+              const isCancelled = cancelledMessages.some(msg => {
+                try {
+                  const payload = JSON.parse(msg.text?.replace('[AGREEMENT_CANCELLED]', '').trim() || '{}');
+                  return payload.id === signedAgreementId;
+                } catch {
+                  return false;
+                }
+              });
+              
+              if (isCancelled) return null;
+              
+              return (
+                <div className="bg-emerald-50 text-emerald-700 px-6 py-3 border-b border-emerald-100 flex items-center justify-center gap-2 shadow-sm shrink-0 font-bold text-[13px] animate-fade-in z-10">
+                  <BadgeCheck className="w-5 h-5 text-emerald-600" />
+                  🎉 Hai bạn đã ký thỏa thuận sống chung thành công!
+                </div>
+              );
+            })()}
 
             {/* Message bubbles wrapper container */}
             <div ref={scrollContainerRef} className="flex-grow p-6 overflow-y-auto space-y-4 scroll-smooth">

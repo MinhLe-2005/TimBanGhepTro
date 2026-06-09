@@ -455,6 +455,8 @@ export default function AgreementView({
         partner_id: partnerAuthId,
         creator_name: currentUserProfile.name,
         partner_name: matchedRoommate.name,
+        creator_avatar: currentUserProfile.avatar,
+        partner_avatar: matchedRoommate.avatar,
         created_at: new Date().toISOString(),
         timestamp: new Date().toISOString()
       };
@@ -551,6 +553,8 @@ export default function AgreementView({
       partner_id: partnerAuthId,
       creator_name: currentUserProfile.name,
       partner_name: matchedRoommate.name,
+      creator_avatar: currentUserProfile.avatar,
+      partner_avatar: matchedRoommate.avatar,
       created_at: new Date().toISOString(),
       timestamp: new Date().toISOString()
     };

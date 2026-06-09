@@ -154,10 +154,14 @@ export default function HistoryView({
                 const partner = findRoommateByIdentity(roommates, partnerId);
                 const isCreator = agreement.creator_id === myAuthId;
                 
-                // ✅ Ưu tiên hiển thị tên và avatar từ profile HIỆN TẠI, fallback về cached name nếu không tìm thấy
+                // ✅ Ưu tiên profile HIỆN TẠI, fallback về cached data từ agreement
                 const partnerName = partner?.name || (isCreator 
-                  ? (agreement.partner_name || "Người dùng RoomieMatch")
-                  : (agreement.creator_name || "Người dùng RoomieMatch"));
+                  ? agreement.partner_name
+                  : agreement.creator_name) || "Người dùng RoomieMatch";
+                
+                const partnerAvatar = partner?.avatar || (isCreator
+                  ? agreement.partner_avatar
+                  : agreement.creator_avatar) || fallbackAvatar;
 
                 return (
                   <article
@@ -166,7 +170,7 @@ export default function HistoryView({
                   >
                     <div className="flex items-center gap-4 min-w-0">
                       <img
-                        src={partner?.avatar || fallbackAvatar}
+                        src={partnerAvatar}
                         alt=""
                         className="w-12 h-12 rounded-full object-cover border border-slate-200 shrink-0"
                       />
