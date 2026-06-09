@@ -62,9 +62,18 @@ export default function ConfirmDialog({
   const Icon = style.icon;
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/40 animate-fade-in">
+    <div 
+      className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/40 animate-fade-in"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClose();
+      }}
+    >
       {/* Dialog */}
-      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+      <div 
+        className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Close Button */}
         <button
           onClick={onClose}
