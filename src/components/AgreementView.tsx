@@ -692,11 +692,40 @@ export default function AgreementView({
                   Thỏa thuận nếp sống, trật tự và tài chính minh bạch cho cuộc sống hài hòa.
                 </p>
               </div>
-              <div className="self-start sm:self-center">
+              <div className="self-start sm:self-center flex flex-col gap-2 items-end">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-[#006590]/10 text-[#006590] border border-[#006590]/15">
                   <BadgeCheck className="h-4 w-4" />
                   Tiêu chuẩn RoomieMatch
                 </span>
+                {/* Status Badge */}
+                {(localPendingPayload?.status || activeAgreement?.status) && (
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider ${
+                    (localPendingPayload?.status || activeAgreement?.status) === 'signed' 
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : (localPendingPayload?.status || activeAgreement?.status) === 'pending'
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                      : 'bg-slate-50 text-slate-600 border border-slate-200'
+                  }`}>
+                    {(localPendingPayload?.status || activeAgreement?.status) === 'signed' && (
+                      <>
+                        <CheckSquare className="h-4 w-4" />
+                        Đã Ký Hiệu Lực
+                      </>
+                    )}
+                    {(localPendingPayload?.status || activeAgreement?.status) === 'pending' && (
+                      <>
+                        <Clock className="h-4 w-4 animate-pulse" />
+                        Chờ Ký Kết
+                      </>
+                    )}
+                    {(localPendingPayload?.status || activeAgreement?.status) === 'cancelled' && (
+                      <>
+                        <X className="h-4 w-4" />
+                        Đã Hủy
+                      </>
+                    )}
+                  </span>
+                )}
               </div>
             </div>
 
