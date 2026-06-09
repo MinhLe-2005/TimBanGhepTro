@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { AlertCircle, BadgeCheck, Check, Clock, Eye, FileText, UserRound, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { Roommate } from "../types";
@@ -267,20 +268,45 @@ function AgreementDetailModal({
       : findRoommateByIdentity(roommates, agreement.signed_by)?.name);
   const populatedRules = ruleLabels.filter(([key]) => agreement.rules?.[key]?.trim());
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6 border border-slate-100">
-        <header className="flex items-start justify-between gap-4 pb-5 border-b border-slate-100">
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-[2px] sm:p-8"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="flex max-h-[calc(100dvh-4rem)] w-full max-w-xl flex-col overflow-hidden rounded-3xl border border-white/80 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)]"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="agreement-detail-title"
+      >
+        <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-5 py-5 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-[#006590]/10 text-[#006590] rounded-xl flex items-center justify-center shrink-0">
               <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-800">
+              <h2 id="agreement-detail-title" className="text-xl font-black text-slate-800 sm:text-2xl">
                 Chi Tiết Hợp Đồng
               </h2>
-              <p className="text-xs text-slate-500 mt-1 font-mono break-all">
-                {agreement.id}
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Mã hợp đồng: {agreement.id.slice(0, 8).toUpperCase()}
               </p>
             </div>
           </div>
@@ -294,66 +320,71 @@ function AgreementDetailModal({
           </button>
         </header>
 
-        <div className="grid sm:grid-cols-2 gap-3">
-          <InfoRow label="Người đề xuất" value={creatorName} />
-          <InfoRow label="Người còn lại" value={partner?.name || "Người dùng RoomieMatch"} />
-          <InfoRow label="Ngày tạo" value={formatDateTime(agreement.created_at)} />
-          <InfoRow
-            label={agreement.status === "cancelled" ? "Ngày hủy" : "Ngày ký"}
-            value={
-              agreement.status === "cancelled"
-                ? formatDateTime(agreement.cancelled_at)
-                : agreement.status === "signed"
-                  ? formatDateTime(agreement.signed_at)
-                  : "Chưa ký"
-            }
-          />
-          {agreement.status === "signed" && (
-            <InfoRow label="Người ký xác nhận" value={signerName || "Đối tác"} />
-          )}
-          <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-            <p className="text-xs font-bold uppercase text-slate-400 mb-2">Trạng thái</p>
-            <StatusBadge
-              agreement={agreement}
-              isCreator={agreement.creator_id === currentUserId}
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <InfoRow label="Người đề xuất" value={creatorName} />
+            <InfoRow label="Người còn lại" value={partner?.name || "Người dùng RoomieMatch"} />
+            <InfoRow label="Ngày tạo" value={formatDateTime(agreement.created_at)} />
+            <InfoRow
+              label={agreement.status === "cancelled" ? "Ngày hủy" : "Ngày ký"}
+              value={
+                agreement.status === "cancelled"
+                  ? formatDateTime(agreement.cancelled_at)
+                  : agreement.status === "signed"
+                    ? formatDateTime(agreement.signed_at)
+                    : "Chưa ký"
+              }
             />
+            {agreement.status === "signed" && (
+              <InfoRow label="Người ký xác nhận" value={signerName || "Đối tác"} />
+            )}
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+              <p className="text-xs font-bold uppercase text-slate-400 mb-2">Trạng thái</p>
+              <StatusBadge
+                agreement={agreement}
+                isCreator={agreement.creator_id === currentUserId}
+              />
+            </div>
           </div>
+
+          <section>
+            <h3 className="text-base font-black text-slate-800 mb-3">Các điều khoản</h3>
+            {populatedRules.length === 0 ? (
+              <p className="text-sm text-slate-500 bg-slate-50 border border-slate-100 rounded-xl p-4">
+                Bản ghi cũ này không có dữ liệu điều khoản.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {populatedRules.map(([key, label]) => (
+                  <div key={key} className="border border-slate-100 rounded-xl p-4">
+                    <p className="text-xs font-bold uppercase text-slate-400 mb-1.5">{label}</p>
+                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                      {agreement.rules[key]}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <p className="text-xs text-slate-400 flex items-start gap-2">
+            <UserRound className="w-4 h-4 shrink-0" />
+            Đây là thỏa thuận sống chung giữa hai người dùng, không thay thế hợp đồng thuê nhà có giá trị pháp lý.
+          </p>
         </div>
 
-        <section>
-          <h3 className="text-base font-black text-slate-800 mb-3">Các điều khoản</h3>
-          {populatedRules.length === 0 ? (
-            <p className="text-sm text-slate-500 bg-slate-50 border border-slate-100 rounded-xl p-4">
-              Bản ghi cũ này không có dữ liệu điều khoản.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {populatedRules.map(([key, label]) => (
-                <div key={key} className="border border-slate-100 rounded-xl p-4">
-                  <p className="text-xs font-bold uppercase text-slate-400 mb-1.5">{label}</p>
-                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                    {agreement.rules[key]}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <p className="text-xs text-slate-400 flex items-start gap-2">
-          <UserRound className="w-4 h-4 shrink-0" />
-          Đây là thỏa thuận sống chung giữa hai người dùng, không thay thế hợp đồng thuê nhà có giá trị pháp lý.
-        </p>
-
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-full py-3 bg-[#006590] hover:bg-[#005176] text-white font-bold rounded-xl transition-colors"
-        >
-          Đóng
-        </button>
+        <footer className="shrink-0 border-t border-slate-100 bg-white px-5 py-4 sm:px-6">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-3 bg-[#006590] hover:bg-[#005176] text-white font-bold rounded-xl transition-colors"
+          >
+            Đóng
+          </button>
+        </footer>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
