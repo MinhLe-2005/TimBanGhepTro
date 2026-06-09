@@ -24,6 +24,8 @@ import {
   Cigarette,
   Utensils,
   Users,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { Roommate } from "../types";
 import { supabase } from "../lib/supabase";
@@ -36,7 +38,10 @@ interface RoommateModalProps {
   onStartChat: (roommateId: string) => void;
   onStartAgreement: (roommateId: string) => void;
   onAddReview: (roommateId: string, review: { rating: number; comment: string; imageUrl?: string }) => void | boolean | Promise<boolean>;
+  onUpdateReview: (reviewId: string, review: { rating: number; comment: string; imageUrl?: string }) => Promise<boolean>;
+  onDeleteReview: (reviewId: string) => Promise<boolean>;
   onReportReview: (reviewId: string, roommateId: string) => Promise<boolean>;
+  currentReviewerId?: string;
   currentReviewerName?: string;
   currentReviewerAvatar?: string;
   isOwnProfile?: boolean;
@@ -52,7 +57,10 @@ export default function RoommateModal({
   onStartChat,
   onStartAgreement,
   onAddReview,
+  onUpdateReview,
+  onDeleteReview,
   onReportReview,
+  currentReviewerId,
   currentReviewerName,
   currentReviewerAvatar,
   isOwnProfile = false,
@@ -133,6 +141,11 @@ export default function RoommateModal({
       // Reset phone reveal on open
       setPhoneRevealed(false);
       setShowPhoneHint(false);
+      setIsEditingReview(false);
+      setNewComment("");
+      setNewRating(0);
+      setNewImageUrl("");
+      setFormError("");
     }
   }, [roommate?.id]);
 
@@ -155,6 +168,7 @@ export default function RoommateModal({
   const [newRating, setNewRating] = useState(0);
   const [newImageUrl, setNewImageUrl] = useState("");
   const [formError, setFormError] = useState("");
+  const [isEditingReview, setIsEditingReview] = useState(false);
 
   const formatPrice = (price: number | undefined) => {
     if (!price || price === 0) return "Chưa cập nhật";
@@ -173,11 +187,14 @@ export default function RoommateModal({
       return;
     }
     
-    const success = await onAddReview(roommate.id, {
+    const reviewPayload = {
       rating: newRating,
       comment: newComment.trim(),
       imageUrl: newImageUrl.trim() ? newImageUrl.trim() : undefined
-    });
+    };
+    const success = isEditingReview && ownReview
+      ? await onUpdateReview(ownReview.id, reviewPayload)
+      : await onAddReview(roommate.id, reviewPayload);
 
     if (success !== false) {
       // Reset Form
@@ -185,9 +202,51 @@ export default function RoommateModal({
       setNewRating(0);
       setNewImageUrl("");
       setFormError("");
+      setIsEditingReview(false);
+      toast(isEditingReview ? "Đã cập nhật đánh giá." : "Đã gửi đánh giá.", "success");
     } else {
-      setFormError("Không thể lưu đánh giá. Vui lòng thử lại.");
+      setFormError(
+        ownReview && !isEditingReview
+          ? "Mỗi tài khoản chỉ được đánh giá một lần."
+          : "Không thể lưu đánh giá. Vui lòng thử lại."
+      );
     }
+  };
+
+  const startEditingReview = () => {
+    if (!ownReview) return;
+    setNewRating(ownReview.rating);
+    setNewComment(ownReview.comment);
+    setNewImageUrl(ownReview.imageUrl || "");
+    setFormError("");
+    setIsEditingReview(true);
+  };
+
+  const cancelEditingReview = () => {
+    setIsEditingReview(false);
+    setNewRating(0);
+    setNewComment("");
+    setNewImageUrl("");
+    setFormError("");
+  };
+
+  const handleDeleteOwnReview = async () => {
+    if (!ownReview) return;
+    const approved = await confirm({
+      title: "Xóa đánh giá",
+      message: "Bạn có chắc chắn muốn xóa đánh giá của mình không?",
+      confirmText: "Xóa đánh giá",
+      cancelText: "Hủy",
+      type: "error",
+    });
+    if (!approved) return;
+
+    const success = await onDeleteReview(ownReview.id);
+    toast(
+      success ? "Đã xóa đánh giá." : "Không thể xóa đánh giá. Vui lòng thử lại.",
+      success ? "success" : "error"
+    );
+    if (success) cancelEditingReview();
   };
 
   const handleReportReview = async (reviewId: string) => {
@@ -210,6 +269,13 @@ export default function RoommateModal({
   const averageRating = getAverageRating(roommate.reviews);
   const reviewsCount = roommate.reviews?.length || 0;
   const reputationScore = calculateReputationScore(roommate);
+  const ownReview = (roommate.reviews || []).find((review) =>
+    currentReviewerId
+      ? review.reviewerId === currentReviewerId ||
+        (!review.reviewerId &&
+          review.reviewerName?.trim().toLowerCase() === currentReviewerName?.trim().toLowerCase())
+      : false
+  );
   const reputationTone =
     reputationScore === null
       ? {
@@ -532,14 +598,35 @@ export default function RoommateModal({
                         <div className="bg-amber-50/50 px-2 py-1 rounded-lg">
                           {renderStars(rev.rating, "h-3.5 w-3.5")}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleReportReview(rev.id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                          title="Báo cáo feedback không phù hợp"
-                        >
-                          <Flag className="h-3.5 w-3.5" />
-                        </button>
+                        {rev.id === ownReview?.id ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={startEditingReview}
+                              className="rounded-lg p-1.5 text-sky-600 transition-colors hover:bg-sky-50"
+                              title="Chỉnh sửa đánh giá"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleDeleteOwnReview}
+                              className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50"
+                              title="Xóa đánh giá"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleReportReview(rev.id)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title="Báo cáo feedback không phù hợp"
+                          >
+                            <Flag className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                     
@@ -574,6 +661,25 @@ export default function RoommateModal({
             {/* Submit new community review */}
             {(!isOwnProfile) && (
             <div>
+              {ownReview && !isEditingReview ? (
+                <div className="flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h5 className="text-sm font-bold text-emerald-900">Bạn đã đánh giá người này</h5>
+                    <p className="mt-1 text-xs leading-relaxed text-emerald-700">
+                      Mỗi tài khoản chỉ được đánh giá một lần. Bạn có thể chỉnh sửa hoặc xóa đánh giá hiện tại.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={startEditingReview}
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-emerald-700"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Chỉnh sửa
+                  </button>
+                </div>
+              ) : (
+              <>
               <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4 flex items-start gap-3">
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
                   <MessageSquare className="h-4 w-4 text-blue-600" />
@@ -590,7 +696,9 @@ export default function RoommateModal({
                 <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
                   <Smile className="h-4 w-4 text-blue-600" />
                 </div>
-                <h5 className="text-[14px] font-black text-slate-800 tracking-tight">Viết đánh giá cho {roommate.name}</h5>
+                <h5 className="text-[14px] font-black text-slate-800 tracking-tight">
+                  {isEditingReview ? "Chỉnh sửa đánh giá của bạn" : `Viết đánh giá cho ${roommate.name}`}
+                </h5>
               </div>
 
               {/* Reviewer identity & star rating */}
@@ -660,14 +768,27 @@ export default function RoommateModal({
                     <Shield className="w-4 h-4" /> Đóng góp giúp cộng đồng an toàn hơn
                   </span>
                 )}
-                <button
-                  type="submit"
-                  className="w-full sm:w-auto bg-slate-900 hover:bg-blue-600 text-white py-3 px-8 rounded-xl font-bold text-[14px] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.1)] active:scale-95"
-                >
-                  Gửi đánh giá
-                </button>
+                <div className="flex w-full gap-2 sm:w-auto">
+                  {isEditingReview && (
+                    <button
+                      type="button"
+                      onClick={cancelEditingReview}
+                      className="flex-1 rounded-xl bg-slate-100 px-5 py-3 text-[14px] font-bold text-slate-600 transition-colors hover:bg-slate-200 sm:flex-none"
+                    >
+                      Hủy
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="flex-1 rounded-xl bg-slate-900 px-8 py-3 text-[14px] font-bold text-white shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-300 hover:bg-blue-600 active:scale-95 sm:flex-none"
+                  >
+                    {isEditingReview ? "Lưu thay đổi" : "Gửi đánh giá"}
+                  </button>
+                </div>
               </div>
               </form>
+              </>
+              )}
             </div>
             )}
           </div>

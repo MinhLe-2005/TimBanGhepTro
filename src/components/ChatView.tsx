@@ -37,8 +37,7 @@ export default function ChatView({
   const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
   const { toast } = useDialog();
   
-  // Show hidden chats tab and blocked users tab
-  const [showHiddenChats, setShowHiddenChats] = useState(false);
+  // Blocked users tab
   const [showBlockedUsers, setShowBlockedUsers] = useState(false);
   
   // Chat records list
@@ -53,13 +52,9 @@ export default function ChatView({
   const [conversations, setConversations] = useState<any[]>([]);
   const fetchInboxRef = useRef<(() => void) | null>(null);
   
-  // Hidden conversations (local only, not deleted from DB)
-  // Store as { partnerId: hideTimestamp } to check if new messages arrived after hiding
-  const [hiddenConversations, setHiddenConversations] = useState<Record<string, number>>(() => {
-    try {
-      return JSON.parse(localStorage.getItem('roomiematch_hidden_conversations') || '{}');
-    } catch { return {}; }
-  });
+  useEffect(() => {
+    localStorage.removeItem("roomiematch_hidden_conversations");
+  }, []);
 
   // Track conversations with unread agreements
   const [conversationsWithAgreements, setConversationsWithAgreements] = useState<Record<string, boolean>>({});
@@ -794,33 +789,6 @@ export default function ChatView({
         setConversations(conversationsArray);
         setConversationsWithAgreements(agreementMap);
         
-        // Auto-unhide conversations that have NEW messages (after hide timestamp)
-        const hiddenMap = JSON.parse(localStorage.getItem('roomiematch_hidden_conversations') || '{}');
-        if (Object.keys(hiddenMap).length > 0) {
-          const updatedHidden = { ...hiddenMap };
-          let changed = false;
-          
-          conversationsArray.forEach(conv => {
-            // Use canonical ID from conversation
-            const partnerId = conv.partnerId || conv.partner.id;
-            const hideTimestamp = hiddenMap[partnerId];
-            
-            if (hideTimestamp) {
-              const lastMessageTime = new Date(conv.timestamp).getTime();
-              // Only unhide if last message is AFTER the hide timestamp
-              if (lastMessageTime > hideTimestamp) {
-                console.log('[Chat] Auto-unhiding conversation:', conv.partner.name, '(new message after hide)');
-                delete updatedHidden[partnerId];
-                changed = true;
-              }
-            }
-          });
-          
-          if (changed) {
-            localStorage.setItem('roomiematch_hidden_conversations', JSON.stringify(updatedHidden));
-            setHiddenConversations(updatedHidden);
-          }
-        }
       } else if (error) {
         console.error('[Chat] Error fetching inbox:', error);
       }
@@ -833,24 +801,6 @@ export default function ChatView({
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         const newMsg = payload.new as any;
         if (newMsg.chat_id?.includes(myAuthId)) {
-          // When new message arrives, unhide the conversation if it was hidden
-          const ids = newMsg.chat_id.split('_');
-          const partnerId = ids[0] === myAuthId ? ids[1] : ids[0];
-          
-          const hiddenMap = JSON.parse(localStorage.getItem('roomiematch_hidden_conversations') || '{}');
-          if (hiddenMap[partnerId]) {
-            const newMsgTime = new Date(newMsg.timestamp).getTime();
-            const hideTime = hiddenMap[partnerId];
-            
-            // Only unhide if this message is AFTER the hide timestamp
-            if (newMsgTime > hideTime) {
-              delete hiddenMap[partnerId];
-              localStorage.setItem('roomiematch_hidden_conversations', JSON.stringify(hiddenMap));
-              setHiddenConversations(hiddenMap);
-              console.log('[Chat] Auto-unhiding conversation from:', partnerId, '(new message received)');
-            }
-          }
-          
           fetchInbox();
         }
       })
@@ -965,30 +915,20 @@ export default function ChatView({
         <div className="p-5 border-b border-slate-100 bg-white">
           <h3 className="text-lg font-extrabold text-[#0f172a] tracking-tight mb-4">Tin Nhắn</h3>
           
-          {/* Tab Toggle: Active / Hidden / Blocked */}
+          {/* Tab Toggle: Active / Blocked */}
           <div className="flex gap-1.5 mb-4">
             <button
-              onClick={() => { setShowHiddenChats(false); setShowBlockedUsers(false); }}
+              onClick={() => setShowBlockedUsers(false)}
               className={`flex-1 py-2 px-2 rounded-xl text-[11px] font-bold transition-all ${
-                !showHiddenChats && !showBlockedUsers
+                !showBlockedUsers
                   ? "bg-sky-100 text-sky-700 border-2 border-sky-300"
                   : "bg-slate-100 text-slate-500 hover:bg-slate-200"
               }`}
             >
-              Đang chat ({conversations.filter(c => !hiddenConversations[c.partner.id] && !blockedUsers.includes(c.partner.id)).length})
+              Đang chat ({conversations.filter(c => !blockedUsers.includes(c.partner.id)).length})
             </button>
             <button
-              onClick={() => { setShowHiddenChats(true); setShowBlockedUsers(false); }}
-              className={`flex-1 py-2 px-2 rounded-xl text-[11px] font-bold transition-all ${
-                showHiddenChats && !showBlockedUsers
-                  ? "bg-amber-100 text-amber-700 border-2 border-amber-300"
-                  : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-              }`}
-            >
-              Đã ẩn ({Object.keys(hiddenConversations).length})
-            </button>
-            <button
-              onClick={() => { setShowHiddenChats(false); setShowBlockedUsers(true); }}
+              onClick={() => setShowBlockedUsers(true)}
               className={`flex-1 py-2 px-2 rounded-xl text-[11px] font-bold transition-all ${
                 showBlockedUsers
                   ? "bg-red-100 text-red-700 border-2 border-red-300"
@@ -1069,20 +1009,11 @@ export default function ChatView({
           ) : (
             conversations
               .filter(conv => {
-                // Filter by search query
                 if (!conv.partner.name.toLowerCase().includes(friendSearchQuery.toLowerCase())) {
                   return false;
                 }
-                // Filter by tab: show hidden or active
-                // Use the canonical ID stored in conversation
                 const partnerId = conv.partnerId || conv.partner.id;
-                const isHidden = !!hiddenConversations[partnerId];
-                const isBlocked = blockedUsers.includes(partnerId);
-                
-                // Don't show blocked users in active/hidden tabs
-                if (isBlocked) return false;
-                
-                return showHiddenChats ? isHidden : !isHidden;
+                return !blockedUsers.includes(partnerId) && !blockedUsers.includes(conv.partner.id);
               })
               .map((conv) => {
               const r = conv.partner;
@@ -1091,7 +1022,6 @@ export default function ChatView({
               // Use canonical ID from conversation
               const partnerId = conv.partnerId || r.id;
               const hasAgreement = conversationsWithAgreements[partnerId];
-              const isHidden = !!hiddenConversations[partnerId];
               
               return (
                 <div
@@ -1122,54 +1052,10 @@ export default function ChatView({
                   </div>
                   
                   {/* Agreement badge notification */}
-                  {hasAgreement && !showHiddenChats && (
+                  {hasAgreement && (
                     <div className="shrink-0">
                       <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" title="Có thỏa thuận mới" />
                     </div>
-                  )}
-                  
-                  {/* Hide/Unhide button */}
-                  {showHiddenChats ? (
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        // Unhide conversation - ALWAYS use partner.id
-                        const updated = { ...hiddenConversations };
-                        delete updated[partnerId];
-                        setHiddenConversations(updated);
-                        localStorage.setItem('roomiematch_hidden_conversations', JSON.stringify(updated));
-                        console.log('[Chat] Unhiding conversation:', partnerId);
-                      }}
-                      className="opacity-100 p-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-emerald-600 shrink-0 transition-colors"
-                      title="Hiện lại cuộc trò chuyện"
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        const confirmed = await confirm({
-                          title: "Ẩn cuộc trò chuyện",
-                          message: `Ẩn cuộc trò chuyện với ${r.name}? Tin nhắn vẫn được giữ, sẽ hiện lại khi có tin nhắn mới.`,
-                          confirmText: "Ẩn đi",
-                          cancelText: "Hủy",
-                          type: "warning"
-                        });
-                        
-                        if (confirmed) {
-                          // Hide conversation (add to hidden list) - ALWAYS use partner.id
-                          const updated = { ...hiddenConversations, [partnerId]: Date.now() };
-                          setHiddenConversations(updated);
-                          localStorage.setItem('roomiematch_hidden_conversations', JSON.stringify(updated));
-                          console.log('[Chat] Hiding conversation:', partnerId);
-                        }
-                      }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-lg text-red-500 shrink-0"
-                      title="Ẩn cuộc trò chuyện"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
                   )}
                 </div>
               );

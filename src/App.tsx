@@ -1038,9 +1038,15 @@ export default function App() {
           createdAt: rev.created_at ? new Date(rev.created_at).toLocaleDateString("vi-VN") : rev.createdAt,
         }));
       const localReviews = (r.reviews || []).filter((rev: any) => rev.reviewerName);
-      const mergedReviews = [...dbReviews, ...localReviews].filter((review, index, list) =>
-        list.findIndex((item) => item.id === review.id) === index
-      );
+      const seenReviewers = new Set<string>();
+      const mergedReviews = [...dbReviews, ...localReviews].filter((review) => {
+        const reviewerKey = review.reviewerId
+          ? `id:${review.reviewerId}`
+          : `name:${String(review.reviewerName || "").trim().toLowerCase()}`;
+        if (seenReviewers.has(reviewerKey)) return false;
+        seenReviewers.add(reviewerKey);
+        return true;
+      });
       const isOwner = !!currentUserProfile && (
         (currentUser && r.postedBy === currentUser.id) ||
         r.name === currentUserProfile.name
@@ -1295,6 +1301,14 @@ export default function App() {
       currentUser?.user_metadata?.avatar_url ||
       null;
 
+    const alreadyReviewed = supabaseReviews.some((existingReview) => {
+      if ((existingReview.roommate_id || existingReview.roommateId) !== roommateId) return false;
+      if (currentUser?.id && existingReview.reviewer_id === currentUser.id) return true;
+      return !existingReview.reviewer_id &&
+        String(existingReview.reviewer_name || existingReview.reviewerName || "").trim().toLowerCase() === reviewerName.trim().toLowerCase();
+    });
+    if (alreadyReviewed) return false;
+
     const newDbReview = {
       roommate_id: roommateId,
       reviewer_name: reviewerName,
@@ -1338,9 +1352,122 @@ export default function App() {
     return true;
   };
 
+  const handleUpdateReview = async (
+    reviewId: string,
+    review: { rating: number; comment: string; imageUrl?: string }
+  ) => {
+    if (!currentUser) return false;
+
+    const existingReview = supabaseReviews.find((item) => item.id === reviewId);
+    const isOwner =
+      existingReview?.reviewer_id === currentUser.id ||
+      (!existingReview?.reviewer_id &&
+        String(existingReview?.reviewer_name || "").trim().toLowerCase() ===
+          String(currentUserProfile?.name || "").trim().toLowerCase());
+    if (!existingReview || !isOwner) return false;
+
+    const duplicateReviewIds = supabaseReviews
+      .filter((item) => {
+        if (item.id === reviewId) return false;
+        if ((item.roommate_id || item.roommateId) !== (existingReview.roommate_id || existingReview.roommateId)) return false;
+        return item.reviewer_id === currentUser.id ||
+          (!item.reviewer_id &&
+            String(item.reviewer_name || "").trim().toLowerCase() ===
+              String(currentUserProfile?.name || "").trim().toLowerCase());
+      })
+      .map((item) => item.id);
+
+    const updates = {
+      rating: review.rating,
+      comment: review.comment,
+      image_url: review.imageUrl || null,
+    };
+    const { data, error } = await supabase
+      .from("reviews")
+      .update(updates)
+      .eq("id", reviewId)
+      .select()
+      .single();
+    if (error || !data) return false;
+
+    if (duplicateReviewIds.length > 0) {
+      await supabase.from("reviews").delete().in("id", duplicateReviewIds);
+    }
+
+    setSupabaseReviews((previous) =>
+      previous
+        .filter((item) => !duplicateReviewIds.includes(item.id))
+        .map((item) => (item.id === reviewId ? data : item))
+    );
+    setSelectedRoommate((previous) =>
+      previous
+        ? {
+            ...previous,
+            reviews: (previous.reviews || [])
+              .filter((item) => !duplicateReviewIds.includes(item.id))
+              .map((item) =>
+                item.id === reviewId
+                  ? {
+                      ...item,
+                      rating: review.rating,
+                      comment: review.comment,
+                      imageUrl: review.imageUrl,
+                    }
+                  : item
+              ),
+          }
+        : previous
+    );
+    return true;
+  };
+
+  const handleDeleteOwnReview = async (reviewId: string) => {
+    if (!currentUser) return false;
+
+    const existingReview = supabaseReviews.find((item) => item.id === reviewId);
+    const isOwner =
+      existingReview?.reviewer_id === currentUser.id ||
+      (!existingReview?.reviewer_id &&
+        String(existingReview?.reviewer_name || "").trim().toLowerCase() ===
+          String(currentUserProfile?.name || "").trim().toLowerCase());
+    if (!existingReview || !isOwner) return false;
+
+    const ownReviewIds = supabaseReviews
+      .filter((item) => {
+        if ((item.roommate_id || item.roommateId) !== (existingReview.roommate_id || existingReview.roommateId)) return false;
+        return item.reviewer_id === currentUser.id ||
+          (!item.reviewer_id &&
+            String(item.reviewer_name || "").trim().toLowerCase() ===
+              String(currentUserProfile?.name || "").trim().toLowerCase());
+      })
+      .map((item) => item.id);
+
+    const { error } = await supabase.from("reviews").delete().in("id", ownReviewIds);
+    if (error) return false;
+
+    setSupabaseReviews((previous) => previous.filter((item) => !ownReviewIds.includes(item.id)));
+    setSelectedRoommate((previous) =>
+      previous
+        ? {
+            ...previous,
+            reviews: (previous.reviews || []).filter((item) => !ownReviewIds.includes(item.id)),
+          }
+        : previous
+    );
+    return true;
+  };
+
   const handleReportReview = async (reviewId: string, roommateId: string) => {
     const isAuth = await requireAuth();
     if (!isAuth || !currentUser) return false;
+
+    const reviewToReport = supabaseReviews.find((review) => review.id === reviewId);
+    const isOwnReview =
+      reviewToReport?.reviewer_id === currentUser.id ||
+      (!reviewToReport?.reviewer_id &&
+        String(reviewToReport?.reviewer_name || reviewToReport?.reviewerName || "").trim().toLowerCase() ===
+          String(currentUserProfile?.name || "").trim().toLowerCase());
+    if (isOwnReview) return false;
 
     const report = {
       review_id: reviewId,
@@ -1635,7 +1762,10 @@ export default function App() {
           onStartChat={startChatConversation}
           onStartAgreement={startAgreementForm}
           onAddReview={handleAddReview}
+          onUpdateReview={handleUpdateReview}
+          onDeleteReview={handleDeleteOwnReview}
           onReportReview={handleReportReview}
+          currentReviewerId={currentUser?.id}
           currentReviewerName={
             currentUserProfile?.name ||
             currentUser?.user_metadata?.full_name ||
