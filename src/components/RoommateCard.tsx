@@ -1,7 +1,6 @@
 import { Heart, Star, Trash2 } from "lucide-react";
 import { Roommate } from "../types";
 import { useState } from "react";
-import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { getAverageRating } from "../utils/scoring";
 
 interface RoommateCardProps {
@@ -28,7 +27,6 @@ export default function RoommateCard({
   currentUserId,
 }: RoommateCardProps) {
   const [isLiked, setIsLiked] = useState(isInitiallyLiked);
-  const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
 
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -89,22 +87,11 @@ export default function RoommateCard({
           )}
           {onDelete && (
             <button
-              onClick={async (e) => { 
+              onClick={(e) => { 
                 e.stopPropagation(); 
                 console.log('[RoommateCard] Delete button clicked for:', roommate.id);
                 onClearSelectedRoommate && onClearSelectedRoommate();
-                const confirmed = await confirm({
-                  title: "Xóa tin đăng",
-                  message: "Bạn có chắc chắn muốn xóa tin đăng này không?",
-                  confirmText: "Xóa",
-                  cancelText: "Hủy",
-                  type: "danger"
-                });
-                console.log('[RoommateCard] Delete confirmed:', confirmed);
-                if (confirmed) {
-                  console.log('[RoommateCard] Calling onDelete for:', roommate.id);
-                  onDelete(roommate.id);
-                }
+                onDelete(roommate.id);
               }}
               className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-red-50 hover:bg-red-100 text-red-600 text-[12px] font-bold shadow-sm border border-red-200 transition-all duration-200"
             >
@@ -206,9 +193,6 @@ export default function RoommateCard({
           <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">Nhấn xem chi tiết</span>
         </div>
       </div>
-      
-      {/* Confirm Dialog */}
-      <ConfirmDialogComponent />
     </div>
   );
 }
