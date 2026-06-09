@@ -1387,9 +1387,9 @@ export default function ChatView({
                         </span>
                       </div>
                       
-                      {/* ✅ Message Reactions - positioned ABOVE message corner like Messenger */}
+                      {/* ✅ Message Reactions - positioned at BOTTOM corner like Messenger */}
                       {!isSpecialMessage && (
-                        <div className={`absolute -top-3 ${isMe ? 'right-2' : 'left-2'} z-20`}>
+                        <div className={`absolute -bottom-3 ${isMe ? 'right-2' : 'left-2'} z-20`}>
                           <MessageReactions
                             messageId={msg.id}
                             reactions={msg.reactions}
