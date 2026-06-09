@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { IMAGES } from "../data";
 import { Sparkles, Users, Building, ShieldCheck, HeartHandshake, Eye, ArrowRight, ArrowUpRight, Clock, Trash2, Coins, FileText, Search, MapPin, DollarSign, UserCheck, ChevronDown, Heart, Home, ChevronLeft, ChevronRight } from "lucide-react";
 import { Roommate, Room } from "../types";
 import RoommateCard from "./RoommateCard";
@@ -163,7 +162,7 @@ export default function HomeView({
             {/* Main Image with Tight Frame */}
             <div className="relative z-10 w-full aspect-[4/3] rounded-[2rem] overflow-hidden bg-white border-[6px] lg:border-[8px] border-white shadow-2xl shadow-slate-200/60">
               <img 
-                src={IMAGES.couchRoommates} 
+                src="https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=800&auto=format&fit=crop" 
                 alt="Roommates having fun" 
                 className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
                 referrerPolicy="no-referrer"
