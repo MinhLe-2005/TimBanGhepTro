@@ -1393,9 +1393,9 @@ export default function ChatView({
                         </span>
                       </div>
                       
-                      {/* ✅ Message Reactions - positioned at BOTTOM corner like Messenger */}
+                      {/* Message reactions sit below the bubble so they never cover the timestamp. */}
                       {!isSpecialMessage && (
-                        <div className={`absolute -bottom-3 ${isMe ? 'right-2' : 'left-2'} z-20`}>
+                        <div className={`mt-1 flex px-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
                           <MessageReactions
                             messageId={msg.id}
                             reactions={msg.reactions}
