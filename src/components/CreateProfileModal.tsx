@@ -108,7 +108,13 @@ export default function CreateProfileModal({
       status,
       matchScore: 0,
       reputationScore: 0, // FIX: Add missing reputationScore (required by database)
-      tags: [sleep, neatness, smoke],
+      tags: [
+        sleep,
+        neatness,
+        pets === "Thoải mái" ? "Yêu động vật" : pets === "Không tiện nuôi" ? "Không nuôi thú cưng" : pets,
+        cook === "Thích nấu ăn" ? "Thích nấu ăn" : cook === "Đôi khi nấu" ? "Nấu đôi khi" : "Ăn ngoài",
+        interaction === "Hướng ngoại" ? "Hướng ngoại" : interaction === "Hướng nội" ? "Hướng nội" : "Cân bằng"
+      ].filter(Boolean).slice(0, 4), // Max 4 tags
       lifestyle: {
         sleep,
         pets,
