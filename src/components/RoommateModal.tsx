@@ -762,6 +762,8 @@ export default function RoommateModal({
                   });
                   if (ok && onDeleteProfile) {
                     onDeleteProfile(roommate.id);
+                    // Close modal after deletion
+                    onClose();
                   }
                 }}
                 className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-4 px-6 rounded-[16px] font-black active:scale-95 duration-200 text-center cursor-pointer text-[15px] border border-red-100"
