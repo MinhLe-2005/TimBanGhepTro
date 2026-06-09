@@ -1197,7 +1197,16 @@ export default function ChatView({
                 <img src={activeRoommate.avatar} alt={activeRoommate.name} className="w-full h-full object-cover" />
               </div>
               <h4 className="text-[18px] font-black text-[#0f172a] tracking-tight">{activeRoommate.name}</h4>
-              <p className="text-[12px] text-sky-600 font-extrabold uppercase tracking-widest mt-1 bg-sky-50 inline-block px-3 py-1 rounded-full mb-3">{activeRoommate.role}</p>
+              <p className="text-[12px] text-sky-600 font-extrabold uppercase tracking-widest mt-1 bg-sky-50 inline-block px-3 py-1 rounded-full mb-2">{activeRoommate.role}</p>
+              
+              {/* View Profile Button */}
+              <button
+                onClick={() => onViewProfile && onViewProfile(activeRoommate)}
+                className="mt-2 bg-white hover:bg-slate-50 text-[#006590] border-2 border-slate-200 hover:border-sky-300 py-2 px-4 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer flex items-center gap-2 mx-auto"
+              >
+                <Users className="h-3.5 w-3.5" />
+                Xem hồ sơ đầy đủ
+              </button>
             </div>
 
             {/* Private Notes form */}

@@ -621,8 +621,14 @@ export default function RoommateModal({
                       Bạn cần hoàn thành hợp đồng ở ghép với {roommate.name} trước khi có thể viết đánh giá. Điều này đảm bảo tính xác thực và minh bạch cho cộng đồng RoomieMatch.
                     </p>
                     <button
-                      onClick={() => onStartAgreement(roommate.id)}
-                      className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2"
+                      onClick={() => {
+                        if (hasChatWithRoommate) {
+                          onStartAgreement(roommate.id);
+                        } else {
+                          alert(`💬 Bạn cần nhắn tin với ${roommate.name} trước khi tạo hợp đồng!`);
+                        }
+                      }}
+                      className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer"
                     >
                       <FileText className="h-3.5 w-3.5" />
                       Tạo hợp đồng với {roommate.name}
