@@ -1311,7 +1311,7 @@ export default function ChatView({
                   return (
                     <div
                       key={msg.id}
-                      className={`flex ${isMe ? "justify-end" : "justify-start"} animate-fade-in`}
+                      className={`flex ${isMe ? "justify-end" : "justify-start"} animate-fade-in mb-6`}
                     >
                       <div className="relative">
                         <div
@@ -1387,9 +1387,9 @@ export default function ChatView({
                         </span>
                       </div>
                       
-                      {/* ✅ Message Reactions - positioned below message corner, outside bubble */}
+                      {/* ✅ Message Reactions - positioned below message corner, fully outside bubble */}
                       {!isSpecialMessage && (
-                        <div className={`absolute -bottom-3 ${isMe ? '-left-2' : '-right-2'} z-10`}>
+                        <div className={`absolute -bottom-4 ${isMe ? '-left-3' : '-right-3'} z-20`}>
                           <MessageReactions
                             messageId={msg.id}
                             reactions={msg.reactions}
