@@ -3,6 +3,8 @@ import { Send, CheckCircle2, AlertCircle, MessageSquare, PhoneCall, Image as Ima
 import { Roommate, Message } from "../types";
 import { supabase } from "../lib/supabase";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { useDialog } from "./ui/DialogProvider";
+import MessageReactions from "./MessageReactions";
 
 interface ChatViewProps {
   roommates: Roommate[];
@@ -33,6 +35,7 @@ export default function ChatView({
 }: ChatViewProps) {
   // Confirm Dialog Hook
   const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
+  const { toast } = useDialog();
   
   // Show hidden chats tab and blocked users tab
   const [showHiddenChats, setShowHiddenChats] = useState(false);
@@ -186,8 +189,6 @@ export default function ChatView({
     }
   };
 
-  const isActiveUserBlocked = activeRoommateId ? blockedUsers.includes(activeRoommateId) : false;
-
   const handleUnblock = async (userId: string) => {
     const updated = blockedUsers.filter(id => id !== userId);
     setBlockedUsers(updated);
@@ -202,6 +203,73 @@ export default function ChatView({
         sender_id: myId,
         text: "[SYSTEM_UNBLOCK]"
       });
+    }
+  };
+
+  // ✅ Message Reactions Handlers
+  const handleAddReaction = async (messageId: string, emoji: string) => {
+    if (!import.meta.env.VITE_SUPABASE_URL || !currentUser?.id) return;
+
+    try {
+      // Get current message
+      const { data: message } = await supabase
+        .from('messages')
+        .select('reactions')
+        .eq('id', messageId)
+        .single();
+
+      const currentReactions = message?.reactions || {};
+      const currentUsers = currentReactions[emoji] || [];
+      
+      // Add user to reaction if not already reacted
+      if (!currentUsers.includes(currentUser.id)) {
+        const updatedReactions = {
+          ...currentReactions,
+          [emoji]: [...currentUsers, currentUser.id]
+        };
+
+        await supabase
+          .from('messages')
+          .update({ reactions: updatedReactions })
+          .eq('id', messageId);
+      }
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+    }
+  };
+
+  const handleRemoveReaction = async (messageId: string, emoji: string) => {
+    if (!import.meta.env.VITE_SUPABASE_URL || !currentUser?.id) return;
+
+    try {
+      // Get current message
+      const { data: message } = await supabase
+        .from('messages')
+        .select('reactions')
+        .eq('id', messageId)
+        .single();
+
+      const currentReactions = message?.reactions || {};
+      const currentUsers = currentReactions[emoji] || [];
+      
+      // Remove user from reaction
+      const updatedUsers = currentUsers.filter((userId: string) => userId !== currentUser.id);
+      const updatedReactions = {
+        ...currentReactions,
+        [emoji]: updatedUsers
+      };
+
+      // Clean up empty reactions
+      if (updatedUsers.length === 0) {
+        delete updatedReactions[emoji];
+      }
+
+      await supabase
+        .from('messages')
+        .update({ reactions: updatedReactions })
+        .eq('id', messageId);
+    } catch (error) {
+      console.error('Error removing reaction:', error);
     }
   };
 
@@ -257,6 +325,8 @@ export default function ChatView({
   const activeRoommate = activeRoommateId 
     ? (roommates.find((r) => r.id === activeRoommateId || r.user_id === activeRoommateId) || conversations.find(c => c.partner.id === activeRoommateId || c.partner.user_id === activeRoommateId)?.partner)
     : conversations[0]?.partner;
+  
+  const isActiveUserBlocked = activeRoommate ? blockedUsers.includes(activeRoommate.id) : false;
   
   console.log('[Chat] Active roommate:', {
     id: activeRoommate?.id,
@@ -335,7 +405,8 @@ export default function ChatView({
           ...prev,
           [activeRoommateId]: data.map((d: any) => ({
             id: d.id, chatId: d.chat_id, senderId: d.sender_id,
-            text: d.text, imageUrl: d.image_url, timestamp: d.timestamp
+            text: d.text, imageUrl: d.image_url, timestamp: d.timestamp,
+            reactions: d.reactions || {} // ✅ Include reactions
           }))
         }));
       }
@@ -358,8 +429,21 @@ export default function ChatView({
             const cur = prev[activeRoommateId] || [];
             if (cur.some(m => m.id === newMsg.id)) return prev;
             // Insert and sort to ensure chronological order when merging streams
-            const updated = [...cur, { id: newMsg.id, chatId: newMsg.chat_id, senderId: newMsg.sender_id, text: newMsg.text, imageUrl: newMsg.image_url, timestamp: newMsg.timestamp }];
+            const updated = [...cur, { id: newMsg.id, chatId: newMsg.chat_id, senderId: newMsg.sender_id, text: newMsg.text, imageUrl: newMsg.image_url, timestamp: newMsg.timestamp, reactions: newMsg.reactions || {} }];
             return { ...prev, [activeRoommateId]: updated.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()) };
+          });
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `chat_id=eq.${id}` }, (payload) => {
+          // ✅ Handle reaction updates  
+          const updatedMsg = payload.new as any;
+          setChats(prev => {
+            const cur = prev[activeRoommateId] || [];
+            const updated = cur.map(msg => 
+              msg.id === updatedMsg.id 
+                ? { ...msg, reactions: updatedMsg.reactions || {} }
+                : msg
+            );
+            return { ...prev, [activeRoommateId]: updated };
           });
         })
         .subscribe();
@@ -567,9 +651,9 @@ export default function ChatView({
             partner.bio = '';
           }
           
-          // NORMALIZE to a single canonical ID (prefer auth-based IDs)
+          // NORMALIZE to a single canonical ID - ALWAYS use partner.id (most stable)
           // This ensures all messages from the same person use the same key
-          const canonicalId = partner.user_id || partner.auth_id || partner.id || partnerId;
+          const canonicalId = partner.id || partnerId;
           
           console.log('[Chat] Canonical ID for', partner.name, ':', canonicalId, '(from partnerId:', partnerId, ')');
           
@@ -603,8 +687,8 @@ export default function ChatView({
           let activePartner = roommates.find(r => r.id === activeRoommateId || r.user_id === activeRoommateId) || dbPartnerMap.get(activeRoommateId);
           
           if (activePartner) {
-            // Normalize to canonical ID
-            const canonicalId = activePartner.user_id || activePartner.auth_id || activePartner.id || activeRoommateId;
+            // Normalize to canonical ID - ALWAYS use partner.id
+            const canonicalId = activePartner.id || activeRoommateId;
             
             if (!conversationMap.has(canonicalId)) {
               // Ensure partner has complete data structure
@@ -645,15 +729,16 @@ export default function ChatView({
           let changed = false;
           
           conversationsArray.forEach(conv => {
-            const canonicalId = conv.partner.user_id || conv.partner.id;
-            const hideTimestamp = hiddenMap[canonicalId];
+            // ALWAYS use partner.id as key
+            const partnerId = conv.partner.id;
+            const hideTimestamp = hiddenMap[partnerId];
             
             if (hideTimestamp) {
               const lastMessageTime = new Date(conv.timestamp).getTime();
               // Only unhide if last message is AFTER the hide timestamp
               if (lastMessageTime > hideTimestamp) {
                 console.log('[Chat] Auto-unhiding conversation:', conv.partner.name, '(new message after hide)');
-                delete updatedHidden[canonicalId];
+                delete updatedHidden[partnerId];
                 changed = true;
               }
             }
@@ -818,7 +903,7 @@ export default function ChatView({
                   : "bg-slate-100 text-slate-500 hover:bg-slate-200"
               }`}
             >
-              Đang chat ({conversations.filter(c => !hiddenConversations[c.partner.user_id || c.partner.id] && !blockedUsers.includes(c.partner.user_id || c.partner.id)).length})
+              Đang chat ({conversations.filter(c => !hiddenConversations[c.partner.id] && !blockedUsers.includes(c.partner.id)).length})
             </button>
             <button
               onClick={() => { setShowHiddenChats(true); setShowBlockedUsers(false); }}
@@ -863,10 +948,10 @@ export default function ChatView({
           ) : showBlockedUsers ? (
             /* ✅ Show blocked users list */
             roommates
-              .filter(r => blockedUsers.includes(r.user_id || r.id))
+              .filter(r => blockedUsers.includes(r.id))
               .filter(r => r.name.toLowerCase().includes(friendSearchQuery.toLowerCase()))
               .map((r) => {
-                const canonicalId = r.user_id || r.id;
+                const partnerId = r.id;
                 return (
                   <div
                     key={r.id}
@@ -899,7 +984,7 @@ export default function ChatView({
                         });
                         
                         if (confirmed) {
-                          handleUnblock(canonicalId);
+                          handleUnblock(r.id);
                         }
                       }}
                       className="shrink-0 px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-bold transition-colors"
@@ -917,9 +1002,10 @@ export default function ChatView({
                   return false;
                 }
                 // Filter by tab: show hidden or active
-                const canonicalId = conv.partner.user_id || conv.partner.id;
-                const isHidden = !!hiddenConversations[canonicalId];
-                const isBlocked = blockedUsers.includes(canonicalId);
+                // ALWAYS use partner.id as canonical ID (most stable identifier)
+                const partnerId = conv.partner.id;
+                const isHidden = !!hiddenConversations[partnerId];
+                const isBlocked = blockedUsers.includes(partnerId);
                 
                 // Don't show blocked users in active/hidden tabs
                 if (isBlocked) return false;
@@ -930,9 +1016,10 @@ export default function ChatView({
               const r = conv.partner;
               const isActive = r.id === activeRoommateId;
               const lastMsg = conv.lastMessage;
-              const canonicalId = r.user_id || r.id;
-              const hasAgreement = conversationsWithAgreements[canonicalId];
-              const isHidden = !!hiddenConversations[canonicalId];
+              // ALWAYS use partner.id as canonical ID for consistency
+              const partnerId = r.id;
+              const hasAgreement = conversationsWithAgreements[partnerId];
+              const isHidden = !!hiddenConversations[partnerId];
               
               return (
                 <div
@@ -974,12 +1061,12 @@ export default function ChatView({
                     <button
                       onClick={async (e) => {
                         e.stopPropagation();
-                        // Unhide conversation
+                        // Unhide conversation - ALWAYS use partner.id
                         const updated = { ...hiddenConversations };
-                        delete updated[canonicalId];
+                        delete updated[partnerId];
                         setHiddenConversations(updated);
                         localStorage.setItem('roomiematch_hidden_conversations', JSON.stringify(updated));
-                        console.log('[Chat] Unhiding conversation:', canonicalId);
+                        console.log('[Chat] Unhiding conversation:', partnerId);
                       }}
                       className="opacity-100 p-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-emerald-600 shrink-0 transition-colors"
                       title="Hiện lại cuộc trò chuyện"
@@ -999,11 +1086,11 @@ export default function ChatView({
                         });
                         
                         if (confirmed) {
-                          // Hide conversation (add to hidden list)
-                          const updated = { ...hiddenConversations, [canonicalId]: Date.now() };
+                          // Hide conversation (add to hidden list) - ALWAYS use partner.id
+                          const updated = { ...hiddenConversations, [partnerId]: Date.now() };
                           setHiddenConversations(updated);
                           localStorage.setItem('roomiematch_hidden_conversations', JSON.stringify(updated));
-                          console.log('[Chat] Hiding conversation:', canonicalId);
+                          console.log('[Chat] Hiding conversation:', partnerId);
                         }
                       }}
                       className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-lg text-red-500 shrink-0"
@@ -1036,7 +1123,7 @@ export default function ChatView({
                     {/* Block Button - Right next to name */}
                     {isActiveUserBlocked ? (
                       <button
-                        onClick={() => activeRoommateId && handleUnblock(activeRoommateId)}
+                        onClick={() => activeRoommate && handleUnblock(activeRoommate.id)}
                         className="ml-2 px-2.5 py-1 rounded-lg bg-red-100 hover:bg-red-50 text-red-600 transition-colors duration-200 cursor-pointer text-xs font-bold border border-red-200"
                         title="Hủy chặn người dùng"
                       >
@@ -1056,8 +1143,10 @@ export default function ChatView({
                           
                           if (confirmed) {
                             const myId = currentUser?.id || currentUserProfile?.id;
-                            if (myId && activeRoommateId && import.meta.env.VITE_SUPABASE_URL) {
-                              const updated = [...blockedUsers, activeRoommateId];
+                            if (myId && activeRoommate && import.meta.env.VITE_SUPABASE_URL) {
+                              // ALWAYS use partner.id as the key
+                              const partnerId = activeRoommate.id;
+                              const updated = [...blockedUsers, partnerId];
                               setBlockedUsers(updated);
                               localStorage.setItem('roomiematch_blocked_users', JSON.stringify(updated));
                               
@@ -1277,6 +1366,18 @@ export default function ChatView({
                           )}
                         </span>
                       </div>
+                      
+                      {/* ✅ Message Reactions */}
+                      {!isSpecialMessage && (
+                        <MessageReactions
+                          messageId={msg.id}
+                          reactions={msg.reactions}
+                          currentUserId={currentUser?.id || ''}
+                          onAddReaction={(emoji) => handleAddReaction(msg.id, emoji)}
+                          onRemoveReaction={(emoji) => handleRemoveReaction(msg.id, emoji)}
+                          isMyMessage={isMe}
+                        />
+                      )}
                     </div>
                   );
                 })
@@ -1324,7 +1425,7 @@ export default function ChatView({
                   <p className="text-sm font-bold text-red-700">Bạn đã chặn người dùng này</p>
                 </div>
                 <button
-                  onClick={() => activeRoommateId && handleUnblock(activeRoommateId)}
+                  onClick={() => activeRoommate && handleUnblock(activeRoommate.id)}
                   className="text-xs font-bold bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl transition-colors shrink-0"
                 >
                   Hủy chặn
@@ -1387,7 +1488,7 @@ export default function ChatView({
                 {isActiveUserBlocked ? (
                   <button
                     type="button"
-                    onClick={() => activeRoommateId && handleUnblock(activeRoommateId)}
+                    onClick={() => activeRoommate && handleUnblock(activeRoommate.id)}
                     className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 h-12 rounded-full hover:shadow-lg duration-150 flex items-center justify-center cursor-pointer transition-all hover:scale-105 shrink-0 text-xs font-bold gap-1"
                   >
                     <Ban className="h-4 w-4" />

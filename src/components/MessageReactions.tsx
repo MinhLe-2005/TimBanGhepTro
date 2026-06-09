@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Smile } from "lucide-react";
 
 interface MessageReactionsProps {
-  messageId: string;
+  messageId?: string;
   reactions?: Record<string, string[]>; // { "❤️": ["user1", "user2"], "😂": ["user3"] }
   currentUserId: string;
   onAddReaction: (emoji: string) => void;
@@ -13,7 +13,6 @@ interface MessageReactionsProps {
 const REACTION_EMOJIS = ["❤️", "😂", "😮", "😢", "😠", "👍"];
 
 export default function MessageReactions({
-  messageId,
   reactions = {},
   currentUserId,
   onAddReaction,
@@ -21,9 +20,6 @@ export default function MessageReactions({
   isMyMessage,
 }: MessageReactionsProps) {
   const [showPicker, setShowPicker] = useState(false);
-
-  // Get total reaction count
-  const totalReactions = Object.values(reactions).reduce((sum, users) => sum + users.length, 0);
 
   // Check if current user reacted with specific emoji
   const hasUserReacted = (emoji: string) => {

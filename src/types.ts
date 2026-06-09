@@ -101,6 +101,7 @@ export interface Message {
   text: string;
   timestamp: string; // ISO string
   imageUrl?: string; // Optional image URL
+  reactions?: Record<string, string[]>; // { "❤️": ["user1", "user2"], "😂": ["user3"] }
 }
 
 export interface Agreement {
