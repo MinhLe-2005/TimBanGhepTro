@@ -474,6 +474,11 @@ export default function AgreementView({
     if (!error) {
        if (messagePrefix === "[AGREEMENT_SIGNED]") {
          await supabase.from('roommates').update({ status: 'Đã tìm được' }).in('user_id', [currentUser.id, partnerAuthId]);
+         // ✅ Show success toast notification
+         toast('🎉 Ký thỏa thuận thành công! Chúc bạn có trải nghiệm ở ghép vui vẻ!', 'success', 5000);
+       } else {
+         // Draft sent successfully
+         toast('📝 Đã gửi bản thỏa thuận cho đối tác!', 'success', 3000);
        }
        setShowSuccessModal(true);
        setSignedDate(new Date().toLocaleDateString("vi-VN", {
@@ -571,6 +576,8 @@ export default function AgreementView({
        setSignedDate(new Date().toLocaleDateString("vi-VN", {
          year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
        }));
+       // ✅ Show success toast for counter offer
+       toast('📝 Đã gửi bản thỏa thuận chỉnh sửa cho đối tác!', 'success', 3000);
     } else {
        toast('Lỗi khi xử lý thỏa thuận! Vui lòng thử lại.', 'error');
     }

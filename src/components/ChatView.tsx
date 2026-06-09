@@ -34,8 +34,9 @@ export default function ChatView({
   // Confirm Dialog Hook
   const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
   
-  // Show hidden chats tab
+  // Show hidden chats tab and blocked users tab
   const [showHiddenChats, setShowHiddenChats] = useState(false);
+  const [showBlockedUsers, setShowBlockedUsers] = useState(false);
   
   // Chat records list
   const [chats, setChats] = useState<{ [roommateId: string]: Message[] }>(() => {
@@ -347,6 +348,12 @@ export default function ChatView({
         .channel(`messages:${id}`)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${id}` }, (payload) => {
           const newMsg = payload.new as any;
+          
+          // ✅ Show toast notification for agreement signed
+          if (newMsg.text?.startsWith('[AGREEMENT_SIGNED]') && newMsg.sender_id !== myChatId) {
+            toast('🎉 Thỏa thuận đã được ký thành công! Chúc bạn có trải nghiệm ở ghép vui vẻ!', 'success', 5000);
+          }
+          
           setChats(prev => {
             const cur = prev[activeRoommateId] || [];
             if (cur.some(m => m.id === newMsg.id)) return prev;
@@ -801,27 +808,37 @@ export default function ChatView({
         <div className="p-5 border-b border-slate-100 bg-white">
           <h3 className="text-lg font-extrabold text-[#0f172a] tracking-tight mb-4">Tin Nhắn</h3>
           
-          {/* Tab Toggle: Active / Hidden */}
-          <div className="flex gap-2 mb-4">
+          {/* Tab Toggle: Active / Hidden / Blocked */}
+          <div className="flex gap-1.5 mb-4">
             <button
-              onClick={() => setShowHiddenChats(false)}
-              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
-                !showHiddenChats
+              onClick={() => { setShowHiddenChats(false); setShowBlockedUsers(false); }}
+              className={`flex-1 py-2 px-2 rounded-xl text-[11px] font-bold transition-all ${
+                !showHiddenChats && !showBlockedUsers
                   ? "bg-sky-100 text-sky-700 border-2 border-sky-300"
                   : "bg-slate-100 text-slate-500 hover:bg-slate-200"
               }`}
             >
-              Đang chat ({conversations.filter(c => !hiddenConversations[c.partner.user_id || c.partner.id]).length})
+              Đang chat ({conversations.filter(c => !hiddenConversations[c.partner.user_id || c.partner.id] && !blockedUsers.includes(c.partner.user_id || c.partner.id)).length})
             </button>
             <button
-              onClick={() => setShowHiddenChats(true)}
-              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
-                showHiddenChats
+              onClick={() => { setShowHiddenChats(true); setShowBlockedUsers(false); }}
+              className={`flex-1 py-2 px-2 rounded-xl text-[11px] font-bold transition-all ${
+                showHiddenChats && !showBlockedUsers
                   ? "bg-amber-100 text-amber-700 border-2 border-amber-300"
                   : "bg-slate-100 text-slate-500 hover:bg-slate-200"
               }`}
             >
               Đã ẩn ({Object.keys(hiddenConversations).length})
+            </button>
+            <button
+              onClick={() => { setShowHiddenChats(false); setShowBlockedUsers(true); }}
+              className={`flex-1 py-2 px-2 rounded-xl text-[11px] font-bold transition-all ${
+                showBlockedUsers
+                  ? "bg-red-100 text-red-700 border-2 border-red-300"
+                  : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+              }`}
+            >
+              Đã chặn ({blockedUsers.length})
             </button>
           </div>
           
@@ -843,6 +860,55 @@ export default function ChatView({
             <div className="text-center py-8 text-slate-400 font-medium text-sm">
               Chưa có cuộc trò chuyện nào.
             </div>
+          ) : showBlockedUsers ? (
+            /* ✅ Show blocked users list */
+            roommates
+              .filter(r => blockedUsers.includes(r.user_id || r.id))
+              .filter(r => r.name.toLowerCase().includes(friendSearchQuery.toLowerCase()))
+              .map((r) => {
+                const canonicalId = r.user_id || r.id;
+                return (
+                  <div
+                    key={r.id}
+                    className="flex gap-3 p-3.5 rounded-2xl border border-red-100 bg-red-50/50 items-center group"
+                  >
+                    <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-red-200 shadow-inner shrink-0 relative opacity-60">
+                      <img src={r.avatar} alt={r.name} className="w-full h-full object-cover grayscale" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                        <Ban className="h-5 w-5 text-white" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-bold text-red-700 leading-tight tracking-tight truncate">
+                        {r.name}
+                      </h4>
+                      <p className="text-xs text-red-500 truncate leading-snug font-medium">
+                        {r.role} • {r.location}
+                      </p>
+                    </div>
+                    
+                    {/* Unblock button */}
+                    <button
+                      onClick={async () => {
+                        const confirmed = await confirm({
+                          title: "Mở chặn người dùng",
+                          message: `Bạn có chắc chắn muốn mở chặn ${r.name}? Bạn sẽ có thể nhắn tin lại với người này.`,
+                          confirmText: "Mở chặn",
+                          cancelText: "Hủy",
+                          type: "warning"
+                        });
+                        
+                        if (confirmed) {
+                          handleUnblock(canonicalId);
+                        }
+                      }}
+                      className="shrink-0 px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-bold transition-colors"
+                    >
+                      Mở chặn
+                    </button>
+                  </div>
+                );
+              })
           ) : (
             conversations
               .filter(conv => {
@@ -853,6 +919,10 @@ export default function ChatView({
                 // Filter by tab: show hidden or active
                 const canonicalId = conv.partner.user_id || conv.partner.id;
                 const isHidden = !!hiddenConversations[canonicalId];
+                const isBlocked = blockedUsers.includes(canonicalId);
+                
+                // Don't show blocked users in active/hidden tabs
+                if (isBlocked) return false;
                 
                 return showHiddenChats ? isHidden : !isHidden;
               })
