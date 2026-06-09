@@ -192,7 +192,7 @@ export default function RoommatesView({
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6">
       {/* Page Title Banner */}
       <div className="relative bg-gradient-to-r from-[#003855] via-[#004e70] to-[#006590] rounded-[32px] p-8 sm:p-10 overflow-hidden shadow-2xl shadow-[#004e70]/20 border border-[#004e70]/50 mb-8">
         {/* Decorative background shapes */}
