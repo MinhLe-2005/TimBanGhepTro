@@ -128,7 +128,7 @@ export default function HistoryView({
             <FileText className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800">Quản Lý Hợp Đồng</h1>
+            <h1 className="text-2xl font-black text-slate-800">Lịch Sử Thỏa Thuận</h1>
             <p className="text-sm text-slate-500">
               Theo dõi bản chờ ký, đã ký và đã hủy
             </p>

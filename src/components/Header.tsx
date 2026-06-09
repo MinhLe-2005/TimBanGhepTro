@@ -52,7 +52,7 @@ export default function Header({
     { id: "rooms", label: "Phòng Trọ", icon: Building },
     { id: "chat", label: "Tin Nhắn", icon: MessageSquare },
     { id: "agreement", label: "Thỏa Thuận", icon: FileText },
-    { id: "history", label: "Quản Lý Hợp Đồng", icon: FileText },
+    { id: "history", label: "Lịch Sử Thỏa Thuận", icon: FileText },
     ...(isAdmin ? [{ id: "admin", label: "Quản Trị (Admin)", icon: Shield }] : []),
     { 
       id: "info", 

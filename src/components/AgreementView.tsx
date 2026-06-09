@@ -1434,7 +1434,7 @@ export default function AgreementView({
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-black text-slate-900">📋 Quản Lý Hợp Đồng</h2>
+                  <h2 className="text-lg font-black text-slate-900">📋 Lịch Sử Thỏa Thuận</h2>
                   <p className="text-xs text-slate-500">Tổng cộng {agreements.length} hợp đồng</p>
                 </div>
               </div>
