@@ -58,26 +58,52 @@ export default function HomeView({
     return firstChild ? firstChild.clientWidth + 16 : 304;
   };
 
+  const handleScrollNext = (ref: React.RefObject<HTMLDivElement | null>) => {
+    if (ref.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = ref.current;
+      const originalWidth = scrollWidth / 3;
+      const scrollAmount = getScrollAmount(ref);
+      
+      // Seamlessly jump back by one copy if we reach the third copy
+      if (scrollLeft >= originalWidth * 2 - clientWidth) {
+        ref.current.scrollTo({ left: scrollLeft - originalWidth, behavior: "auto" });
+        setTimeout(() => {
+          if (ref.current) ref.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+        }, 10);
+      } else {
+        ref.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+      }
+    }
+  };
+
+  const handleScrollPrev = (ref: React.RefObject<HTMLDivElement | null>) => {
+    if (ref.current) {
+      const { scrollLeft, scrollWidth } = ref.current;
+      const originalWidth = scrollWidth / 3;
+      const scrollAmount = getScrollAmount(ref);
+      
+      // Seamlessly jump forward by one copy if we are in the first copy
+      if (scrollLeft <= originalWidth) {
+        ref.current.scrollTo({ left: scrollLeft + originalWidth, behavior: "auto" });
+        setTimeout(() => {
+          if (ref.current) ref.current.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+        }, 10);
+      } else {
+        ref.current.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+      }
+    }
+  };
+
   useEffect(() => {
     const roommateInterval = setInterval(() => {
-      if (carouselRef.current && !isRoommateCarouselPaused) {
-        const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
-        if (scrollLeft + clientWidth >= scrollWidth - 10) {
-          carouselRef.current.scrollTo({ left: 0, behavior: "auto" });
-        } else {
-          carouselRef.current.scrollBy({ left: getScrollAmount(carouselRef), behavior: "smooth" });
-        }
+      if (!isRoommateCarouselPaused) {
+        handleScrollNext(carouselRef);
       }
     }, 2500);
 
     const roomInterval = setInterval(() => {
-      if (roomCarouselRef.current && !isRoomCarouselPaused) {
-        const { scrollLeft, scrollWidth, clientWidth } = roomCarouselRef.current;
-        if (scrollLeft + clientWidth >= scrollWidth - 10) {
-          roomCarouselRef.current.scrollTo({ left: 0, behavior: "auto" });
-        } else {
-          roomCarouselRef.current.scrollBy({ left: getScrollAmount(roomCarouselRef), behavior: "smooth" });
-        }
+      if (!isRoomCarouselPaused) {
+        handleScrollNext(roomCarouselRef);
       }
     }, 2500);
 
@@ -87,57 +113,10 @@ export default function HomeView({
     };
   }, [isRoommateCarouselPaused, isRoomCarouselPaused]);
 
-  const scrollPrev = () => {
-    if (carouselRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
-      
-      // If at the beginning, jump to the end (loop back)
-      if (scrollLeft <= 0) {
-        carouselRef.current.scrollTo({ left: scrollWidth - clientWidth, behavior: "auto" });
-      } else {
-        carouselRef.current.scrollBy({ left: -getScrollAmount(carouselRef), behavior: "smooth" });
-      }
-    }
-  };
-
-  const scrollNext = () => {
-    if (carouselRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
-      
-      // If at the end, jump to the beginning (loop forward)
-      if (scrollLeft + clientWidth >= scrollWidth - 10) {
-        carouselRef.current.scrollTo({ left: 0, behavior: "auto" });
-      } else {
-        carouselRef.current.scrollBy({ left: getScrollAmount(carouselRef), behavior: "smooth" });
-      }
-    }
-  };
-
-  const scrollRoomPrev = () => {
-    if (roomCarouselRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = roomCarouselRef.current;
-      
-      // If at the beginning, jump to the end (loop back)
-      if (scrollLeft <= 0) {
-        roomCarouselRef.current.scrollTo({ left: scrollWidth - clientWidth, behavior: "auto" });
-      } else {
-        roomCarouselRef.current.scrollBy({ left: -getScrollAmount(roomCarouselRef), behavior: "smooth" });
-      }
-    }
-  };
-
-  const scrollRoomNext = () => {
-    if (roomCarouselRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = roomCarouselRef.current;
-      
-      // If at the end, jump to the beginning (loop forward)
-      if (scrollLeft + clientWidth >= scrollWidth - 10) {
-        roomCarouselRef.current.scrollTo({ left: 0, behavior: "auto" });
-      } else {
-        roomCarouselRef.current.scrollBy({ left: getScrollAmount(roomCarouselRef), behavior: "smooth" });
-      }
-    }
-  };
+  const scrollPrev = () => handleScrollPrev(carouselRef);
+  const scrollNext = () => handleScrollNext(carouselRef);
+  const scrollRoomPrev = () => handleScrollPrev(roomCarouselRef);
+  const scrollRoomNext = () => handleScrollNext(roomCarouselRef);
 
   const locations = ["Tất cả Đà Nẵng", "Hải Châu", "Sơn Trà", "Ngũ Hành Sơn", "Liên Chiểu", "Thanh Khê", "Cẩm Lệ"];
   const budgets = ["Tất cả mức giá", "Dưới 2 triệu", "2 - 3 triệu", "3 - 5 triệu", "Trên 5 triệu"];
@@ -570,8 +549,12 @@ export default function HomeView({
             className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-8 pt-3"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            {/* Chỉ hiển thị listings (is_listing=true), không hiển thị profiles */}
-            {roommates.filter(r => r.is_listing === true).map((rm, index) => (
+            {/* Chỉ hiển thị listings (is_listing=true), không hiển thị profiles. Duplicate 3 times for infinite scroll */}
+            {[
+              ...roommates.filter(r => r.is_listing === true),
+              ...roommates.filter(r => r.is_listing === true),
+              ...roommates.filter(r => r.is_listing === true)
+            ].map((rm, index) => (
               <div key={`${rm.id}-${index}`} className="shrink-0 snap-start w-[82%] sm:w-[calc(50%-8px)] md:w-[calc(33.333%-11px)] lg:w-[calc(25%-12px)] xl:w-[calc(20%-13px)]">
                 <RoommateCard
                   roommate={rm}

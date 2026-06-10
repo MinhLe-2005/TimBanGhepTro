@@ -161,25 +161,23 @@ export default function RoommateCard({
         </div>
 
         {/* Detailed Info Grid */}
-        <div className={`grid grid-cols-2 gap-y-1.5 gap-x-2 text-[12px] ${compact ? "mb-2" : "mb-3"}`}>
-          <div className="flex items-center gap-1.5 text-slate-600 truncate">
-            <span className="font-semibold text-slate-400 shrink-0">Giới tính:</span> {roommate.gender}
+        <div className={`grid grid-cols-2 gap-2 text-[12px] ${compact ? "mb-2" : "mb-3"}`}>
+          <div className="flex flex-col bg-slate-50 p-2 rounded-lg border border-slate-100/50">
+            <span className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-wider">Giới tính</span>
+            <span className="font-semibold text-slate-700 truncate">{roommate.gender}</span>
           </div>
-          <div className="flex items-start gap-1.5 text-slate-600">
-            <span className="font-semibold text-slate-400 shrink-0">Trường:</span> <span className="line-clamp-2">{roommate.school || (roommate as any).majorKhoidoi || "Không rõ"}</span>
+          <div className="flex flex-col bg-slate-50 p-2 rounded-lg border border-slate-100/50">
+            <span className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-wider">Trường</span>
+            <span className="font-semibold text-slate-700 truncate">{roommate.school || (roommate as any).majorKhoidoi || "Không rõ"}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-slate-600 truncate">
-            <span className="font-semibold text-slate-400 shrink-0">Ngân sách:</span> <span className="font-bold text-[#006590]">{(roommate.budget / 1000000).toFixed(1)}tr</span>
+          <div className="flex flex-col bg-slate-50 p-2 rounded-lg border border-slate-100/50">
+            <span className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-wider">Ngân sách</span>
+            <span className="font-bold text-[#006590] truncate">{(roommate.budget / 1000000).toFixed(1)} tr</span>
           </div>
-          <div className="flex items-center gap-1.5 text-slate-600 truncate">
-            <span className="font-semibold text-slate-400 shrink-0">Loại hình:</span> {roommate.type}
+          <div className="flex flex-col bg-slate-50 p-2 rounded-lg border border-slate-100/50">
+            <span className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-wider">Loại hình</span>
+            <span className="font-semibold text-slate-700 truncate">{roommate.type}</span>
           </div>
-          {!compact && (
-            <div className="flex items-center gap-1.5 text-slate-600 truncate col-span-2">
-              <span className="font-semibold text-slate-400 shrink-0">SĐT:</span>
-              <span className="bg-slate-100 px-1.5 rounded text-slate-500 font-mono text-[10px] tracking-widest">{roommate.phoneNumber ? roommate.phoneNumber.replace(/\d{3}\s?\d{3}$/, '*** ***') : '09** *** ***'}</span>
-            </div>
-          )}
         </div>
 
         {/* Short Bio */}

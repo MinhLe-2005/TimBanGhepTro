@@ -218,22 +218,22 @@ export default function RoomCard({
         </div>
 
         {/* Detailed Info Grid */}
-        <div className="grid grid-cols-2 gap-y-1.5 gap-x-2 text-[12px] mb-4">
-          <div className="flex items-center gap-1.5 text-slate-600 truncate">
-            <span className="font-semibold text-slate-400 shrink-0">Loại:</span> {room.type}
+        <div className="grid grid-cols-2 gap-2 text-[12px] mb-4">
+          <div className="flex flex-col bg-slate-50 p-2 rounded-lg border border-slate-100/50">
+            <span className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-wider">Loại phòng</span>
+            <span className="font-semibold text-slate-700 truncate">{room.type}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-slate-600 truncate">
-            <span className="font-semibold text-slate-400 shrink-0">Phòng:</span> {room.bedrooms} PN
+          <div className="flex flex-col bg-slate-50 p-2 rounded-lg border border-slate-100/50">
+            <span className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-wider">Phòng ngủ</span>
+            <span className="font-semibold text-slate-700 truncate">{room.bedrooms} PN</span>
           </div>
-          <div className="flex items-center gap-1.5 text-slate-600 truncate">
-            <span className="font-semibold text-slate-400 shrink-0">Điện:</span> {room.electricity || 'Giá NN'}
+          <div className="flex flex-col bg-slate-50 p-2 rounded-lg border border-slate-100/50">
+            <span className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-wider">Tiền điện</span>
+            <span className="font-semibold text-slate-700 truncate">{room.electricity || 'Giá NN'}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-slate-600 truncate">
-            <span className="font-semibold text-slate-400 shrink-0">Nước:</span> {room.water || 'Giá NN'}
-          </div>
-          <div className="flex items-center gap-1.5 text-slate-600 truncate col-span-2">
-            <span className="font-semibold text-slate-400 shrink-0">SĐT:</span> 
-            <span className="bg-slate-100 px-1.5 rounded text-slate-500 font-mono text-[10px] tracking-widest">{room.phoneNumber ? room.phoneNumber.replace(/\d{3}\s?\d{3}$/, '*** ***') : '09** *** ***'}</span>
+          <div className="flex flex-col bg-slate-50 p-2 rounded-lg border border-slate-100/50">
+            <span className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-wider">Tiền nước</span>
+            <span className="font-semibold text-slate-700 truncate">{room.water || 'Giá NN'}</span>
           </div>
         </div>
 
