@@ -122,18 +122,28 @@ export default function RoomCard({
           )}
         </div>
 
-        {/* Hot / Full Badge */}
-        {room.status === "hết phòng" || (targetTenants > 0 && currentTenants >= targetTenants) ? (
-          <div className="absolute bottom-4 left-4 z-10 bg-slate-800 text-white px-3.5 py-1 rounded-full text-[12px] font-extrabold flex items-center gap-1 shadow-md">
-            <Ban className="h-3.5 w-3.5 text-slate-300" />
-            FULL
-          </div>
-        ) : room.isHot && (
-          <div className="absolute bottom-4 left-4 z-10 bg-red-500 text-white px-3.5 py-1 rounded-full text-[12px] font-extrabold flex items-center gap-1 shadow-md">
-            <Flame className="h-3.5 w-3.5 fill-white animate-bounce" />
-            HOT
-          </div>
-        )}
+        {/* Bottom Left Badges: Hot / Full / Rating */}
+        <div className="absolute bottom-4 left-4 z-10 flex flex-wrap gap-2 items-center">
+          {room.status === "hết phòng" || (targetTenants > 0 && currentTenants >= targetTenants) ? (
+            <div className="bg-slate-800 text-white px-3.5 py-1 rounded-full text-[12px] font-extrabold flex items-center gap-1 shadow-md">
+              <Ban className="h-3.5 w-3.5 text-slate-300" />
+              FULL
+            </div>
+          ) : room.isHot ? (
+            <div className="bg-red-500 text-white px-3.5 py-1 rounded-full text-[12px] font-extrabold flex items-center gap-1 shadow-md">
+              <Flame className="h-3.5 w-3.5 fill-white animate-bounce" />
+              HOT
+            </div>
+          ) : null}
+
+          {avgRating && (
+            <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-full shadow-lg border border-amber-200/60">
+              <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+              <span className="text-[12px] font-black text-slate-800 tracking-tight">{avgRating}</span>
+              <span className="text-[10px] font-bold text-slate-400">({reviewsCount})</span>
+            </div>
+          )}
+        </div>
 
         {/* Saved Like Button - hidden for admin */}
         {onLikeChange && (
@@ -182,7 +192,7 @@ export default function RoomCard({
       {/* Room Content */}
       <div className="p-5 flex flex-col flex-1">
         <div className="flex items-center justify-between mb-1">
-          <div className="flex items-baseline gap-1 overflow-hidden">
+          <div className="flex items-baseline gap-1 overflow-hidden w-full">
             <span className="text-xl font-bold text-slate-900 tracking-tight truncate">
               {formatPrice(room.price).replace("đ", "")}
             </span>
@@ -190,12 +200,6 @@ export default function RoomCard({
               {room.type.toLowerCase().includes("ký túc") || room.type.toLowerCase().includes("homestay") ? "đ / người" : "đ / phòng"}
             </span>
           </div>
-          {avgRating && (
-            <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
-              <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-              <span>{avgRating}</span>
-            </div>
-          )}
         </div>
 
         {/* Title */}
