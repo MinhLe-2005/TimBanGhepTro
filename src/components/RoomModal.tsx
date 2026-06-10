@@ -572,7 +572,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
             </div>
 
             {/* Create review input form matching instructions */}
-            {!isOwnProfile && !hasSignedAgreement && currentUser && (
+            {!isOwnProfile && !hasSignedAgreement && currentUserId && (
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center mt-6">
                 <p className="text-[13px] text-amber-700 font-medium">
                   Chỉ những người đã ký <strong>Thỏa thuận sống chung</strong> với chủ phòng mới có thể đánh giá phòng trọ này.
