@@ -28,8 +28,8 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   const [allSupabaseRoommates, setAllSupabaseRoommates] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchAdminData = async () => {
-    setIsLoading(true);
+  const fetchAdminData = async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
     try {
       // Fetch ALL roommates from Supabase (both profiles and listings)
       const { data: allRoommatesData } = await supabase
@@ -161,13 +161,13 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     } catch (e) {
       console.error("Admin fetch error", e);
     }
-    setIsLoading(false);
+    if (showLoading) setIsLoading(false);
   };
 
   useEffect(() => {
     fetchAdminData();
 
-    const refreshReports = () => fetchAdminData();
+    const refreshReports = () => fetchAdminData(false);
     const reportChannel = supabase
       .channel('admin-report-updates')
       .on(
@@ -208,8 +208,10 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
       chat_id: 'SYSTEM_BANS', sender_id: currentUser.id, text: `[BAN] ${userId}`
     });
     if (!error) {
+      setBannedUsers(previous =>
+        previous.includes(userId) ? previous : [...previous, userId]
+      );
       toast('Đã khóa người dùng thành công.', 'success');
-      await fetchAdminData();
       return true;
     }
     toast('Không thể khóa người dùng.', 'error');
@@ -218,8 +220,13 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
 
   const resolveChatReport = async (report: any) => {
     const reportMessageId = report.report_message_id || report.id;
-    if (!reportMessageId) return;
-    await supabase.from('messages').delete().eq('id', reportMessageId);
+    if (!reportMessageId) return false;
+    const { error } = await supabase.from('messages').delete().eq('id', reportMessageId);
+    if (error) return false;
+    setReports(previous =>
+      previous.filter(item => (item.report_message_id || item.id) !== reportMessageId)
+    );
+    return true;
   };
 
   const handleDismissChatReport = async (report: any) => {
@@ -230,9 +237,12 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
       type: 'success',
     });
     if (!ok) return;
-    await resolveChatReport(report);
+    const resolved = await resolveChatReport(report);
+    if (!resolved) {
+      toast('Không thể đóng báo cáo.', 'error');
+      return;
+    }
     toast('Đã đóng báo cáo.', 'success');
-    fetchAdminData();
   };
 
   const handleDeleteReportedMessage = async (report: any) => {
@@ -262,22 +272,26 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
 
     await resolveChatReport(report);
     toast(`Đã xóa ${messageIds.length} tin nhắn vi phạm.`, 'success');
-    fetchAdminData();
   };
 
   const handleBanReportedUser = async (report: any, targetAccountId: string) => {
     const banned = await handleBanUser(targetAccountId);
     if (!banned) return;
     await resolveChatReport(report);
-    fetchAdminData();
   };
 
   const resolveReviewReport = async (report: any, status: 'dismissed' | 'review_deleted' | 'user_banned') => {
+    let error = null;
     if (report.source === 'table') {
-      await supabase.from('review_reports').update({ status }).eq('id', report.id);
+      ({ error } = await supabase.from('review_reports').update({ status }).eq('id', report.id));
     } else {
-      await supabase.from('messages').delete().eq('id', report.id);
+      ({ error } = await supabase.from('messages').delete().eq('id', report.id));
     }
+    if (error) return false;
+    setReviewReports(previous =>
+      previous.filter(item => !(item.source === report.source && item.id === report.id))
+    );
+    return true;
   };
 
   const handleDismissReviewReport = async (report: any) => {
@@ -288,9 +302,12 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
       type: 'success',
     });
     if (!ok) return;
-    await resolveReviewReport(report, 'dismissed');
+    const resolved = await resolveReviewReport(report, 'dismissed');
+    if (!resolved) {
+      toast('Không thể đóng báo cáo feedback.', 'error');
+      return;
+    }
     toast('Đã bỏ qua báo cáo.', 'success');
-    fetchAdminData();
   };
 
   const handleDeleteReportedReview = async (report: any) => {
@@ -310,7 +327,6 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     await resolveReviewReport(report, 'review_deleted');
     onReviewDeleted?.(report.review_id);
     toast('Đã xóa feedback phản cảm.', 'success');
-    fetchAdminData();
   };
 
   const handleBanReviewAuthor = async (report: any) => {
@@ -322,7 +338,6 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     const banned = await handleBanUser(reviewerId);
     if (!banned) return;
     await resolveReviewReport(report, 'user_banned');
-    fetchAdminData();
   };
 
   const handleUnbanUser = async (userId: string) => {
@@ -330,19 +345,35 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     if (!ok) return;
     const { data: banMsgs } = await supabase.from('messages').select('id, text').eq('chat_id', 'SYSTEM_BANS');
     if (banMsgs) {
-       const msgsToDelete = banMsgs.filter(m => m.text.includes(userId)).map(m => m.id);
-       for (const id of msgsToDelete) await supabase.from('messages').delete().eq('id', id);
+       const msgsToDelete = banMsgs
+         .filter(m => m.text.replace('[BAN]', '').trim() === userId)
+         .map(m => m.id);
+       if (msgsToDelete.length > 0) {
+         const { error } = await supabase.from('messages').delete().in('id', msgsToDelete);
+         if (error) {
+           toast('Không thể mở khóa tài khoản.', 'error');
+           return;
+         }
+       }
     }
-    toast('✅ Đã mở khóa tài khoản.', 'success'); fetchAdminData();
+    setBannedUsers(previous => previous.filter(id => id !== userId));
+    toast('✅ Đã mở khóa tài khoản.', 'success');
   };
 
   const handleDeleteListing = async (table: 'roommates' | 'rooms', id: string) => {
     const ok = await confirm({ title: 'Xóa bài đăng', message: 'Xóa vĩnh viễn bài đăng này? Hành động không thể hoàn tác.', confirmText: 'Xóa ngay', type: 'error' });
     if (!ok) return;
-    await supabase.from(table).delete().eq('id', id);
+    const { error } = await supabase.from(table).delete().eq('id', id);
+    if (error) {
+      toast('Không thể xóa tin đăng.', 'error');
+      return;
+    }
     if (table === 'roommates' && onDeleteRoommate) onDeleteRoommate(id);
     if (table === 'rooms' && onDeleteRoom) onDeleteRoom(id);
-    toast('🗑️ Đã xóa tin đăng.', 'info'); fetchAdminData();
+    if (table === 'roommates') {
+      setAllSupabaseRoommates(previous => previous.filter(item => item.id !== id));
+    }
+    toast('🗑️ Đã xóa tin đăng.', 'info');
   };
 
   const handleDeleteAgreement = async (id: string) => {
@@ -353,7 +384,12 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
        await supabase.from('messages').insert({ chat_id: target.chat_id, sender_id: currentUser.id, text: `[AGREEMENT_CANCELLED] {"id":"${id}"}` });
        const ids = target.chat_id.split('_');
        if (ids.length === 2) await supabase.from('roommates').update({ status: 'Đang tìm' }).in('id', ids);
-       toast('✅ Đã hủy hợp đồng thành công.', 'success'); fetchAdminData();
+       setAgreements(previous =>
+         previous.map(agreement =>
+           agreement.id === id ? { ...agreement, type: 'cancelled' } : agreement
+         )
+       );
+       toast('✅ Đã hủy hợp đồng thành công.', 'success');
     }
   };
 
@@ -500,7 +536,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                     <p className="mt-1 text-xs text-slate-500">Tự động cập nhật khi có báo cáo mới.</p>
                   </div>
                   <button
-                    onClick={fetchAdminData}
+                    onClick={() => fetchAdminData(true)}
                     disabled={isLoading}
                     className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50"
                   >
