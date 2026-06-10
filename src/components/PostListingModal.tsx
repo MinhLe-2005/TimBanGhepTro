@@ -113,6 +113,7 @@ export default function PostListingModal({
   const [rDistrict, setRDistrict] = useState("Hải Châu");
   const [rAddress, setRAddress] = useState("");
   const [rType, setRType] = useState("Phòng trọ");
+  const [rStatus, setRStatus] = useState<"còn phòng" | "hết phòng">("còn phòng");
   const [rBedrooms, setRBedrooms] = useState("1");
   const [rWc, setRWc] = useState("Khép kín");
   const [rKitchen, setRKitchen] = useState("Bếp riêng");
@@ -178,6 +179,7 @@ export default function PostListingModal({
         setRDistrict(editingData.district || "Hải Châu");
         setRAddress(editingData.location ? editingData.location.split(", Quận")[0] : "");
         setRType(editingData.type || "Phòng trọ");
+        setRStatus(editingData.status || "còn phòng");
         setRBedrooms(editingData.bedrooms?.toString() || "1");
         setRWc(editingData.wc || "Khép kín");
         setRKitchen(editingData.kitchen || "Bếp riêng");
@@ -302,7 +304,7 @@ export default function PostListingModal({
       images: [rImage],
       features: selectedFeatures,
       isHot: true,
-      status: "còn phòng",
+      status: rStatus,
       isVerifiedRoom: false,
       bedrooms: Number(rBedrooms),
       wc: rWc,
@@ -674,7 +676,7 @@ export default function PostListingModal({
                       <input type="text" required value={rAddress} onChange={(e) => setRAddress(e.target.value)} placeholder="VD: K34/12 Lê Duẩn"
                         className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div className="space-y-1.5">
                         <label className="block text-[13px] font-semibold text-slate-700">Loại hình</label>
                         <select value={rType} onChange={(e) => setRType(e.target.value)}
@@ -684,6 +686,14 @@ export default function PostListingModal({
                           <option value="Căn hộ">Căn hộ</option>
                           <option value="Chung cư">Chung cư</option>
                           <option value="Homestay">Homestay</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-[13px] font-semibold text-slate-700">Trạng thái phòng</label>
+                        <select value={rStatus} onChange={(e) => setRStatus(e.target.value as any)}
+                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 cursor-pointer transition-all">
+                          <option value="còn phòng">Còn phòng trống</option>
+                          <option value="hết phòng">Đã hết phòng / Đủ người</option>
                         </select>
                       </div>
                       <div className="space-y-1.5">

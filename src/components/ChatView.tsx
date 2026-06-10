@@ -2503,6 +2503,12 @@ export default function ChatView({
                                 sender_id: currentUser.id,
                                 text: `[AGREEMENT_CANCELLED] ${JSON.stringify(payload)}`
                               });
+                              
+                              if (agreementModalPayload.status === 'signed') {
+                                await supabase.from('roommates').update({ status: 'Đang tìm' }).in('user_id', [currentUser.id, partnerAuthId]);
+                                await supabase.from('rooms').update({ status: 'còn phòng' }).in('user_id', [currentUser.id, partnerAuthId]);
+                              }
+
                               alert('Đã từ chối thỏa thuận!');
                               setIsAgreementModalOpen(false);
                               setAgreementModalPayload(null);
@@ -2566,6 +2572,12 @@ export default function ChatView({
                                 sender_id: currentUser.id,
                                 text: `[AGREEMENT_CANCELLED] ${JSON.stringify(payload)}`
                               });
+                              
+                              if (agreementModalPayload.status === 'signed') {
+                                await supabase.from('roommates').update({ status: 'Đang tìm' }).in('user_id', [currentUser.id, partnerAuthId]);
+                                await supabase.from('rooms').update({ status: 'còn phòng' }).in('user_id', [currentUser.id, partnerAuthId]);
+                              }
+                              
                               alert('Đã hủy thỏa thuận!');
                               setIsAgreementModalOpen(false);
                               setAgreementModalPayload(null);
@@ -2620,7 +2632,7 @@ export default function ChatView({
       )}
 
       {/* Signature Modal for Agreement Signing */}
-      {isSignatureModalOpen && (
+      {isSignatureModalOpen && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-[28px] shadow-2xl max-w-md w-full p-8 space-y-6 animate-scale-in border border-slate-100">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -2743,6 +2755,11 @@ export default function ChatView({
                     // Update roommate status to "Đã tìm được"
                     const { error: statusError } = await supabase.from('roommates')
                       .update({ status: 'Đã tìm được' })
+                      .in('user_id', [myChatId, partnerChatId]);
+                      
+                    // Update room status to "hết phòng"
+                    await supabase.from('rooms')
+                      .update({ status: 'hết phòng' })
                       .in('user_id', [myChatId, partnerChatId]);
 
                     if (statusError) {
