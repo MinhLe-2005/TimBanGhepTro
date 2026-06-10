@@ -303,8 +303,12 @@ export default function PostListingModal({
     };
 
     setIsSubmitting(true);
-    const submitted = onSubmitRoommate ? await onSubmitRoommate(newRoommate) : false;
-    setIsSubmitting(false);
+    let submitted = false;
+    try {
+      submitted = onSubmitRoommate ? await onSubmitRoommate(newRoommate) : false;
+    } finally {
+      setIsSubmitting(false);
+    }
     if (!submitted) return;
     setSuccessMessage(editingData ? `Đã cập nhật bài Tìm bạn ở ghép cho ${rmName} thành công!` : `Đã đăng bài Tìm bạn ở ghép cho ${rmName} thành công lên cộng đồng RoomieMatch!`);
     setIsSuccess(true);
@@ -370,8 +374,12 @@ export default function PostListingModal({
     };
 
     setIsSubmitting(true);
-    const submitted = onSubmitRoom ? await onSubmitRoom(newRoom) : false;
-    setIsSubmitting(false);
+    let submitted = false;
+    try {
+      submitted = onSubmitRoom ? await onSubmitRoom(newRoom) : false;
+    } finally {
+      setIsSubmitting(false);
+    }
     if (!submitted) return;
     setSuccessMessage(editingData ? `Đã cập nhật bài cho thuê / ghép phòng "${rTitle}" thành công!` : `Đã đăng bài cho thuê / ghép phòng "${rTitle}" thành công!`);
     setIsSuccess(true);

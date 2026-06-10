@@ -40,6 +40,12 @@ ALTER TABLE public.roommates
 ALTER TABLE public.rooms
   ALTER COLUMN "phoneNumber" TYPE text USING "phoneNumber"::text;
 
+-- Prices and budgets may exceed PostgreSQL's 32-bit integer range.
+ALTER TABLE public.roommates
+  ALTER COLUMN budget TYPE bigint USING budget::bigint;
+ALTER TABLE public.rooms
+  ALTER COLUMN price TYPE bigint USING price::bigint;
+
 CREATE INDEX IF NOT EXISTS idx_roommates_user_id ON public.roommates(user_id);
 CREATE INDEX IF NOT EXISTS idx_roommates_is_listing ON public.roommates(is_listing);
 CREATE INDEX IF NOT EXISTS idx_rooms_user_id ON public.rooms(user_id);

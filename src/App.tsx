@@ -21,6 +21,43 @@ import CreateProfileModal from "./components/CreateProfileModal";
 import LoginModal from "./components/LoginModal";
 import PostListingModal from "./components/PostListingModal";
 
+type ListingKind = "room" | "roommate";
+type ListingAction = "create" | "update";
+
+const getListingErrorMessage = (
+  error: { code?: string; message?: string } | null,
+  kind: ListingKind,
+  action: ListingAction,
+) => {
+  const code = String(error?.code || "");
+  const message = String(error?.message || "").toLowerCase();
+  const subject = kind === "room" ? "tin phòng" : "bài tìm bạn";
+  const actionText = action === "create" ? "đăng" : "cập nhật";
+
+  if (code === "22003" || message.includes("out of range")) {
+    return kind === "room"
+      ? "Giá thuê đang quá lớn. Vui lòng kiểm tra lại mức giá rồi thử lại."
+      : "Ngân sách đang quá lớn. Vui lòng kiểm tra lại mức ngân sách rồi thử lại.";
+  }
+  if (code === "23502" || message.includes("not-null constraint")) {
+    return `Một số thông tin cần thiết của ${subject} còn thiếu. Vui lòng kiểm tra lại các ô có dấu *.`;
+  }
+  if (code === "23505" || message.includes("duplicate key")) {
+    return `${subject.charAt(0).toUpperCase() + subject.slice(1)} này đã được lưu. Vui lòng tải lại trang để kiểm tra.`;
+  }
+  if (code === "42501" || message.includes("row-level security") || message.includes("permission denied")) {
+    return `Bạn chưa có quyền ${actionText} ${subject}. Vui lòng đăng nhập lại rồi thử lại.`;
+  }
+  if (code === "PGRST204" || code === "42703" || message.includes("schema cache")) {
+    return "Dữ liệu hệ thống đang được cập nhật. Vui lòng thử lại sau ít phút.";
+  }
+  if (message.includes("failed to fetch") || message.includes("network")) {
+    return "Kết nối đến máy chủ chưa ổn định. Vui lòng kiểm tra mạng và thử lại.";
+  }
+
+  return `Chưa thể ${actionText} ${subject} lúc này. Vui lòng thử lại sau.`;
+};
+
 export default function App() {
   const { toast } = useDialog();
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -759,7 +796,7 @@ export default function App() {
         }
         if (error) {
           console.error("Error updating room to Supabase:", error);
-          toast(`Không thể cập nhật tin phòng: ${error.message}`, 'error', 5000);
+          toast(getListingErrorMessage(error, "room", "update"), 'error', 5000);
           return false;
         }
       }
@@ -786,7 +823,7 @@ export default function App() {
       }
       if (error) {
         console.error("Error inserting room to Supabase:", error);
-        toast(`Đăng tin phòng thất bại: ${error.message}`, 'error', 5500);
+        toast(getListingErrorMessage(error, "room", "create"), 'error', 5500);
         return false;
       } else if (data && data.length > 0) {
         console.log("[App] Successfully inserted room to Supabase:", data[0]);
@@ -797,7 +834,7 @@ export default function App() {
         );
         return true;
       }
-      toast('Supabase không trả về tin phòng vừa đăng.', 'error', 5000);
+      toast('Tin phòng chưa được lưu thành công. Vui lòng thử lại.', 'error', 5000);
       return false;
     }
 
@@ -848,7 +885,7 @@ export default function App() {
         }
         if (error) {
           console.error("Error updating roommate to Supabase:", error);
-          toast(`Không thể cập nhật bài tìm bạn: ${error.message}`, 'error', 5000);
+          toast(getListingErrorMessage(error, "roommate", "update"), 'error', 5000);
           return false;
         }
         
@@ -900,7 +937,7 @@ export default function App() {
       }
       if (error) {
         console.error("Error inserting roommate to Supabase:", error);
-        toast(`Đăng bài tìm bạn thất bại: ${error.message}`, 'error', 5500);
+        toast(getListingErrorMessage(error, "roommate", "create"), 'error', 5500);
         return false;
       } else if (data && data.length > 0) {
         console.log("[App] Successfully inserted roommate to Supabase:", data[0]);
@@ -911,7 +948,7 @@ export default function App() {
         );
         return true;
       }
-      toast('Supabase không trả về bài tìm bạn vừa đăng.', 'error', 5000);
+      toast('Bài tìm bạn chưa được lưu thành công. Vui lòng thử lại.', 'error', 5000);
       return false;
     }
     
