@@ -713,12 +713,15 @@ export default function PostListingModal({
                       </div>
                       <div className="space-y-1.5">
                         <label className="block text-[13px] font-semibold text-slate-700">Cần tìm mấy người?</label>
-                        <select value={rTargetTenants} onChange={(e) => setRTargetTenants(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 cursor-pointer transition-all">
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-                            <option key={n} value={n.toString()}>{n} người</option>
-                          ))}
-                        </select>
+                        <input type="number" min="1" list="capacity-options" value={rTargetTenants} onChange={(e) => setRTargetTenants(e.target.value)} placeholder="VD: 2"
+                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
+                        <datalist id="capacity-options">
+                          <option value="1" />
+                          <option value="2" />
+                          <option value="3" />
+                          <option value="4" />
+                          <option value="5" />
+                        </datalist>
                       </div>
                     </div>
                   </div>
