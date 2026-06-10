@@ -973,7 +973,9 @@ export default function ChatView({
                 partnerId: canonicalId,
                 lastMessage: msg.text || 'Đã gửi đính kèm',
                 timestamp: msg.timestamp,
-                chatId: msg.chat_id
+                chatId: msg.chat_id,
+                senderId: msg.sender_id,
+                reactions: msg.reactions || {}
               });
               console.log('[Chat] Updated existing conversation for canonical ID:', canonicalId);
             }
@@ -984,7 +986,9 @@ export default function ChatView({
               partnerId: canonicalId, // Store canonical ID in conversation
               lastMessage: msg.text || 'Đã gửi đính kèm',
               timestamp: msg.timestamp,
-              chatId: msg.chat_id
+              chatId: msg.chat_id,
+              senderId: msg.sender_id,
+              reactions: msg.reactions || {}
             });
             console.log('[Chat] Created new conversation with canonical ID:', canonicalId);
           }
@@ -1015,7 +1019,9 @@ export default function ChatView({
                 partnerId: canonicalId,
                 lastMessage: 'Bắt đầu cuộc trò chuyện...',
                 timestamp: new Date().toISOString(),
-                chatId: [myAuthId, activeRoommateId].sort().join('_')
+                chatId: [myAuthId, activeRoommateId].sort().join('_'),
+                senderId: myAuthId,
+                reactions: {}
               });
               
               console.log('[Chat] Added active roommate with canonical ID:', canonicalId);
@@ -1324,13 +1330,12 @@ export default function ChatView({
               const hasAgreement = conversationsWithAgreements[partnerId];
 
               const myChatId = currentUser?.id || currentUserProfile?.id;
-              const lastMsgObj = chats[partnerId]?.[chats[partnerId].length - 1];
-              const isUnread = lastMsgObj 
-                && lastMsgObj.senderId !== "me" 
-                && lastMsgObj.senderId !== myChatId 
-                && lastMsgObj.text !== "[SYSTEM_BLOCK]"
-                && lastMsgObj.text !== "[SYSTEM_UNBLOCK]"
-                && new Date(lastMsgObj.timestamp).getTime() > (lastReadTimestamps[partnerId] || 0)
+              const isUnread = !!conv.senderId 
+                && conv.senderId !== "me" 
+                && conv.senderId !== myChatId 
+                && conv.lastMessage !== "[SYSTEM_BLOCK]"
+                && conv.lastMessage !== "[SYSTEM_UNBLOCK]"
+                && new Date(conv.timestamp).getTime() > (lastReadTimestamps[partnerId] || 0)
                 && !isActive;
               
               return (
