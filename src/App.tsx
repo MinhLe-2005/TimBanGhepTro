@@ -112,6 +112,7 @@ export default function App() {
   
   // Authentication states
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [previousRoom, setPreviousRoom] = useState<Room | null>(null);
   const [authLoading, setAuthLoading] = useState(true); // Add loading state
   const [isBanned, setIsBanned] = useState(false);
   const [supabaseBannedIds, setSupabaseBannedIds] = useState<string[]>([]);
@@ -2477,7 +2478,13 @@ export default function App() {
       {selectedRoommate && (
         <RoommateModal
           roommate={selectedRoommate}
-          onClose={handleCloseModal}
+          onClose={() => {
+            handleCloseModal();
+            if (previousRoom) {
+              setSelectedRoom(previousRoom);
+              setPreviousRoom(null);
+            }
+          }}
           onStartChat={startChatConversation}
           onStartAgreement={startAgreementForm}
           onAddReview={handleAddReview}
@@ -2524,7 +2531,7 @@ export default function App() {
       {selectedRoom && (
         <RoomModal
           room={selectedRoom}
-          roommates={allRoommates}
+          roommates={filteredRoommates}
           onClose={handleCloseModal}
           onInquire={handleRoomInquiry}
           onAddReview={handleAddRoomReview}
@@ -2541,6 +2548,7 @@ export default function App() {
           isAdmin={isAdmin}
           onViewHostProfile={(roommate) => {
             console.log('[App] View host profile from RoomModal:', roommate);
+            setPreviousRoom(selectedRoom);
             setSelectedRoom(null);
             setSelectedRoommate(roommate);
           }}
