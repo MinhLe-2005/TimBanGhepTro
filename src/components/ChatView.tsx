@@ -1352,18 +1352,24 @@ export default function ChatView({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline mb-0.5">
-                        <h4 className={`text-sm font-bold leading-tight tracking-tight truncate flex items-center gap-1 ${isUnread ? "text-slate-900" : "text-slate-800"}`}>
+                        <h4 className={`text-sm leading-tight tracking-tight truncate flex items-center gap-1 ${isUnread ? "text-slate-900 font-extrabold" : "text-slate-800 font-bold"}`}>
                           {r.name}
                           {blockedUsers.includes(r.id) && <span title="Đã chặn"><Ban className="h-3 w-3 text-red-400 shrink-0" /></span>}
-                          {isUnread && <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse ml-1 shrink-0" title="Có tin nhắn mới" />}
                         </h4>
                       </div>
-                      <p className={`text-xs truncate leading-snug select-none ${isUnread ? "text-slate-800 font-bold" : "text-slate-400 font-medium"}`}>{lastMsg}</p>
+                      <p className={`text-xs truncate leading-snug select-none ${isUnread ? "text-black font-extrabold" : "text-slate-400 font-medium"}`}>{lastMsg}</p>
                     </div>
                   </div>
                   
+                  {/* Unread dot indicator at the far right */}
+                  {isUnread && (
+                    <div className="shrink-0 pl-1 flex items-center">
+                      <div className="w-3 h-3 bg-[#0084ff] rounded-full shadow-sm" title="Có tin nhắn mới" />
+                    </div>
+                  )}
+
                   {/* Agreement badge notification */}
-                  {hasAgreement && (
+                  {hasAgreement && !isUnread && (
                     <div className="shrink-0">
                       <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" title="Có thỏa thuận mới" />
                     </div>
