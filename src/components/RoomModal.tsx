@@ -515,7 +515,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
             <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200">
               {!room.reviews || room.reviews.length === 0 ? (
                 <div className="bg-slate-50 border-2 border-slate-100 p-6 rounded-3xl text-center">
-                  <p className="text-[13px] text-slate-500 font-bold italic">Chưa có đánh giá nào cho phòng trọ này. Hãy là người đầu tiên đánh giá!</p>
+                  <p className="text-[13px] text-slate-500 font-bold italic">Chưa có đánh giá nào cho phòng trọ này. Ký thỏa thuận sống chung với chủ phòng để trở thành người đầu tiên đánh giá!</p>
                 </div>
               ) : (
                 room.reviews.map((rev) => (
