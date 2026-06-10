@@ -1767,10 +1767,36 @@ export default function App() {
   // Show loading spinner while checking auth
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#f0f4f8] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600 font-semibold">Đang tải...</p>
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-blue-50 flex items-center justify-center relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+          <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[80%] rounded-full bg-rose-200/20 blur-[120px] animate-pulse" />
+          <div className="absolute top-[10%] right-[-10%] w-[50%] h-[70%] rounded-full bg-sky-300/20 blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
+        
+        <div className="text-center relative z-10">
+          {/* Logo */}
+          <div className="mb-8 animate-bounce">
+            <div className="inline-flex items-center gap-2 bg-white px-6 py-4 rounded-3xl shadow-2xl border border-slate-100">
+              <div className="flex items-center gap-1">
+                <div className="w-8 h-8 bg-gradient-to-br from-[#ff6b6b] to-[#ee5a6f] rounded-full shadow-lg"></div>
+                <div className="w-8 h-8 bg-gradient-to-br from-[#4dabf7] to-[#339af0] rounded-full shadow-lg -ml-3"></div>
+              </div>
+              <h1 className="text-2xl font-black">
+                <span className="text-slate-800">Roomie</span>
+                <span className="text-[#ff6b6b]">Match</span>
+              </h1>
+            </div>
+          </div>
+          
+          {/* Loading spinner */}
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute inset-0 border-4 border-sky-200 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-transparent border-t-sky-600 rounded-full animate-spin"></div>
+          </div>
+          
+          {/* Loading text */}
+          <p className="text-slate-600 font-semibold animate-pulse">Đang tải...</p>
         </div>
       </div>
     );
