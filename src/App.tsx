@@ -1426,6 +1426,7 @@ export default function App() {
   const [selectedRoommate, setSelectedRoommate] = useState<Roommate | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [roomUserHasSignedAgreement, setRoomUserHasSignedAgreement] = useState(false);
+  const [hasChattedWithRoomHost, setHasChattedWithRoomHost] = useState(false);
   const [hasTwoWayMessagesWithSelected, setHasTwoWayMessagesWithSelected] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
@@ -1538,6 +1539,28 @@ export default function App() {
     } else {
       setRoomUserHasSignedAgreement(false);
     }
+  }, [selectedRoom?.id, currentUser?.id]);
+
+  // Check if user has chatted with the room host (to allow reviews)
+  useEffect(() => {
+    if (!selectedRoom || !currentUser?.id) {
+      setHasChattedWithRoomHost(false);
+      return;
+    }
+    const hostId = selectedRoom.postedBy || (selectedRoom as any).user_id;
+    if (!hostId || hostId === currentUser.id) {
+      setHasChattedWithRoomHost(false);
+      return;
+    }
+    const chatId = [currentUser.id, hostId].sort().join('_');
+    supabase
+      .from('messages')
+      .select('sender_id')
+      .eq('chat_id', chatId)
+      .limit(1)
+      .then(({ data }) => {
+        setHasChattedWithRoomHost(!!(data && data.length > 0));
+      });
   }, [selectedRoom?.id, currentUser?.id]);
 
   // Browser History & Navigation Management
@@ -2496,7 +2519,7 @@ export default function App() {
           currentUserId={currentUser?.id}
           currentUserProfile={currentUserProfile}
           isOwnProfile={!!currentUser && (selectedRoom.postedBy === currentUser.id || (selectedRoom as any).user_id === currentUser.id)}
-          hasSignedAgreement={roomUserHasSignedAgreement}
+          hasSignedAgreement={hasChattedWithRoomHost}
           onDeleteRoom={(id) => {
             handleDeleteRoom(id);
             setSelectedRoom(null);
