@@ -87,6 +87,31 @@ export default function ChatView({
   // Track if chat has 2-way messages (to show phone number)
   const [hasTwoWayMessages, setHasTwoWayMessages] = useState(false);
   
+  // Track last read timestamps for red dots
+  const [lastReadTimestamps, setLastReadTimestamps] = useState<Record<string, number>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`roomiematch_read_ts_${currentUser?.id || 'guest'}`) || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    if (activeRoommateId && chats[activeRoommateId]?.length > 0) {
+      const lastMsg = chats[activeRoommateId][chats[activeRoommateId].length - 1];
+      const ts = new Date(lastMsg.timestamp).getTime();
+      setLastReadTimestamps(prev => {
+        const current = prev[activeRoommateId] || 0;
+        if (ts > current) {
+          const next = { ...prev, [activeRoommateId]: ts };
+          localStorage.setItem(`roomiematch_read_ts_${currentUser?.id || 'guest'}`, JSON.stringify(next));
+          return next;
+        }
+        return prev;
+      });
+    }
+  }, [activeRoommateId, chats, currentUser?.id]);
+  
   // Track if signed agreement exists (to show review button)
   const [hasSignedAgreement, setHasSignedAgreement] = useState(false);
 
@@ -1276,6 +1301,16 @@ export default function ChatView({
               // Use canonical ID from conversation
               const partnerId = conv.partnerId || r.id;
               const hasAgreement = conversationsWithAgreements[partnerId];
+
+              const myChatId = currentUser?.id || currentUserProfile?.id;
+              const lastMsgObj = chats[partnerId]?.[chats[partnerId].length - 1];
+              const isUnread = lastMsgObj 
+                && lastMsgObj.senderId !== "me" 
+                && lastMsgObj.senderId !== myChatId 
+                && lastMsgObj.text !== "[SYSTEM_BLOCK]"
+                && lastMsgObj.text !== "[SYSTEM_UNBLOCK]"
+                && new Date(lastMsgObj.timestamp).getTime() > (lastReadTimestamps[partnerId] || 0)
+                && !isActive;
               
               return (
                 <div
@@ -1296,12 +1331,13 @@ export default function ChatView({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline mb-0.5">
-                        <h4 className="text-sm font-bold text-slate-800 leading-tight tracking-tight truncate flex items-center gap-1">
+                        <h4 className={`text-sm font-bold leading-tight tracking-tight truncate flex items-center gap-1 ${isUnread ? "text-slate-900" : "text-slate-800"}`}>
                           {r.name}
                           {blockedUsers.includes(r.id) && <span title="Đã chặn"><Ban className="h-3 w-3 text-red-400 shrink-0" /></span>}
+                          {isUnread && <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse ml-1 shrink-0" title="Có tin nhắn mới" />}
                         </h4>
                       </div>
-                      <p className="text-xs text-slate-400 truncate leading-snug font-medium select-none">{lastMsg}</p>
+                      <p className={`text-xs truncate leading-snug select-none ${isUnread ? "text-slate-800 font-bold" : "text-slate-400 font-medium"}`}>{lastMsg}</p>
                     </div>
                   </div>
                   
@@ -1472,7 +1508,10 @@ export default function ChatView({
                   const isMe = msg.senderId === "me" || msg.senderId === myChatId;
                   const isLast = index === activeMessages.length - 1;
                   const timeElapsed = Date.now() - new Date(msg.timestamp).getTime();
-                  const statusText = timeElapsed < 5000 ? "Đã gửi" : (timeElapsed < 15000 ? "Đã nhận" : "Đã xem");
+                  const hasPartnerRepliedAfter = activeMessages.slice(index + 1).some(m => m.senderId !== "me" && m.senderId !== myChatId && m.text !== "[SYSTEM_BLOCK]" && m.text !== "[SYSTEM_UNBLOCK]");
+                  const statusText = hasPartnerRepliedAfter 
+                    ? "Đã xem" 
+                    : (timeElapsed < 5000 ? "Đã gửi" : "Đã nhận");
                   
                   let isAgreementDraft = false;
                   let isAgreementSigned = false;
