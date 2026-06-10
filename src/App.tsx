@@ -12,6 +12,7 @@ import AgreementView from "./components/AgreementView";
 import HistoryView from "./components/HistoryView";
 import InfoView from "./components/InfoView";
 import AdminDashboard from "./components/AdminDashboard";
+import { getModerationChannel, REVIEW_REPORT_PREFIX } from "./lib/moderation";
 import { useDialog } from "./components/ui/DialogProvider";
 
 import RoommateModal from "./components/RoommateModal";
@@ -1580,17 +1581,27 @@ export default function App() {
       status: "pending",
     };
 
-    const { error } = await supabase.from("review_reports").insert([report]);
-    if (!error) return true;
-    if (error.code === "23505") return true;
+    const reportChannel = getModerationChannel(REVIEW_REPORT_PREFIX, currentUser.id);
+    const { data: existingReports } = await supabase
+      .from("messages")
+      .select("text")
+      .eq("chat_id", reportChannel)
+      .eq("sender_id", currentUser.id);
+    const alreadyReported = (existingReports || []).some((message) => {
+      try {
+        return JSON.parse(message.text.replace("[REVIEW_REPORT]", "").trim()).review_id === reviewId;
+      } catch {
+        return false;
+      }
+    });
+    if (alreadyReported) return true;
 
-    // Compatibility fallback until the review_reports migration is applied.
-    const { error: fallbackError } = await supabase.from("messages").insert({
-      chat_id: "SYSTEM_REVIEW_REPORTS",
+    const { error } = await supabase.from("messages").insert({
+      chat_id: reportChannel,
       sender_id: currentUser.id,
       text: `[REVIEW_REPORT]${JSON.stringify(report)}`,
     });
-    return !fallbackError;
+    return !error;
   };
 
   const handleAdminReviewDeleted = (reviewId: string) => {

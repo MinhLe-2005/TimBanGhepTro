@@ -3,6 +3,11 @@ import { Users, AlertTriangle, Shield, Trash2, Ban, ShieldCheck, FileText, UserC
 import { supabase } from "../lib/supabase";
 import { Roommate, Room } from "../types";
 import { useDialog } from "./ui/DialogProvider";
+import {
+  CHAT_REPORT_PREFIX,
+  REVIEW_REPORT_PREFIX,
+  isModerationChannel,
+} from "../lib/moderation";
 
 interface AdminDashboardProps {
   currentUser: any;
@@ -37,7 +42,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
       const { data: reportMsgs, error: reportError } = await supabase
         .from('messages')
         .select('*')
-        .eq('chat_id', 'SYSTEM_REPORTS');
+        .like('chat_id', `${CHAT_REPORT_PREFIX}%`);
 
       if (reportError) {
         console.error('[Admin] Cannot load chat reports:', reportError);
@@ -75,7 +80,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
       const { data: fallbackReviewReports } = await supabase
         .from('messages')
         .select('*')
-        .eq('chat_id', 'SYSTEM_REVIEW_REPORTS');
+        .like('chat_id', `${REVIEW_REPORT_PREFIX}%`);
 
       const tableReports = (reviewReportRows || []).map(report => ({
         ...report,
@@ -173,8 +178,8 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
             ? payload.new
             : payload.old;
           if (
-            row?.chat_id === 'SYSTEM_REPORTS' ||
-            row?.chat_id === 'SYSTEM_REVIEW_REPORTS'
+            isModerationChannel(row?.chat_id, CHAT_REPORT_PREFIX) ||
+            isModerationChannel(row?.chat_id, REVIEW_REPORT_PREFIX)
           ) {
             refreshReports();
           }

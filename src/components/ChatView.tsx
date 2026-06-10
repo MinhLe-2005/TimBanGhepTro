@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useDialog } from "./ui/DialogProvider";
 import MessageReactions from "./MessageReactions";
+import { CHAT_REPORT_PREFIX, getModerationChannel } from "../lib/moderation";
 
 interface ChatViewProps {
   roommates: Roommate[];
@@ -128,7 +129,7 @@ export default function ChatView({
        const { data: existingReports } = await supabase
          .from('messages')
          .select('text')
-         .eq('chat_id', 'SYSTEM_REPORTS')
+         .eq('chat_id', getModerationChannel(CHAT_REPORT_PREFIX, myId))
          .eq('sender_id', myId);
        
        if (existingReports && existingReports.length > 0) {
@@ -195,7 +196,7 @@ export default function ChatView({
          image: finalImageUrl
        };
        const { error: reportError } = await supabase.from('messages').insert({
-         chat_id: 'SYSTEM_REPORTS',
+         chat_id: getModerationChannel(CHAT_REPORT_PREFIX, myId),
          sender_id: myId,
          text: `[REPORT] ${JSON.stringify(payload)}`
        });
