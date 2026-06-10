@@ -1,4 +1,4 @@
-import { Heart, Pencil, Star, Trash2 } from "lucide-react";
+import { Heart, Pencil, Star, Trash2, ShieldCheck } from "lucide-react";
 import { Roommate } from "../types";
 import { useEffect, useState } from "react";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
