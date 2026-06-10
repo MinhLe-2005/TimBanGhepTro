@@ -125,7 +125,8 @@ export default function RoommatesView({
 
   // Filter roommates list
   // CRITICAL: Filter out user profiles (is_listing=false) - only show listings in "Tìm Bạn" tab
-  // MUST use === true to avoid showing profiles with undefined is_listing
+  // Only show explicit is_listing === true (confirmed listings)
+  // Old records with is_listing=null should be migrated via fix_missing_data.sql in Supabase
   const listingsOnly = roommates.filter(r => (r as any).is_listing === true);
   
   // Apply filters on top of listings-only data

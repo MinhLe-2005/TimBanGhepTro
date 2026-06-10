@@ -1,9 +1,9 @@
 -- KỊCH BẢN TẠO BẢNG (CHẠY TRÊN SUPABASE SQL EDITOR)
+-- ⚠️ CHỈ CHẠY FILE NÀY KHI SETUP LẦN ĐẦU TIÊN
+-- ⚠️ KHÔNG CHẠY LẠI - SẼ MẤT TOÀN BỘ DỮ LIỆU
+-- Để fix schema sau này, dùng file fix_missing_data.sql hoặc fix_public_listings_rls.sql
 
--- Xóa các bảng cũ nếu đã tồn tại để làm mới hoàn toàn
-DROP TABLE IF EXISTS public.reviews CASCADE;
-DROP TABLE IF EXISTS public.rooms CASCADE;
-DROP TABLE IF EXISTS public.roommates CASCADE;
+-- (CÁC LỆNH DROP TABLE ĐÃ BỊ XÓA ĐỂ TRÁNH MẤT DATA PRODUCTION)
 
 -- 1. TẠO BẢNG ROOMMATES
 CREATE TABLE public.roommates (

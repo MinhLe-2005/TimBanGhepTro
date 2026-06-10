@@ -566,7 +566,7 @@ export default function App() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [currentUser?.id, currentUser?.name]);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     if (!import.meta.env.VITE_SUPABASE_URL) return;
@@ -857,11 +857,35 @@ export default function App() {
       combinedCount: combined.length
     });
     
+    const supabaseRoomIdSet = new Set(supabaseRooms.map((sr: any) => String(sr.id)));
     const uniqueByIdMap = new Map();
     
     combined.forEach(r => {
-      // If same ID appears twice, prefer Supabase version (most up-to-date)
-      if (!uniqueByIdMap.has(r.id) || supabaseRooms.some(sr => sr.id === r.id)) {
+      const existing = uniqueByIdMap.get(r.id);
+      if (!existing) {
+        uniqueByIdMap.set(r.id, r);
+        return;
+      }
+      // If same ID appears twice, prefer the version with richer electricity/water data
+      // Supabase version is preferred UNLESS local has electricity/water and Supabase doesn't
+      const incomingIsSupabase = supabaseRoomIdSet.has(String(r.id));
+      const existingIsSupabase = supabaseRoomIdSet.has(String(existing.id));
+      if (incomingIsSupabase && !existingIsSupabase) {
+        // Prefer Supabase, but merge in local electricity/water if Supabase lacks them
+        const merged = { ...existing, ...r };
+        if (!r.electricity && existing.electricity) merged.electricity = existing.electricity;
+        if (!r.water && existing.water) merged.water = existing.water;
+        if (!r.parking && existing.parking) merged.parking = existing.parking;
+        uniqueByIdMap.set(r.id, merged);
+      } else if (!incomingIsSupabase && existingIsSupabase) {
+        // Keep existing Supabase version, but merge in local electricity/water if missing
+        const merged = { ...r, ...existing };
+        if (!existing.electricity && r.electricity) merged.electricity = r.electricity;
+        if (!existing.water && r.water) merged.water = r.water;
+        if (!existing.parking && r.parking) merged.parking = r.parking;
+        uniqueByIdMap.set(r.id, merged);
+      } else {
+        // Both same source - prefer incoming (newer in the array)
         uniqueByIdMap.set(r.id, r);
       }
     });
