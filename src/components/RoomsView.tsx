@@ -97,13 +97,20 @@ export default function RoomsView({
 
     const matchesDistrict = districtFilter === "Tất cả" || room.district === districtFilter;
     const matchesType = typeFilter === "Tất cả" || (room.type && room.type === typeFilter);
+    let targetTenants = 0;
+    if (room.features) {
+      room.features.forEach(f => {
+        if (f.startsWith("TARGET_TENANTS:")) targetTenants = parseInt(f.split(":")[1]);
+      });
+    }
+
     const matchesCapacity =
       capacityFilter === "Tất cả" ||
-      (capacityFilter === "1" && room.bedrooms === 1) ||
-      (capacityFilter === "2" && room.bedrooms === 2) ||
-      (capacityFilter === "3" && room.bedrooms === 3) ||
-      (capacityFilter === "4" && room.bedrooms === 4) ||
-      (capacityFilter === "5+" && room.bedrooms >= 5);
+      (capacityFilter === "1" && targetTenants === 1) ||
+      (capacityFilter === "2" && targetTenants === 2) ||
+      (capacityFilter === "3" && targetTenants === 3) ||
+      (capacityFilter === "4" && targetTenants === 4) ||
+      (capacityFilter === "5+" && targetTenants >= 5);
 
     const matchesPets =
       petsFilter === "Tất cả" || room.pets === petsFilter;
