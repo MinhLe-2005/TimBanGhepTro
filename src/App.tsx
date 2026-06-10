@@ -913,6 +913,27 @@ export default function App() {
     };
 
     fetchRoommateLikes();
+    
+    // Realtime subscription for roommate likes
+    const likesChannel = supabase
+      .channel('roommate_likes_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'roommate_likes'
+        },
+        () => {
+          // Refetch counts when likes change
+          fetchRoommateLikes();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(likesChannel);
+    };
   }, [currentUser?.id, allRoommates]);
 
   const handleLikeRoommate = async (id: string, isLiked: boolean) => {
