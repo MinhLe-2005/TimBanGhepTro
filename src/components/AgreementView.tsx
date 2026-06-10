@@ -474,7 +474,6 @@ export default function AgreementView({
     if (!error) {
        if (messagePrefix === "[AGREEMENT_SIGNED]") {
          await supabase.from('roommates').update({ status: 'Đã tìm được' }).in('user_id', [currentUser.id, partnerAuthId]);
-         await supabase.from('rooms').update({ status: 'hết phòng' }).in('user_id', [currentUser.id, partnerAuthId]);
          // ✅ Show success toast notification
          toast('🎉 Ký thỏa thuận thành công! Chúc bạn có trải nghiệm ở ghép vui vẻ!', 'success', 5000);
        } else {
@@ -513,7 +512,6 @@ export default function AgreementView({
         
         if (targetPayload.status === 'signed') {
           await supabase.from('roommates').update({ status: 'Đang tìm' }).in('user_id', [currentUser.id, partnerAuthId]);
-          await supabase.from('rooms').update({ status: 'còn phòng' }).in('user_id', [currentUser.id, partnerAuthId]);
         }
       }
       toast('Đã từ chối thỏa thuận!', 'info');

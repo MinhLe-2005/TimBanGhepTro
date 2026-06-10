@@ -2506,7 +2506,6 @@ export default function ChatView({
                               
                               if (agreementModalPayload.status === 'signed') {
                                 await supabase.from('roommates').update({ status: 'Đang tìm' }).in('user_id', [currentUser.id, partnerAuthId]);
-                                await supabase.from('rooms').update({ status: 'còn phòng' }).in('user_id', [currentUser.id, partnerAuthId]);
                               }
 
                               alert('Đã từ chối thỏa thuận!');
@@ -2575,7 +2574,6 @@ export default function ChatView({
                               
                               if (agreementModalPayload.status === 'signed') {
                                 await supabase.from('roommates').update({ status: 'Đang tìm' }).in('user_id', [currentUser.id, partnerAuthId]);
-                                await supabase.from('rooms').update({ status: 'còn phòng' }).in('user_id', [currentUser.id, partnerAuthId]);
                               }
                               
                               alert('Đã hủy thỏa thuận!');
@@ -2755,11 +2753,6 @@ export default function ChatView({
                     // Update roommate status to "Đã tìm được"
                     const { error: statusError } = await supabase.from('roommates')
                       .update({ status: 'Đã tìm được' })
-                      .in('user_id', [myChatId, partnerChatId]);
-                      
-                    // Update room status to "hết phòng"
-                    await supabase.from('rooms')
-                      .update({ status: 'hết phòng' })
                       .in('user_id', [myChatId, partnerChatId]);
 
                     if (statusError) {
