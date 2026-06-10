@@ -37,7 +37,7 @@ export default function RoomsView({
   const [petsFilter, setPetsFilter] = useState("Tất cả");
   const [genderFilter, setGenderFilter] = useState("Tất cả");
   const [minPrice, setMinPrice] = useState<number>(0);
-  const [maxPrice, setMaxPrice] = useState<number>(20000000); // 20 million VND default max
+  const [maxPrice, setMaxPrice] = useState<number>(Number.MAX_SAFE_INTEGER); // unlimited default max
   const [priceTag, setPriceTag] = useState<string>("Tất cả");
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [showMyPostsOnly, setShowMyPostsOnly] = useState(false);
@@ -63,11 +63,11 @@ export default function RoomsView({
         break;
       case "trên 5tr":
         setMinPrice(5000000);
-        setMaxPrice(20000000);
+        setMaxPrice(Number.MAX_SAFE_INTEGER);
         break;
       default:
         setMinPrice(0);
-        setMaxPrice(20000000);
+        setMaxPrice(Number.MAX_SAFE_INTEGER);
         break;
     }
   };
@@ -318,7 +318,7 @@ export default function RoomsView({
               <div>
                 <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Giá thuê / tháng</p>
                 <p className="text-[15px] font-black text-[#006590]">
-                  {minPrice === 0 && maxPrice === 20000000 ? "Tất cả mức giá" : `${(minPrice/1000000).toFixed(0)}tr – ${maxPrice === 20000000 ? "không giới hạn" : `${(maxPrice/1000000).toFixed(0)}tr`}`}
+                  {minPrice === 0 && maxPrice === Number.MAX_SAFE_INTEGER ? "Tất cả mức giá" : `${(minPrice/1000000).toFixed(0)}tr – ${maxPrice === Number.MAX_SAFE_INTEGER ? "không giới hạn" : `${(maxPrice/1000000).toFixed(0)}tr`}`}
                 </p>
               </div>
             </div>
@@ -406,7 +406,7 @@ export default function RoomsView({
               setPetsFilter("Tất cả");
               setGenderFilter("Tất cả");
               setMinPrice(0);
-              setMaxPrice(20000000);
+              setMaxPrice(Number.MAX_SAFE_INTEGER);
               setPriceTag("Tất cả");
               setSelectedAmenities([]);
             }}

@@ -705,8 +705,8 @@ export default function App() {
 
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
-      // ✅ Only send columns that actually exist in Supabase table
-      const validRoomKeys = ['id', 'title', 'price', 'location', 'district', 'type', 'images', 'features', 'isHot', 'status', 'isVerifiedRoom', 'bedrooms', 'wc', 'kitchen', 'hostName', 'hostAvatar', 'description', 'phoneNumber', 'pets', 'gender', 'postedBy', 'user_id', 'createdAt'];
+      // ✅ Only send columns that actually exist in Supabase table. OMIT 'id'.
+      const validRoomKeys = ['title', 'price', 'location', 'district', 'type', 'images', 'features', 'isHot', 'status', 'isVerifiedRoom', 'bedrooms', 'wc', 'kitchen', 'hostName', 'hostAvatar', 'description', 'phoneNumber', 'pets', 'gender', 'postedBy', 'user_id', 'createdAt'];
       const dbRoom: any = {};
       for (const key of validRoomKeys) {
         if (roomWithOwner[key as keyof Room] !== undefined) {
@@ -716,7 +716,7 @@ export default function App() {
 
       let { error, data } = await supabase.from('rooms').insert(dbRoom).select();
       if (error && (error.code === 'PGRST204' || error.code === '42703')) {
-        const { postedBy, ...dbRoomFallback } = dbRoom;
+        const { postedBy, user_id, ...dbRoomFallback } = dbRoom;
         const result = await supabase.from('rooms').insert(dbRoomFallback).select();
         error = result.error;
         data = result.data;
@@ -726,6 +726,16 @@ export default function App() {
       } else if (data && data.length > 0) {
         console.log("[App] Successfully inserted room to Supabase:", data[0]);
         setSupabaseRooms((prev) => [data[0], ...prev]);
+
+        // Swap out fake ID with real ID
+        setRooms((prev) => prev.map(r => r.id === roomWithOwner.id ? { ...r, id: data[0].id } : r));
+        const saved = localStorage.getItem("roomiematch_posted_rooms");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(
+            parsed.map((r: any) => r.id === roomWithOwner.id ? { ...r, id: data[0].id } : r)
+          ));
+        }
       }
     }
   };
@@ -802,8 +812,8 @@ export default function App() {
 
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
-      // ✅ Only send columns that actually exist in Supabase table
-      const validRoommateKeys = ['id', 'name', 'age', 'role', 'phoneNumber', 'avatar', 'status', 'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags', 'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id', 'is_listing', 'createdAt'];
+      // ✅ Only send columns that actually exist in Supabase table. OMIT 'id' so Supabase generates it (e.g. UUID)
+      const validRoommateKeys = ['name', 'age', 'role', 'phoneNumber', 'avatar', 'status', 'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags', 'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id', 'is_listing', 'createdAt'];
       const dbRoommate: any = {};
       for (const key of validRoommateKeys) {
         if (roommateWithOwner[key as keyof Roommate] !== undefined) {
@@ -814,7 +824,7 @@ export default function App() {
 
       let { error, data } = await supabase.from('roommates').insert(dbRoommate).select();
       if (error && (error.code === 'PGRST204' || error.code === '42703')) {
-        const { postedBy, ...dbRoommateFallback } = dbRoommate;
+        const { postedBy, user_id, is_listing, ...dbRoommateFallback } = dbRoommate;
         const result = await supabase.from('roommates').insert(dbRoommateFallback).select();
         error = result.error;
         data = result.data;
@@ -824,10 +834,20 @@ export default function App() {
       } else if (data && data.length > 0) {
         console.log("[App] Successfully inserted roommate to Supabase:", data[0]);
         setSupabaseRoommates((prev) => [data[0], ...prev]);
+        
+        // Swap out the fake ID with the real Supabase ID in local state
+        setRoommates((prev) => prev.map(r => r.id === roommateWithOwner.id ? { ...r, id: data[0].id } : r));
+        const saved = localStorage.getItem("roomiematch_posted_roommates");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(
+            parsed.map((r: any) => r.id === roommateWithOwner.id ? { ...r, id: data[0].id } : r)
+          ));
+        }
       }
     }
     
-    // Optimistic UI Update for Insert (after Supabase confirmation)
+    // Optimistic UI Update for Insert (fake ID initially, will be replaced if Supabase succeeds)
     setRoommates((prev) => {
       const updated = [{ ...roommateWithOwner, is_listing: true }, ...prev];
       return updated;
