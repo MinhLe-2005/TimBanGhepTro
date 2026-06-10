@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { X, Upload, Home, MapPin, Search, Users, Banknote, Shield, Check, FileText, Image as ImageIcon, Flame, LayoutGrid, HandCoins, Info } from "lucide-react";
+import { X, Upload, Home, MapPin, Search, Users, User, Banknote, Shield, Check, FileText, Image as ImageIcon, Flame, LayoutGrid, HandCoins, Info, Plus } from "lucide-react";
 import { Roommate, Room } from "../types";
-import { AVATAR_PRESETS, ROOM_IMAGE_PRESETS, SCHOOLS_BY_DISTRICT } from "../data";
+import { SCHOOLS_BY_DISTRICT } from "../data";
 import { supabase } from "../lib/supabase";
 import ImageCropperModal from "./ImageCropperModal";
 
