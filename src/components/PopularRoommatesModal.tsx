@@ -25,6 +25,8 @@ export default function PopularRoommatesModal({
   onStartChat,
 }: PopularRoommatesModalProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
 
   if (!isOpen) return null;
 
@@ -43,8 +45,6 @@ export default function PopularRoommatesModal({
   };
 
   // Touch swipe handling
-  const [touchStart, setTouchStart] = useState(0);
-  const [touchEnd, setTouchEnd] = useState(0);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientX);
