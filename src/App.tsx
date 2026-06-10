@@ -199,24 +199,21 @@ export default function App() {
       }
 
       // --- 1. Optimistic UI / Cache loading ---
-      let hasCachedData = false;
       try {
-        const cachedRoommates = localStorage.getItem('rm_cache_roommates');
-        const cachedRooms = localStorage.getItem('rm_cache_rooms');
-        const cachedReviews = localStorage.getItem('rm_cache_reviews');
+        const cachedRoommates = localStorage.getItem('roomiematch_cached_roommates');
+        const cachedRooms = localStorage.getItem('roomiematch_cached_rooms');
+        const cachedReviews = localStorage.getItem('roomiematch_cached_reviews');
         
         if (cachedRoommates) {
           const parsed = JSON.parse(cachedRoommates);
           if (Array.isArray(parsed) && parsed.length > 0) {
             setSupabaseRoommates(parsed);
-            hasCachedData = true;
           }
         }
         if (cachedRooms) {
           const parsed = JSON.parse(cachedRooms);
           if (Array.isArray(parsed) && parsed.length > 0) {
             setSupabaseRooms(parsed);
-            hasCachedData = true;
           }
         }
         if (cachedReviews) {
@@ -232,15 +229,14 @@ export default function App() {
 
       // --- 2. Fetch fresh data from server ---
       try {
-        setIsRoommatesLoading(true); // Always show spinner until fresh data is fetched
-        
-        const [roommatesResult, roomsResult, reviewsResult, bansResult] = await Promise.all([
+        const [roommatesResult, roomsResult] = await Promise.all([
           supabase.from('roommates').select('*'),
           supabase.from('rooms').select('*'),
-          supabase.from('reviews').select('*'),
-          supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS'),
         ]);
 
+        if (roommatesResult.error) {
+          console.error("[Listings] Failed to fetch roommates:", roommatesResult.error);
+        }
         const roommatesData = roommatesResult.data;
         if (roommatesData) {
           const enhancedRoommates = roommatesData.map((rm: any) => ({
@@ -248,20 +244,40 @@ export default function App() {
             reviews: []
           }));
           setSupabaseRoommates(enhancedRoommates);
-          // Update cache
-          localStorage.setItem('rm_cache_roommates', JSON.stringify(enhancedRoommates));
+          localStorage.setItem('roomiematch_cached_roommates', JSON.stringify(enhancedRoommates));
         }
 
+        if (roomsResult.error) {
+          console.error("[Listings] Failed to fetch rooms:", roomsResult.error);
+        }
         if (roomsResult.data) {
           setSupabaseRooms(roomsResult.data);
-          localStorage.setItem('rm_cache_rooms', JSON.stringify(roomsResult.data));
+          localStorage.setItem('roomiematch_cached_rooms', JSON.stringify(roomsResult.data));
         }
-        
+      } catch (err) {
+        console.error("Error fetching listings from Supabase:", err);
+      } finally {
+        setIsRoommatesLoading(false);
+      }
+
+      // Secondary data must not delay the public listing pages.
+      try {
+        const [reviewsResult, bansResult] = await Promise.all([
+          supabase.from('reviews').select('*'),
+          supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS'),
+        ]);
+
+        if (reviewsResult.error) {
+          console.error("[Listings] Failed to fetch reviews:", reviewsResult.error);
+        }
         if (reviewsResult.data) {
           setSupabaseReviews(reviewsResult.data);
-          localStorage.setItem('rm_cache_reviews', JSON.stringify(reviewsResult.data));
+          localStorage.setItem('roomiematch_cached_reviews', JSON.stringify(reviewsResult.data));
         }
 
+        if (bansResult.error) {
+          console.error("[Auth] Failed to fetch banned users:", bansResult.error);
+        }
         // Fetch Banned list
         const bansData = bansResult.data;
         if (bansData) {
@@ -272,9 +288,7 @@ export default function App() {
           setSupabaseBannedIds(bannedIds);
         }
       } catch (err) {
-        console.error("Error fetching from Supabase:", err);
-      } finally {
-        setIsRoommatesLoading(false); // Done loading (success or error)
+        console.error("Error fetching secondary Supabase data:", err);
       }
     };
 
@@ -397,7 +411,7 @@ export default function App() {
       return [];
     }
   });
-  const [isRoommatesLoading, setIsRoommatesLoading] = useState(true); // Add loading state
+  const [isRoommatesLoading, setIsRoommatesLoading] = useState(false);
   
   const [supabaseRooms, setSupabaseRooms] = useState<any[]>(() => {
     try {
@@ -653,7 +667,7 @@ export default function App() {
     setIsPostModalOpen(true);
   };
 
-  const handleAddRoom = async (newRoom: Room) => {
+  const handleAddRoom = async (newRoom: Room): Promise<boolean> => {
     const roomWithOwner = { ...newRoom, postedBy: currentUser?.id || "", user_id: currentUser?.id || "" };
     
     if (editingListingData) {
@@ -686,22 +700,15 @@ export default function App() {
           const { postedBy, ...dbRoomFallback } = dbRoom;
           error = (await supabase.from('rooms').update(dbRoomFallback).eq('id', editingListingData.id)).error;
         }
-        if (error) console.error("Error updating room to Supabase:", error);
+        if (error) {
+          console.error("Error updating room to Supabase:", error);
+          toast(`Không thể cập nhật tin phòng: ${error.message}`, 'error', 5000);
+          return false;
+        }
       }
       setEditingListingData(null);
-      return;
+      return true;
     }
-
-    // Optimistic UI Update for Insert
-    setRooms((prev) => {
-      const updated = [roomWithOwner, ...prev];
-      return updated;
-    });
-
-    // Local fallback cache
-    const saved = localStorage.getItem("roomiematch_posted_rooms");
-    const parsed = saved ? JSON.parse(saved) : [];
-    localStorage.setItem("roomiematch_posted_rooms", JSON.stringify([roomWithOwner, ...parsed]));
 
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
@@ -723,24 +730,28 @@ export default function App() {
       }
       if (error) {
         console.error("Error inserting room to Supabase:", error);
+        toast(`Đăng tin phòng thất bại: ${error.message}`, 'error', 5500);
+        return false;
       } else if (data && data.length > 0) {
         console.log("[App] Successfully inserted room to Supabase:", data[0]);
         setSupabaseRooms((prev) => [data[0], ...prev]);
-
-        // Swap out fake ID with real ID
-        setRooms((prev) => prev.map(r => r.id === roomWithOwner.id ? { ...r, id: data[0].id } : r));
-        const saved = localStorage.getItem("roomiematch_posted_rooms");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(
-            parsed.map((r: any) => r.id === roomWithOwner.id ? { ...r, id: data[0].id } : r)
-          ));
-        }
+        localStorage.setItem(
+          "roomiematch_posted_rooms",
+          JSON.stringify([data[0], ...JSON.parse(localStorage.getItem("roomiematch_posted_rooms") || "[]")])
+        );
+        return true;
       }
+      toast('Supabase không trả về tin phòng vừa đăng.', 'error', 5000);
+      return false;
     }
+
+    setRooms((prev) => [roomWithOwner, ...prev]);
+    const saved = JSON.parse(localStorage.getItem("roomiematch_posted_rooms") || "[]");
+    localStorage.setItem("roomiematch_posted_rooms", JSON.stringify([roomWithOwner, ...saved]));
+    return true;
   };
 
-  const handleAddRoommate = async (newRoommate: Roommate) => {
+  const handleAddRoommate = async (newRoommate: Roommate): Promise<boolean> => {
     const roommateWithOwner = { 
       ...newRoommate, 
       postedBy: currentUser?.id || "", 
@@ -779,7 +790,11 @@ export default function App() {
           const { postedBy, ...dbRoommateFallback } = dbRoommate;
           error = (await supabase.from('roommates').update(dbRoommateFallback).eq('id', editingListingData.id)).error;
         }
-        if (error) console.error("Error updating roommate to Supabase:", error);
+        if (error) {
+          console.error("Error updating roommate to Supabase:", error);
+          toast(`Không thể cập nhật bài tìm bạn: ${error.message}`, 'error', 5000);
+          return false;
+        }
         
         // SYNC: Nếu status thay đổi trong listing → cập nhật status trong profile luôn
         if (updatedRoommate.status && currentUserProfile?.status !== updatedRoommate.status) {
@@ -802,13 +817,8 @@ export default function App() {
         }
       }
       setEditingListingData(null);
-      return;
+      return true;
     }
-
-    // Local fallback cache
-    const saved = localStorage.getItem("roomiematch_posted_roommates");
-    const parsed = saved ? JSON.parse(saved) : [];
-    localStorage.setItem("roomiematch_posted_roommates", JSON.stringify([{ ...roommateWithOwner, is_listing: true }, ...parsed]));
 
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
@@ -835,27 +845,28 @@ export default function App() {
       }
       if (error) {
         console.error("Error inserting roommate to Supabase:", error);
+        toast(`Đăng bài tìm bạn thất bại: ${error.message}`, 'error', 5500);
+        return false;
       } else if (data && data.length > 0) {
         console.log("[App] Successfully inserted roommate to Supabase:", data[0]);
         setSupabaseRoommates((prev) => [data[0], ...prev]);
-        
-        // Swap out the fake ID with the real Supabase ID in local state
-        setRoommates((prev) => prev.map(r => r.id === roommateWithOwner.id ? { ...r, id: data[0].id } : r));
-        const saved = localStorage.getItem("roomiematch_posted_roommates");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(
-            parsed.map((r: any) => r.id === roommateWithOwner.id ? { ...r, id: data[0].id } : r)
-          ));
-        }
+        localStorage.setItem(
+          "roomiematch_posted_roommates",
+          JSON.stringify([data[0], ...JSON.parse(localStorage.getItem("roomiematch_posted_roommates") || "[]")])
+        );
+        return true;
       }
+      toast('Supabase không trả về bài tìm bạn vừa đăng.', 'error', 5000);
+      return false;
     }
     
-    // Optimistic UI Update for Insert (fake ID initially, will be replaced if Supabase succeeds)
     setRoommates((prev) => {
       const updated = [{ ...roommateWithOwner, is_listing: true }, ...prev];
       return updated;
     });
+    const saved = JSON.parse(localStorage.getItem("roomiematch_posted_roommates") || "[]");
+    localStorage.setItem("roomiematch_posted_roommates", JSON.stringify([{ ...roommateWithOwner, is_listing: true }, ...saved]));
+    return true;
   };
 
   const handleDeleteRoom = async (id: string) => {

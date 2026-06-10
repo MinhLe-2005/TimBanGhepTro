@@ -8,8 +8,8 @@ import ImageCropperModal from "./ImageCropperModal";
 interface PostListingModalProps {
   onClose: () => void;
   isOpen?: boolean;
-  onSubmitRoom?: (room: Room) => void;
-  onSubmitRoommate?: (roommate: Roommate) => void;
+  onSubmitRoom?: (room: Room) => boolean | Promise<boolean>;
+  onSubmitRoommate?: (roommate: Roommate) => boolean | Promise<boolean>;
   initialTab?: "roommate" | "room";
   currentProfile?: any;
   editingData?: any;
@@ -26,6 +26,7 @@ export default function PostListingModal({
   const [activeTab, setActiveTab] = useState<"roommate" | "room">(initialTab);
   const [isSuccess, setIsSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Cropper State
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
@@ -258,7 +259,7 @@ export default function PostListingModal({
     }
   }, [rmDistrict, rmSchool]);
 
-  const handleRoommateSubmit = (e: React.FormEvent) => {
+  const handleRoommateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rmName.trim() || !rmBudget || !rmPhone.trim()) {
       alert("Vui lòng nhập đầy đủ các trường thông tin bắt buộc!");
@@ -301,12 +302,15 @@ export default function PostListingModal({
       reviews: []
     };
 
-    if (onSubmitRoommate) onSubmitRoommate(newRoommate);
+    setIsSubmitting(true);
+    const submitted = onSubmitRoommate ? await onSubmitRoommate(newRoommate) : false;
+    setIsSubmitting(false);
+    if (!submitted) return;
     setSuccessMessage(editingData ? `Đã cập nhật bài Tìm bạn ở ghép cho ${rmName} thành công!` : `Đã đăng bài Tìm bạn ở ghép cho ${rmName} thành công lên cộng đồng RoomieMatch!`);
     setIsSuccess(true);
   };
 
-  const handleRoomSubmit = (e: React.FormEvent) => {
+  const handleRoomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rTitle.trim() || !rPrice || !rAddress.trim() || !rHostName.trim() || !rPhone.trim()) {
       alert("Vui lòng điền đầy đủ các thông tin quan trọng!");
@@ -365,7 +369,10 @@ export default function PostListingModal({
       reviews: []
     };
 
-    if (onSubmitRoom) onSubmitRoom(newRoom);
+    setIsSubmitting(true);
+    const submitted = onSubmitRoom ? await onSubmitRoom(newRoom) : false;
+    setIsSubmitting(false);
+    if (!submitted) return;
     setSuccessMessage(editingData ? `Đã cập nhật bài cho thuê / ghép phòng "${rTitle}" thành công!` : `Đã đăng bài cho thuê / ghép phòng "${rTitle}" thành công!`);
     setIsSuccess(true);
   };
@@ -645,10 +652,10 @@ export default function PostListingModal({
                     className="px-6 py-3 border border-slate-200 hover:bg-slate-50 font-semibold rounded-full text-sm text-slate-500 duration-150 cursor-pointer">
                     Hủy bỏ
                   </button>
-                  <button type="submit"
-                    className="px-8 py-3 bg-[#006590] hover:bg-[#005176] font-bold rounded-full text-sm text-white duration-150 cursor-pointer shadow-md flex items-center gap-2">
+                  <button type="submit" disabled={isSubmitting}
+                    className="px-8 py-3 bg-[#006590] hover:bg-[#005176] disabled:bg-slate-300 disabled:cursor-wait font-bold rounded-full text-sm text-white duration-150 cursor-pointer shadow-md flex items-center gap-2">
                     <Plus className="h-4 w-4" />
-                    {editingData ? "Cập nhật tin" : "Đăng tin ngay"}
+                    {isSubmitting ? "Đang lưu..." : editingData ? "Cập nhật tin" : "Đăng tin ngay"}
                   </button>
                 </div>
               </form>
@@ -890,10 +897,10 @@ export default function PostListingModal({
                     className="px-6 py-3 border border-slate-200 hover:bg-slate-50 font-semibold rounded-full text-sm text-slate-500 duration-150 cursor-pointer">
                     Hủy bỏ
                   </button>
-                  <button type="submit"
-                    className="px-8 py-3 bg-[#006590] hover:bg-[#005176] font-bold rounded-full text-sm text-white duration-150 cursor-pointer shadow-md flex items-center gap-2">
+                  <button type="submit" disabled={isSubmitting}
+                    className="px-8 py-3 bg-[#006590] hover:bg-[#005176] disabled:bg-slate-300 disabled:cursor-wait font-bold rounded-full text-sm text-white duration-150 cursor-pointer shadow-md flex items-center gap-2">
                     <Plus className="h-4 w-4" />
-                    {editingData ? "Cập nhật tin phòng trọ" : "Đăng tin phòng trọ"}
+                    {isSubmitting ? "Đang lưu..." : editingData ? "Cập nhật tin phòng trọ" : "Đăng tin phòng trọ"}
                   </button>
                 </div>
               </form>
