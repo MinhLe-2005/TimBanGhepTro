@@ -235,8 +235,8 @@ export default function App() {
         setIsRoommatesLoading(true); // Always show spinner until fresh data is fetched
         
         const [roommatesResult, roomsResult, reviewsResult, bansResult] = await Promise.all([
-          supabase.from('roommates').select('*').order('createdAt', { ascending: false }),
-          supabase.from('rooms').select('*').order('createdAt', { ascending: false }),
+          supabase.from('roommates').select('*'),
+          supabase.from('rooms').select('*'),
           supabase.from('reviews').select('*'),
           supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS'),
         ]);
@@ -824,8 +824,12 @@ export default function App() {
 
       let { error, data } = await supabase.from('roommates').insert(dbRoommate).select();
       if (error && (error.code === 'PGRST204' || error.code === '42703')) {
-        const { postedBy, user_id, is_listing, ...dbRoommateFallback } = dbRoommate;
-        const result = await supabase.from('roommates').insert(dbRoommateFallback).select();
+        const { postedBy, user_id, ...dbRoommateFallback1 } = dbRoommate;
+        let result = await supabase.from('roommates').insert(dbRoommateFallback1).select();
+        if (result.error && (result.error.code === 'PGRST204' || result.error.code === '42703')) {
+           const { is_listing, ...dbRoommateFallback2 } = dbRoommateFallback1;
+           result = await supabase.from('roommates').insert(dbRoommateFallback2).select();
+        }
         error = result.error;
         data = result.data;
       }
