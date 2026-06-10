@@ -66,9 +66,9 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
     id: hostRoommate?.id || "fallback-host",
     name: room.hostName || "Chủ phòng",
     age: hostRoommate?.age || 21,
-    role: room.hostRole || "Sinh viên / Thành viên",
-    school: hostRoommate?.school || "Chưa cập nhật",
-    phoneNumber: room.phoneNumber || hostRoommate?.phoneNumber || "Chưa cập nhật",
+    role: (room.hostRole || "Sinh viên").replace("Giảng viên / ", "").replace("Giảng viên", "Sinh viên"),
+    school: hostRoommate?.school || "Chưa có thông tin trường",
+    phoneNumber: room.phoneNumber || hostRoommate?.phoneNumber || "Chưa cập nhật SĐT",
     // PRIORITY: hostRoommate avatar (actual user) > room.hostAvatar (may be stale) > default
     avatar: hostRoommate?.avatar || room.hostAvatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop",
     status: "Đã có phòng",

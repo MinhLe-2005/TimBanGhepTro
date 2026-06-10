@@ -151,7 +151,7 @@ export default function PostListingModal({
   const [rPhone, setRPhone] = useState("");
   const [rDescription, setRDescription] = useState("");
   const [rHostName, setRHostName] = useState("");
-  const [rHostRole, setRHostRole] = useState("Giảng viên / Sinh viên");
+  const [rHostRole, setRHostRole] = useState("Sinh viên");
   const [rRoommateInfo, setRRoommateInfo] = useState("");
   const [rImage, setRImage] = useState(ROOM_IMAGE_PRESETS[0]);
   
@@ -217,7 +217,7 @@ export default function PostListingModal({
         setRPhone(editingData.phoneNumber || "");
         setRDescription(editingData.description || "");
         setRHostName(editingData.hostName || "");
-        setRHostRole(editingData.hostRole || "Giảng viên / Sinh viên");
+        setRHostRole(editingData.hostRole || "Sinh viên");
         setRRoommateInfo(editingData.roommateInfo || "");
         if (editingData.images && editingData.images.length > 0) {
           setRImage(editingData.images[0]);
