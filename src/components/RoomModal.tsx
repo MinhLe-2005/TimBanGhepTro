@@ -58,10 +58,24 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
   const hostRoommate =
     ownerMatches.find((roommate) => !roommate.is_listing) ||
     nameMatches.find((roommate) => !roommate.is_listing) ||
+    ownerMatches[0] ||
+    nameMatches[0] ||
     null;
+
+  // Aggregate all roommate reviews for this host (from both personal and listing profiles)
+  const allHostReviews = [
+    ...ownerMatches.flatMap(r => r.reviews || []),
+    ...nameMatches.flatMap(r => r.reviews || [])
+  ];
+  const uniqueReviewsMap = new Map();
+  allHostReviews.forEach(r => {
+    if (r.id) uniqueReviewsMap.set(r.id, r);
+  });
+  const combinedHostReviews = Array.from(uniqueReviewsMap.values());
 
   // Use room's data as primary source, but PRIORITIZE avatar from actual user profile
   const resolvedRoommate: Roommate = {
+    ...hostRoommate,
     id: hostRoommate?.id || "fallback-host",
     name: room.hostName || "Chủ phòng",
     age: hostRoommate?.age || 21,
@@ -87,7 +101,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
       interaction: "Cân bằng",
       neatness: "Sạch sẽ",
     },
-    reviews: hostRoommate?.reviews || []
+    reviews: combinedHostReviews
   };
   const hostReputationScore = calculateReputationScore(resolvedRoommate);
 
