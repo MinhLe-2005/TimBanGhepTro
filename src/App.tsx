@@ -1562,9 +1562,15 @@ export default function App() {
       .from('messages')
       .select('sender_id')
       .eq('chat_id', chatId)
-      .limit(1)
       .then(({ data }) => {
-        setHasChattedWithRoomHost(!!(data && data.length > 0));
+        if (data && data.length > 0) {
+          // Lấy danh sách những người đã gửi tin nhắn trong nhóm chat này
+          const uniqueSenders = new Set(data.map(m => String(m.sender_id)));
+          // Nếu có lớn hơn 1 người gửi (tức là cả 2 bên đã nhắn tin qua lại)
+          setHasChattedWithRoomHost(uniqueSenders.size > 1);
+        } else {
+          setHasChattedWithRoomHost(false);
+        }
       });
   }, [selectedRoom?.id, currentUser?.id]);
 
@@ -2525,7 +2531,7 @@ export default function App() {
           currentUserId={currentUser?.id}
           currentUserProfile={currentUserProfile}
           isOwnProfile={!!currentUser && (selectedRoom.postedBy === currentUser.id || (selectedRoom as any).user_id === currentUser.id)}
-          hasSignedAgreement={hasChattedWithRoomHost}
+          hasSignedAgreement={roomUserHasSignedAgreement}
           onDeleteRoom={(id) => {
             handleDeleteRoom(id);
             setSelectedRoom(null);
