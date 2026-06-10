@@ -1,4 +1,5 @@
 import { X, Heart, TrendingUp } from "lucide-react";
+import { createPortal } from "react-dom";
 import { Roommate } from "../types";
 import RoommateCard from "./RoommateCard";
 
@@ -26,7 +27,7 @@ export default function PopularRoommatesModal({
   if (!isOpen) return null;
 
   if (popularRoommates.length === 0) {
-    return (
+    return createPortal(
       <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
         {/* Backdrop */}
         <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={onClose} />
@@ -46,11 +47,12 @@ export default function PopularRoommatesModal({
             Đóng
           </button>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={onClose} />
@@ -112,6 +114,7 @@ export default function PopularRoommatesModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
