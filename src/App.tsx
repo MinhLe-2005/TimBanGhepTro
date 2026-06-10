@@ -1250,9 +1250,19 @@ export default function App() {
     });
     const allCandidates = Array.from(uniqueCandidatesMap.values());
 
+    const ownerMapping: Record<string, string> = {};
+    allCandidates.forEach(cand => {
+      ownerMapping[cand.id] = cand.user_id || cand.auth_id || cand.postedBy || cand.id;
+    });
+
     const updated = allCandidates.map((r) => {
+      const rOwner = ownerMapping[r.id];
       const dbReviews = supabaseReviews
-        .filter(rev => (rev.roommate_id || rev.roommateId) === r.id)
+        .filter(rev => {
+          const targetId = rev.roommate_id || rev.roommateId;
+          const targetOwner = ownerMapping[targetId] || targetId;
+          return targetOwner === rOwner;
+        })
         .map(rev => ({
           id: rev.id,
           reviewerId: rev.reviewer_id,
