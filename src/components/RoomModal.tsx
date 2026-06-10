@@ -88,7 +88,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
       interaction: "Cân bằng",
       neatness: "Sạch sẽ",
     },
-    reviews: [...(hostRoommate?.reviews || []), ...(room.reviews || [])]
+    reviews: hostRoommate?.reviews || []
   };
   const hostReputationScore = calculateReputationScore(resolvedRoommate);
 
