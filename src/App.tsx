@@ -279,6 +279,7 @@ export default function App() {
           const parsed = JSON.parse(cachedRooms);
           if (Array.isArray(parsed) && parsed.length > 0) {
             setSupabaseRooms(parsed);
+            setIsRoomsLoading(false); // Have cache, no need for skeleton
           }
         }
         if (cachedReviews) {
@@ -453,6 +454,7 @@ export default function App() {
 
           setSupabaseRooms(freshRooms);
           localStorage.setItem('roomiematch_cached_rooms', JSON.stringify(freshRooms));
+          setIsRoomsLoading(false);
         }
       } catch (err) {
         console.error("Error fetching listings from Supabase:", err);
@@ -640,7 +642,8 @@ export default function App() {
       return [];
     }
   });
-  const [isRoommatesLoading, setIsRoommatesLoading] = useState(false);
+  const [isRoommatesLoading, setIsRoommatesLoading] = useState(true);
+  const [isRoomsLoading, setIsRoomsLoading] = useState(true);
   
   const [supabaseRooms, setSupabaseRooms] = useState<any[]>(() => {
     try {
@@ -2385,6 +2388,7 @@ export default function App() {
             onEditRoom={handleEditRoom}
             currentUserId={currentUser?.id}
             isAdmin={isAdmin}
+            isLoading={isRoomsLoading}
           />
         )}
 

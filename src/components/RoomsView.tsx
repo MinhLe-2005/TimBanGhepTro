@@ -15,6 +15,7 @@ interface RoomsViewProps {
   onRequireAuth?: () => void;
   onEditRoom?: (room: Room) => void;
   isAdmin?: boolean;
+  isLoading?: boolean;
 }
 
 export default function RoomsView({
@@ -29,6 +30,7 @@ export default function RoomsView({
   onRequireAuth,
   onEditRoom,
   isAdmin = false,
+  isLoading = false,
 }: RoomsViewProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [districtFilter, setDistrictFilter] = useState("Tất cả");
@@ -376,7 +378,29 @@ export default function RoomsView({
       </div>
 
       {/* Rooms Card rendering grid */}
-      {filteredRooms.length > 0 ? (
+      {isLoading && filteredRooms.length === 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-[24px] border border-gray-100 overflow-hidden animate-pulse">
+              <div className="w-full aspect-[4/3] bg-slate-200" />
+              <div className="p-4 space-y-3">
+                <div className="h-5 bg-slate-200 rounded-lg w-3/4" />
+                <div className="h-4 bg-slate-100 rounded-lg w-1/2" />
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="h-8 bg-slate-100 rounded-lg" />
+                  <div className="h-8 bg-slate-100 rounded-lg" />
+                  <div className="h-8 bg-slate-100 rounded-lg" />
+                  <div className="h-8 bg-slate-100 rounded-lg" />
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <div className="h-6 bg-slate-100 rounded-full w-16" />
+                  <div className="h-6 bg-slate-100 rounded-full w-20" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filteredRooms.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredRooms.map((room) => (
             <RoomCard
