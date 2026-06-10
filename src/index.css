@@ -34,6 +34,37 @@ body {
   animation: fadeIn 0.4s ease-out forwards;
 }
 
+/* Premium Badge Animations */
+@keyframes float-badge {
+  0%, 100% {
+    transform: translateY(0);
+    box-shadow: 0 4px 15px var(--glow-color, rgba(245, 158, 11, 0.3));
+  }
+  50% {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px var(--glow-color-strong, rgba(245, 158, 11, 0.5));
+  }
+}
+
+@keyframes star-pulse {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 4px var(--star-glow, rgba(245, 158, 11, 0.6)));
+  }
+  50% {
+    transform: scale(1.15) rotate(15deg);
+    filter: drop-shadow(0 0 12px var(--star-glow-strong, rgba(245, 158, 11, 1)));
+  }
+}
+
+.animate-trust-badge {
+  animation: float-badge 3s ease-in-out infinite;
+}
+
+.animate-trust-star {
+  animation: star-pulse 2.5s ease-in-out infinite;
+}
+
 /* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;

@@ -283,6 +283,7 @@ export default function RoommateModal({
           icon: "bg-slate-200 text-slate-600",
           score: "text-slate-700",
           bar: "bg-slate-400",
+          style: { '--glow-color': 'rgba(148, 163, 184, 0.1)', '--glow-color-strong': 'rgba(148, 163, 184, 0.3)', '--star-glow': 'rgba(148, 163, 184, 0.4)', '--star-glow-strong': 'rgba(148, 163, 184, 0.7)' } as React.CSSProperties
         }
       : reputationScore >= 70
         ? {
@@ -290,6 +291,7 @@ export default function RoommateModal({
             icon: "bg-emerald-500 text-white",
             score: "text-emerald-700",
             bar: "bg-emerald-500",
+            style: { '--glow-color': 'rgba(16, 185, 129, 0.3)', '--glow-color-strong': 'rgba(16, 185, 129, 0.6)', '--star-glow': 'rgba(16, 185, 129, 0.6)', '--star-glow-strong': 'rgba(16, 185, 129, 1)' } as React.CSSProperties
           }
         : reputationScore >= 50
           ? {
@@ -297,12 +299,14 @@ export default function RoommateModal({
               icon: "bg-amber-500 text-white",
               score: "text-amber-700",
               bar: "bg-amber-500",
+              style: { '--glow-color': 'rgba(245, 158, 11, 0.3)', '--glow-color-strong': 'rgba(245, 158, 11, 0.5)', '--star-glow': 'rgba(245, 158, 11, 0.6)', '--star-glow-strong': 'rgba(245, 158, 11, 1)' } as React.CSSProperties
             }
           : {
               card: "border-rose-200 bg-gradient-to-br from-rose-50 to-white shadow-rose-100/80",
               icon: "bg-rose-500 text-white",
               score: "text-rose-700",
               bar: "bg-rose-500",
+              style: { '--glow-color': 'rgba(244, 63, 94, 0.3)', '--glow-color-strong': 'rgba(244, 63, 94, 0.5)', '--star-glow': 'rgba(244, 63, 94, 0.6)', '--star-glow-strong': 'rgba(244, 63, 94, 1)' } as React.CSSProperties
             };
 
   return (
@@ -434,16 +438,17 @@ export default function RoommateModal({
                     key={item.label}
                     className={`group min-w-0 rounded-2xl border px-3 py-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
                       item.isReputation
-                        ? `${reputationTone.card} shadow-[0_8px_22px_rgba(15,23,42,0.08)] ring-1 ring-inset ring-white/60`
+                        ? `${reputationTone.card} shadow-[0_8px_22px_rgba(15,23,42,0.08)] ring-1 ring-inset ring-white/60 animate-trust-badge`
                         : "border-slate-100 bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)]"
                     } ${
                       index === 4 ? "col-span-2 sm:col-span-1" : ""
                     }`}
+                    style={item.isReputation ? reputationTone.style : undefined}
                   >
                     <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-xl shadow-sm ${
                       item.isReputation ? reputationTone.icon : item.color
                     }`}>
-                      <Icon className="h-4 w-4" />
+                      <Icon className={`h-4 w-4 ${item.isReputation ? "animate-trust-star" : ""}`} />
                     </div>
                     <p className={`text-[10px] font-semibold ${item.isReputation ? reputationTone.score : "text-slate-500"}`}>
                       {item.label}

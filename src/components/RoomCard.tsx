@@ -137,8 +137,8 @@ export default function RoomCard({
           ) : null}
 
           {avgRating && (
-            <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-full shadow-lg border border-amber-200/60">
-              <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+            <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-full border border-amber-200/60 animate-trust-badge">
+              <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 animate-trust-star" />
               <span className="text-[12px] font-black text-slate-800 tracking-tight">{avgRating}</span>
               <span className="text-[10px] font-bold text-slate-400">({reviewsCount})</span>
             </div>
