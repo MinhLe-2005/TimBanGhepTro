@@ -226,17 +226,13 @@ export default function App() {
           }
         }
         
-        // Stop loading spinner immediately only if we actually have data to show
-        if (hasCachedData) {
-          setIsRoommatesLoading(false);
-        }
       } catch (e) {
         console.error("Lỗi đọc cache:", e);
       }
 
       // --- 2. Fetch fresh data from server ---
       try {
-        if (!hasCachedData) setIsRoommatesLoading(true); // Only show spinner if no cache
+        setIsRoommatesLoading(true); // Always show spinner until fresh data is fetched
         
         const [roommatesResult, roomsResult, reviewsResult, bansResult] = await Promise.all([
           supabase.from('roommates').select('*').order('createdAt', { ascending: false }),
