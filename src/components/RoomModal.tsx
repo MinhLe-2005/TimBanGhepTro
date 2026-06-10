@@ -58,8 +58,6 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
   const hostRoommate =
     ownerMatches.find((roommate) => roommate.is_listing === false) ||
     nameMatches.find((roommate) => roommate.is_listing === false) ||
-    ownerMatches[0] ||
-    nameMatches[0] ||
     null;
 
   // Use room's data as primary source, but PRIORITIZE avatar from actual user profile
