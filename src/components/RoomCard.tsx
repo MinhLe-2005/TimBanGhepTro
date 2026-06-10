@@ -1,4 +1,4 @@
-import { Heart, Flame, Bed, Bath, Shield, ChefHat, MapPin, Cpu, Car, Eye, Star, Trash2 } from "lucide-react";
+import { Heart, Flame, Bed, Bath, Shield, ChefHat, MapPin, Cpu, Car, Eye, Star, Trash2, Ban } from "lucide-react";
 import { Room } from "../types";
 import { useState } from "react";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -122,8 +122,13 @@ export default function RoomCard({
           )}
         </div>
 
-        {/* Hot Badge */}
-        {room.isHot && (
+        {/* Hot / Full Badge */}
+        {room.status === "hết phòng" || (targetTenants > 0 && currentTenants >= targetTenants) ? (
+          <div className="absolute bottom-4 left-4 z-10 bg-slate-800 text-white px-3.5 py-1 rounded-full text-[12px] font-extrabold flex items-center gap-1 shadow-md">
+            <Ban className="h-3.5 w-3.5 text-slate-300" />
+            FULL
+          </div>
+        ) : room.isHot && (
           <div className="absolute bottom-4 left-4 z-10 bg-red-500 text-white px-3.5 py-1 rounded-full text-[12px] font-extrabold flex items-center gap-1 shadow-md">
             <Flame className="h-3.5 w-3.5 fill-white animate-bounce" />
             HOT
