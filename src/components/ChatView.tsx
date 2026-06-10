@@ -1149,6 +1149,7 @@ export default function ChatView({
         id: newMsg.id,
         chat_id: chatId,
         sender_id: myChatId,
+        sender_name: currentUserProfile?.name || currentUser?.user_metadata?.full_name || "Unknown",
         text: userMessageText,
         image_url: sentImage || undefined,
       });
