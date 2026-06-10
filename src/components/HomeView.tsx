@@ -336,7 +336,7 @@ export default function HomeView({
       </div>
 
       {/* 2. Mục Đã Yêu Thích (Liked Roommates & Rooms) */}
-      {currentUserProfile && (likedRoommateIds.length > 0 || likedRoomIds.length > 0) && (
+      {currentUserProfile && (
         <section className="bg-white rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 lg:p-12 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 relative overflow-hidden mb-16">
         {/* Subtle background decoration */}
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-br from-rose-50 to-transparent rounded-full blur-3xl -z-10 translate-x-1/2 -translate-y-1/2" />
@@ -425,9 +425,9 @@ export default function HomeView({
       </section>
       )}
 
-      {popularRoommates.length > 0 && (
-        <section className="relative overflow-hidden rounded-[28px] border border-rose-100 bg-gradient-to-br from-white via-rose-50/60 to-sky-50/50 p-5 sm:p-7 shadow-[0_12px_35px_rgba(15,23,42,0.05)]">
-          <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+      {/* Section "Được Quan Tâm" - Always show, with empty state */}
+      <section className="relative overflow-hidden rounded-[28px] border border-rose-100 bg-gradient-to-br from-white via-rose-50/60 to-sky-50/50 p-5 sm:p-7 shadow-[0_12px_35px_rgba(15,23,42,0.05)]">
+        <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
             <div>
               <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-rose-100 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-rose-600">
                 <Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-500" />
@@ -449,23 +449,34 @@ export default function HomeView({
             </button>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {popularRoommates.map((roommate) => (
-              <RoommateCard
-                key={`popular-${roommate.id}`}
-                roommate={roommate}
-                compact
-                likeCount={roommateLikeCounts[roommate.id] || 0}
-                showLikeCount
-                onViewDetails={onViewRoommate}
-                onLikeChange={isAdmin ? undefined : onLikeRoommate}
-                isInitiallyLiked={likedRoommateIds.includes(roommate.id)}
-                onStartChat={isAdmin ? undefined : onStartChat}
-              />
-            ))}
-          </div>
+          {popularRoommates.length === 0 ? (
+            <div className="bg-white/50 border-2 border-dashed border-rose-200 p-12 rounded-[24px] text-center">
+              <div className="w-20 h-20 rounded-full bg-white shadow-md flex items-center justify-center mx-auto mb-4">
+                <Heart className="h-10 w-10 text-rose-300" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-700 mb-2">Chưa có hồ sơ nổi bật</h3>
+              <p className="text-sm text-slate-500 max-w-md mx-auto">
+                Những profile được nhiều người yêu thích nhất sẽ xuất hiện ở đây. Hãy thả tym để ủng hộ các bạn nhé!
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              {popularRoommates.map((roommate) => (
+                <RoommateCard
+                  key={`popular-${roommate.id}`}
+                  roommate={roommate}
+                  compact
+                  likeCount={roommateLikeCounts[roommate.id] || 0}
+                  showLikeCount
+                  onViewDetails={onViewRoommate}
+                  onLikeChange={isAdmin ? undefined : onLikeRoommate}
+                  isInitiallyLiked={likedRoommateIds.includes(roommate.id)}
+                  onStartChat={isAdmin ? undefined : onStartChat}
+                />
+              ))}
+            </div>
+          )}
         </section>
-      )}
 
       {/* 3. Roommate Tiềm Năng */}
       <section className="space-y-6">
