@@ -347,8 +347,8 @@ export default function HomeView({
             <Heart className="w-7 h-7 text-white fill-white/20" />
           </div>
           <div>
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">Danh Sách Yêu Thích</h2>
-            <p className="text-slate-500 text-sm mt-1 font-medium">Lưu trữ những lựa chọn hoàn hảo nhất của bạn</p>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">Yêu Thích</h2>
+            <p className="text-slate-500 text-xs mt-0.5 font-medium">Lưu trữ lựa chọn của bạn</p>
           </div>
         </div>
 
@@ -433,10 +433,10 @@ export default function HomeView({
                 <Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-500" />
                 Được cộng đồng quan tâm
               </div>
-              <h2 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
-                Roommate được quan tâm
+              <h2 className="text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
+                Được Quan Tâm
               </h2>
-              <p className="mt-1 max-w-2xl text-sm text-slate-500">
+              <p className="mt-0.5 max-w-2xl text-xs text-slate-500">
                 Những hồ sơ đang được nhiều người lưu để xem lại nhất.
               </p>
             </div>
@@ -545,11 +545,11 @@ export default function HomeView({
               <Building className="w-4 h-4" />
               Lựa chọn hàng đầu
             </div>
-            <h2 className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-800 via-emerald-900 to-slate-800 tracking-tight pb-1">
-              Không Gian Sống Lý Tưởng
+            <h2 className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-800 via-emerald-900 to-slate-800 tracking-tight pb-1">
+              Không Gian Sống
             </h2>
-            <p className="text-slate-500 mt-2 text-base max-w-xl">
-              Khám phá các căn hộ và phòng trọ chất lượng đang cần tìm người chia sẻ không gian ngay lúc này.
+            <p className="text-slate-500 mt-0.5 text-xs max-w-xl">
+              Khám phá phòng trọ chất lượng đang tìm người chia sẻ
             </p>
           </div>
           <button
