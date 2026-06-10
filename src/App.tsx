@@ -52,21 +52,27 @@ export default function App() {
   const [supabaseBannedIds, setSupabaseBannedIds] = useState<string[]>([]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        // Check ban
-        try {
-          const { data: banMsgs } = await supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS');
-          if (banMsgs && banMsgs.some((m: any) => m.text.includes(session.user.id))) {
-            await supabase.auth.signOut();
-            setCurrentUser(null);
-            setCurrentUserProfile(null);
-            localStorage.removeItem("roomiematch_user_profile");
-            toast('Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.', 'error', 8000);
-            setAuthLoading(false); // Done loading
-            return;
+    // Failsafe timeout to prevent infinite loading
+    const authTimeout = setTimeout(() => setAuthLoading(false), 5000);
+
+    const checkBanStatus = (userId: string) => {
+      supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS')
+        .then(({ data: banMsgs }) => {
+          if (banMsgs && banMsgs.some((m: any) => m.text.includes(userId))) {
+            supabase.auth.signOut().then(() => {
+              setCurrentUser(null);
+              setCurrentUserProfile(null);
+              localStorage.removeItem("roomiematch_user_profile");
+              toast('Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.', 'error', 8000);
+            });
           }
-        } catch(e) {}
+        })
+        .catch(e => console.error("Error checking ban status", e));
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        checkBanStatus(session.user.id);
 
         setCurrentUser({
           id: session.user.id,
@@ -75,25 +81,24 @@ export default function App() {
           avatar: session.user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop",
         });
       }
+      clearTimeout(authTimeout);
       setAuthLoading(false); // Done loading
+    }).catch(err => {
+      console.error("getSession error:", err);
+      clearTimeout(authTimeout);
+      setAuthLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[Auth] State changed:', event, session?.user?.email);
       
+      if (event === 'INITIAL_SESSION') {
+        clearTimeout(authTimeout);
+        setAuthLoading(false);
+      }
+
       if (session?.user) {
-        // Check ban
-        try {
-          const { data: banMsgs } = await supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS');
-          if (banMsgs && banMsgs.some((m: any) => m.text.includes(session.user.id))) {
-            await supabase.auth.signOut();
-            setCurrentUser(null);
-            setCurrentUserProfile(null);
-            localStorage.removeItem("roomiematch_user_profile");
-            toast('Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.', 'error', 8000);
-            return;
-          }
-        } catch(e) {}
+        checkBanStatus(session.user.id);
 
         const user = session.user;
         console.log('[Auth] User logged in:', user.email, user.id);
