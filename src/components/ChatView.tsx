@@ -23,6 +23,8 @@ interface ChatViewProps {
   onViewProfile?: (roommate: any) => void;
 }
 
+import { updateRoomStatusBasedOnAgreements } from "../utils/agreements";
+
 export default function ChatView({
   roommates,
   initialChats,
@@ -2506,6 +2508,8 @@ export default function ChatView({
                               
                               if (agreementModalPayload.status === 'signed') {
                                 await supabase.from('roommates').update({ status: 'Đang tìm' }).in('user_id', [currentUser.id, partnerAuthId]);
+                                await updateRoomStatusBasedOnAgreements(currentUser.id, supabase);
+                                await updateRoomStatusBasedOnAgreements(partnerAuthId, supabase);
                               }
 
                               alert('Đã từ chối thỏa thuận!');
@@ -2574,6 +2578,8 @@ export default function ChatView({
                               
                               if (agreementModalPayload.status === 'signed') {
                                 await supabase.from('roommates').update({ status: 'Đang tìm' }).in('user_id', [currentUser.id, partnerAuthId]);
+                                await updateRoomStatusBasedOnAgreements(currentUser.id, supabase);
+                                await updateRoomStatusBasedOnAgreements(partnerAuthId, supabase);
                               }
                               
                               alert('Đã hủy thỏa thuận!');
@@ -2758,6 +2764,10 @@ export default function ChatView({
                     if (statusError) {
                       console.warn('[Signature] Agreement signed but roommate status update failed:', statusError);
                     }
+                    
+                    // Update capacity statuses for both users
+                    await updateRoomStatusBasedOnAgreements(myChatId, supabase);
+                    await updateRoomStatusBasedOnAgreements(partnerChatId, supabase);
 
                     toast('Ký kết thành công! Thỏa thuận đã có hiệu lực.', "success", 5000);
                     

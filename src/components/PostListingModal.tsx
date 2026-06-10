@@ -114,6 +114,7 @@ export default function PostListingModal({
   const [rAddress, setRAddress] = useState("");
   const [rType, setRType] = useState("Phòng trọ");
   const [rStatus, setRStatus] = useState<"còn phòng" | "hết phòng">("còn phòng");
+  const [rTargetTenants, setRTargetTenants] = useState("1"); // Số người cần tìm
   const [rBedrooms, setRBedrooms] = useState("1");
   const [rWc, setRWc] = useState("Khép kín");
   const [rKitchen, setRKitchen] = useState("Bếp riêng");
@@ -207,6 +208,10 @@ export default function PostListingModal({
             baove: feats.includes("Bảo vệ 24/7"),
             baigieuxe: feats.includes("Bãi xe rộng rãi")
           });
+          
+          const targetFeat = feats.find(f => f.startsWith("TARGET_TENANTS:"));
+          if (targetFeat) setRTargetTenants(targetFeat.split(":")[1]);
+          else setRTargetTenants("1");
         }
       }
     } else if (currentProfile) {
@@ -293,6 +298,16 @@ export default function PostListingModal({
     if (rAmenities.tv) selectedFeatures.push("Tivi");
     if (rAmenities.baove) selectedFeatures.push("Bảo vệ 24/7");
     if (rAmenities.baigieuxe) selectedFeatures.push("Bãi xe rộng rãi");
+    
+    // Add hidden features for capacity tracking
+    selectedFeatures.push(`TARGET_TENANTS:${rTargetTenants}`);
+    // If editing, preserve current tenants, else start at 0
+    let currentTenants = "0";
+    if (editingData?.features) {
+       const existingCurrent = (editingData.features as string[]).find(f => f.startsWith("CURRENT_TENANTS:"));
+       if (existingCurrent) currentTenants = existingCurrent.split(":")[1];
+    }
+    selectedFeatures.push(`CURRENT_TENANTS:${currentTenants}`);
 
     const newRoom: Room = {
       id: `room-${Date.now()}`,
@@ -697,6 +712,19 @@ export default function PostListingModal({
                         </select>
                       </div>
                       <div className="space-y-1.5">
+                        <label className="block text-[13px] font-semibold text-slate-700">Cần tìm mấy người?</label>
+                        <select value={rTargetTenants} onChange={(e) => setRTargetTenants(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 cursor-pointer transition-all">
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                            <option key={n} value={n.toString()}>{n} người</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
                         <label className="block text-[13px] font-semibold text-slate-700">Phòng ngủ</label>
                         <select value={rBedrooms} onChange={(e) => setRBedrooms(e.target.value)}
                           className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 cursor-pointer transition-all">
@@ -704,11 +732,7 @@ export default function PostListingModal({
                           <option value="2">2 phòng</option>
                           <option value="3">3 phòng+</option>
                         </select>
-                      </div>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="block text-[13px] font-semibold text-slate-700">Phòng tắm &amp; WC</label>
                       <input type="text" value={rWc} onChange={(e) => setRWc(e.target.value)} placeholder="WC riêng khép kín, sạch sẽ"

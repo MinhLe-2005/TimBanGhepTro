@@ -145,3 +145,60 @@ export function buildAgreementHistory(messages: AgreementMessage[], currentUserI
     (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
   );
 }
+
+export async function updateRoomStatusBasedOnAgreements(hostId: string, supabase: any) {
+  try {
+    // 1. Fetch host's room
+    const { data: rooms } = await supabase.from('rooms').select('*').eq('user_id', hostId);
+    if (!rooms || rooms.length === 0) return;
+    
+    // We assume 1 room per host for this student app
+    const room = rooms[0];
+    let targetTenants = 0;
+    
+    // 2. Extract target capacity
+    if (room.features) {
+      const targetFeat = room.features.find((f: string) => f.startsWith('TARGET_TENANTS:'));
+      if (targetFeat) targetTenants = parseInt(targetFeat.split(':')[1]);
+    }
+    
+    if (targetTenants === 0) return; // Not using the capacity feature
+    
+    // 3. Count signed agreements involving this host
+    const { data: messages } = await supabase.from('messages')
+      .select('*')
+      .like('chat_id', `%${hostId}%`)
+      .like('text', '%[AGREEMENT_%');
+      
+    if (!messages) return;
+    
+    // Process messages to get latest active statuses per chat
+    const agreements = buildAgreementHistory(messages, hostId);
+    const signedCount = agreements.filter(a => a.status === 'signed').length;
+    
+    // 4. Update the room features
+    const updatedFeatures = room.features.filter((f: string) => !f.startsWith('CURRENT_TENANTS:'));
+    updatedFeatures.push(`CURRENT_TENANTS:${signedCount}`);
+    
+    // Don't override manual 'hết phòng' if they want it closed early, 
+    // but automatically reopen if someone cancels and they fall below capacity,
+    // or automatically close if they reach capacity.
+    let newStatus = room.status;
+    if (signedCount >= targetTenants) {
+      newStatus = 'hết phòng';
+    } else if (room.status === 'hết phòng' && signedCount < targetTenants) {
+      newStatus = 'còn phòng';
+    }
+    
+    // 5. Save back to DB
+    await supabase.from('rooms').update({
+      features: updatedFeatures,
+      status: newStatus
+    }).eq('id', room.id);
+    
+    console.log(`[Capacity] Updated room ${room.id} to ${signedCount}/${targetTenants} tenants. Status: ${newStatus}`);
+  } catch (err) {
+    console.error('[Capacity] Error updating room status:', err);
+  }
+}
+

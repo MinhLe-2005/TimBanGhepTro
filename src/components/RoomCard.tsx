@@ -46,6 +46,18 @@ export default function RoomCard({
       setIsLiked(!isLiked);
     }
   };
+  
+  let targetTenants = 0;
+  let currentTenants = 0;
+  const filteredFeatures: string[] = [];
+
+  if (room.features) {
+    room.features.forEach(f => {
+      if (f.startsWith("TARGET_TENANTS:")) targetTenants = parseInt(f.split(":")[1]);
+      else if (f.startsWith("CURRENT_TENANTS:")) currentTenants = parseInt(f.split(":")[1]);
+      else filteredFeatures.push(f);
+    });
+  }
 
   const getFeatureIcon = (feature: string) => {
     const text = feature.toLowerCase();
@@ -87,7 +99,7 @@ export default function RoomCard({
         {/* Room Top Left Badges */}
         <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5 items-start">
           {/* Availability Status Badge */}
-          {room.status === "hết phòng" ? (
+          {room.status === "hết phòng" || (targetTenants > 0 && currentTenants >= targetTenants) ? (
             <div className="bg-red-600/90 text-white backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-black shadow-sm flex items-center gap-1 border border-red-500">
               <span>● Hết phòng</span>
             </div>
@@ -95,6 +107,17 @@ export default function RoomCard({
             <div className="bg-emerald-600/90 text-white backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-black shadow-sm flex items-center gap-1 border border-emerald-500">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
               <span>● Đang tìm người</span>
+            </div>
+          )}
+          
+          {/* Capacity Badge */}
+          {targetTenants > 0 && (
+            <div className={`bg-white/95 text-slate-700 backdrop-blur-sm px-2.5 py-1 rounded-full text-[10px] font-black shadow-sm flex items-center gap-1 border ${currentTenants >= targetTenants ? 'border-red-200 text-red-600' : 'border-slate-200'}`}>
+              {currentTenants >= targetTenants ? (
+                `👤 Đã đủ (${currentTenants}/${targetTenants})`
+              ) : (
+                `👤 Còn ${Math.max(0, targetTenants - currentTenants)} chỗ trống (${currentTenants}/${targetTenants})`
+              )}
             </div>
           )}
         </div>
@@ -212,7 +235,7 @@ export default function RoomCard({
         {/* Feature Tags - Compact */}
         <div className="flex items-center flex-wrap gap-1.5 mb-4 text-[11px] font-medium text-slate-600">
           {room.gender && <span className="px-2 py-1 bg-slate-100 rounded-md">{room.gender}</span>}
-          {room.features && room.features.slice(0, 2).map((f, i) => (
+          {filteredFeatures.slice(0, 2).map((f, i) => (
              <span key={i} className="px-2 py-1 bg-slate-100 rounded-md">{f}</span>
           ))}
           {room.pets && <span className="px-2 py-1 bg-slate-100 rounded-md">{room.pets === "thoải mái" ? "Pet OK" : "No Pet"}</span>}

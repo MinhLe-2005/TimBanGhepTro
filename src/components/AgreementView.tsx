@@ -26,6 +26,7 @@ import {
   buildAgreementHistory,
   findRoommateByIdentity,
   getRoommateAuthId,
+  updateRoomStatusBasedOnAgreements
 } from "../utils/agreements";
 
 interface AgreementViewProps {
@@ -474,6 +475,11 @@ export default function AgreementView({
     if (!error) {
        if (messagePrefix === "[AGREEMENT_SIGNED]") {
          await supabase.from('roommates').update({ status: 'Đã tìm được' }).in('user_id', [currentUser.id, partnerAuthId]);
+         
+         // Update capacity statuses for both users
+         await updateRoomStatusBasedOnAgreements(currentUser.id, supabase);
+         await updateRoomStatusBasedOnAgreements(partnerAuthId, supabase);
+         
          // ✅ Show success toast notification
          toast('🎉 Ký thỏa thuận thành công! Chúc bạn có trải nghiệm ở ghép vui vẻ!', 'success', 5000);
        } else {
@@ -512,6 +518,10 @@ export default function AgreementView({
         
         if (targetPayload.status === 'signed') {
           await supabase.from('roommates').update({ status: 'Đang tìm' }).in('user_id', [currentUser.id, partnerAuthId]);
+          
+          // Re-evaluate capacity status for both users
+          await updateRoomStatusBasedOnAgreements(currentUser.id, supabase);
+          await updateRoomStatusBasedOnAgreements(partnerAuthId, supabase);
         }
       }
       toast('Đã từ chối thỏa thuận!', 'info');
