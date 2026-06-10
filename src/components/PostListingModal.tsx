@@ -691,38 +691,42 @@ export default function PostListingModal({
                       <input type="text" required value={rAddress} onChange={(e) => setRAddress(e.target.value)} placeholder="VD: K34/12 Lê Duẩn"
                         className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="space-y-1.5">
-                        <label className="block text-[13px] font-semibold text-slate-700">Loại hình</label>
-                        <select value={rType} onChange={(e) => setRType(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 cursor-pointer transition-all">
-                          <option value="Phòng trọ">Phòng trọ</option>
-                          <option value="Ký túc xá">Ký túc xá</option>
-                          <option value="Căn hộ">Căn hộ</option>
-                          <option value="Chung cư">Chung cư</option>
-                          <option value="Homestay">Homestay</option>
-                        </select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="block text-[13px] font-semibold text-slate-700">Trạng thái phòng</label>
-                        <select value={rStatus} onChange={(e) => setRStatus(e.target.value as any)}
-                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 cursor-pointer transition-all">
-                          <option value="còn phòng">Còn phòng trống</option>
-                          <option value="hết phòng">Đã hết phòng / Đủ người</option>
-                        </select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="block text-[13px] font-semibold text-slate-700">Cần tìm mấy người?</label>
-                        <input type="number" min="1" list="capacity-options" value={rTargetTenants} onChange={(e) => setRTargetTenants(e.target.value)} placeholder="VD: 2"
-                          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
-                        <datalist id="capacity-options">
-                          <option value="1" />
-                          <option value="2" />
-                          <option value="3" />
-                          <option value="4" />
-                          <option value="5" />
-                        </datalist>
-                      </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Loại hình</label>
+                      <select value={rType} onChange={(e) => setRType(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 cursor-pointer transition-all">
+                        <option value="Phòng trọ">Phòng trọ</option>
+                        <option value="Ký túc xá">Ký túc xá</option>
+                        <option value="Căn hộ">Căn hộ</option>
+                        <option value="Chung cư">Chung cư</option>
+                        <option value="Homestay">Homestay</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Trạng thái phòng</label>
+                      <select value={rStatus} onChange={(e) => setRStatus(e.target.value as any)}
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 cursor-pointer transition-all">
+                        <option value="còn phòng">Còn phòng trống</option>
+                        <option value="hết phòng">Đã hết phòng / Đủ người</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Cần tìm mấy người?</label>
+                      <input type="text" list="capacity-options" value={rTargetTenants} onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '' || /^\d+$/.test(val)) setRTargetTenants(val);
+                        }} placeholder="Nhập hoặc chọn số lượng (VD: 2)"
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
+                      <datalist id="capacity-options">
+                        <option value="1" />
+                        <option value="2" />
+                        <option value="3" />
+                        <option value="4" />
+                        <option value="5" />
+                      </datalist>
                     </div>
                   </div>
 
