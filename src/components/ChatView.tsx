@@ -105,7 +105,7 @@ export default function ChatView({
   const [reportImageFile, setReportImageFile] = useState<File | null>(null);
   const [reportImagePreview, setReportImagePreview] = useState<string | null>(null);
   const [isUploadingReport, setIsUploadingReport] = useState(false);
-  const [selectedReportedMessageId, setSelectedReportedMessageId] = useState<string | null>(null);
+  const [selectedReportedMessageIds, setSelectedReportedMessageIds] = useState<string[]>([]);
 
   // Signature modal for agreement signing
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
@@ -113,12 +113,17 @@ export default function ChatView({
   const [isSigningAgreement, setIsSigningAgreement] = useState(false);
 
   const handleSendReport = async () => {
-    if (!reportReason.trim() || !selectedReportedMessageId) {
-      alert("Vui lòng chọn tin nhắn vi phạm và nhập lý do báo cáo.");
+    if (!reportReason.trim() || selectedReportedMessageIds.length === 0) {
+      alert("Vui lòng chọn từ 1 đến 3 tin nhắn vi phạm và nhập lý do báo cáo.");
       return;
     }
     const myId = currentUser?.id || currentUserProfile?.id;
     if (myId && activeRoommateId && import.meta.env.VITE_SUPABASE_URL) {
+       const targetAccountId =
+         activeRoommate?.user_id ||
+         activeRoommate?.auth_id ||
+         activeRoommate?.id ||
+         activeRoommateId;
        // Anti-spam check: Did this user already report this target?
        const { data: existingReports } = await supabase
          .from('messages')
@@ -130,7 +135,7 @@ export default function ChatView({
          const hasReported = existingReports.some(msg => {
            try {
              const payload = JSON.parse(msg.text.replace('[REPORT]', '').trim());
-             return payload.target_id === activeRoommateId;
+             return payload.target_id === targetAccountId || payload.target_id === activeRoommateId;
            } catch { return false; }
          });
          
@@ -167,20 +172,25 @@ export default function ChatView({
          }
        }
 
-       const reportedMessage = activeMessages.find(message => message.id === selectedReportedMessageId);
-       const targetAccountId =
-         activeRoommate?.user_id ||
-         activeRoommate?.auth_id ||
-         activeRoommate?.id ||
-         activeRoommateId;
+       const reportedMessages = selectedReportedMessageIds
+         .map(messageId => activeMessages.find(message => message.id === messageId))
+         .filter(Boolean) as Message[];
+       const primaryReportedMessage = reportedMessages[0];
        const payload = {
          target_id: targetAccountId,
          target_name: activeRoommate?.name,
-         reported_chat_id: reportedMessage?.chatId || chatId,
-         reported_message_id: reportedMessage?.id,
-         reported_message_text: reportedMessage?.text,
-         reported_message_image: reportedMessage?.imageUrl,
-         reported_message_timestamp: reportedMessage?.timestamp,
+         reported_chat_id: primaryReportedMessage?.chatId || chatId,
+         reported_messages: reportedMessages.map(message => ({
+           id: message.id,
+           text: message.text,
+           image_url: message.imageUrl,
+           timestamp: message.timestamp,
+         })),
+         // Keep legacy fields so older admin builds can still display the first message.
+         reported_message_id: primaryReportedMessage?.id,
+         reported_message_text: primaryReportedMessage?.text,
+         reported_message_image: primaryReportedMessage?.imageUrl,
+         reported_message_timestamp: primaryReportedMessage?.timestamp,
          reason: reportReason,
          image: finalImageUrl
        };
@@ -200,7 +210,7 @@ export default function ChatView({
        setReportReason("");
        setReportImageFile(null);
        setReportImagePreview(null);
-       setSelectedReportedMessageId(null);
+       setSelectedReportedMessageIds([]);
        setIsUploadingReport(false);
     } else {
        alert("Lỗi hệ thống, không thể gửi báo cáo lúc này.");
@@ -466,7 +476,7 @@ export default function ChatView({
   }, [activeMessages, currentUser?.id, currentUserProfile?.id]);
 
   const openMessageReport = (messageId: string) => {
-    setSelectedReportedMessageId(messageId);
+    setSelectedReportedMessageIds([messageId]);
     setReportReason("");
     setReportImageFile(null);
     setReportImagePreview(null);
@@ -1775,6 +1785,9 @@ export default function ChatView({
                <div>
                  <label className="block text-sm font-bold text-slate-700 mb-1.5">
                    Tin nhắn vi phạm <span className="text-rose-500">*</span>
+                   <span className="ml-2 text-xs font-semibold text-slate-400">
+                     ({selectedReportedMessageIds.length}/3)
+                   </span>
                  </label>
                  {reportablePartnerMessages.length > 0 ? (
                    <div className="max-h-44 overflow-y-auto space-y-2 rounded-xl bg-slate-50 p-2 border border-slate-200">
@@ -1782,9 +1795,20 @@ export default function ChatView({
                        <button
                          key={message.id}
                          type="button"
-                         onClick={() => setSelectedReportedMessageId(message.id)}
+                         onClick={() => {
+                           setSelectedReportedMessageIds(previous => {
+                             if (previous.includes(message.id)) {
+                               return previous.filter(id => id !== message.id);
+                             }
+                             if (previous.length >= 3) {
+                               toast("Chỉ được chọn tối đa 3 tin nhắn.", "warning");
+                               return previous;
+                             }
+                             return [...previous, message.id];
+                           });
+                         }}
                          className={`w-full rounded-xl border p-3 text-left transition-all ${
-                           selectedReportedMessageId === message.id
+                           selectedReportedMessageIds.includes(message.id)
                              ? "border-rose-400 bg-rose-50 ring-2 ring-rose-100"
                              : "border-slate-200 bg-white hover:border-slate-300"
                          }`}
@@ -1803,7 +1827,9 @@ export default function ChatView({
                              )}
                            </div>
                            <span className="text-[10px] text-slate-400 shrink-0">
-                             {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                             {selectedReportedMessageIds.includes(message.id)
+                               ? `Đã chọn ${selectedReportedMessageIds.indexOf(message.id) + 1}`
+                               : new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                            </span>
                          </div>
                        </button>

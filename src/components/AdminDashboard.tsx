@@ -190,27 +190,32 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   };
 
   const handleDeleteReportedMessage = async (report: any) => {
-    if (!report.reported_message_id) {
+    const messageIds = Array.isArray(report.reported_messages)
+      ? report.reported_messages.map((message: any) => message.id).filter(Boolean)
+      : report.reported_message_id
+        ? [report.reported_message_id]
+        : [];
+    if (messageIds.length === 0) {
       toast('Báo cáo cũ không gắn ID tin nhắn nên không thể xóa chính xác.', 'warning');
       return;
     }
 
     const ok = await confirm({
       title: 'Xóa tin nhắn vi phạm',
-      message: 'Xóa vĩnh viễn đúng tin nhắn được báo cáo khỏi cuộc trò chuyện?',
-      confirmText: 'Xóa tin nhắn',
+      message: `Xóa vĩnh viễn ${messageIds.length} tin nhắn được báo cáo khỏi cuộc trò chuyện?`,
+      confirmText: `Xóa ${messageIds.length} tin`,
       type: 'error',
     });
     if (!ok) return;
 
-    const { error } = await supabase.from('messages').delete().eq('id', report.reported_message_id);
+    const { error } = await supabase.from('messages').delete().in('id', messageIds);
     if (error) {
       toast('Không thể xóa tin nhắn.', 'error');
       return;
     }
 
     await resolveChatReport(report);
-    toast('Đã xóa tin nhắn vi phạm.', 'success');
+    toast(`Đã xóa ${messageIds.length} tin nhắn vi phạm.`, 'success');
     fetchAdminData();
   };
 
@@ -455,6 +460,16 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                       const targetUser = allSupabaseRoommates.find(r => r.id === report.target_id || r.user_id === report.target_id);
                       const targetAccountId = targetUser?.user_id || targetUser?.auth_id || report.target_id;
                       const isBanned = bannedUsers.includes(targetAccountId);
+                      const reportedMessages = Array.isArray(report.reported_messages)
+                        ? report.reported_messages
+                        : report.reported_message_id
+                          ? [{
+                              id: report.reported_message_id,
+                              text: report.reported_message_text,
+                              image_url: report.reported_message_image,
+                              timestamp: report.reported_message_timestamp,
+                            }]
+                          : [];
                       return (
                         <div key={report.report_message_id || report.id} className="border border-rose-100 bg-rose-50/30 p-5 rounded-2xl flex flex-col md:flex-row gap-5 items-start">
                           <div className="flex-1 space-y-3">
@@ -465,24 +480,32 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                             <p className="text-sm"><span className="font-bold text-slate-700">Người bị report: </span><span className="text-rose-600 font-black">{targetUser?.name || report.target_id}</span></p>
                             <p className="text-xs text-slate-500"><span className="font-bold">Người báo cáo: </span>{report.sender_id}</p>
                             <p className="text-sm"><span className="font-bold text-slate-700">Lý do: </span>{report.reason}</p>
-                            {report.reported_message_id && (
+                            {reportedMessages.length > 0 && (
                               <div className="rounded-xl border border-rose-200 bg-white p-4">
-                                <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-rose-600">Tin nhắn bị báo cáo</p>
-                                <p className="break-words text-sm font-semibold text-slate-700">
-                                  {report.reported_message_text || 'Đã gửi một hình ảnh'}
+                                <p className="mb-3 text-[11px] font-black uppercase tracking-wider text-rose-600">
+                                  {reportedMessages.length} tin nhắn bị báo cáo
                                 </p>
-                                {report.reported_message_image && (
-                                  <img
-                                    src={report.reported_message_image}
-                                    alt="Tin nhắn bị báo cáo"
-                                    className="mt-3 max-h-48 rounded-lg border border-slate-200 object-contain"
-                                  />
-                                )}
-                                {report.reported_message_timestamp && (
-                                  <p className="mt-2 text-[10px] text-slate-400">
-                                    {new Date(report.reported_message_timestamp).toLocaleString('vi-VN')}
-                                  </p>
-                                )}
+                                <div className="space-y-2">
+                                  {reportedMessages.map((message: any, index: number) => (
+                                    <div key={message.id || index} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                                      <p className="break-words text-sm font-semibold text-slate-700">
+                                        {message.text || 'Đã gửi một hình ảnh'}
+                                      </p>
+                                      {message.image_url && (
+                                        <img
+                                          src={message.image_url}
+                                          alt={`Tin nhắn bị báo cáo ${index + 1}`}
+                                          className="mt-2 max-h-40 rounded-lg border border-slate-200 object-contain"
+                                        />
+                                      )}
+                                      {message.timestamp && (
+                                        <p className="mt-2 text-[10px] text-slate-400">
+                                          {new Date(message.timestamp).toLocaleString('vi-VN')}
+                                        </p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             )}
                             {report.image && (
@@ -501,11 +524,11 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                             </button>
                             <button
                               onClick={() => handleDeleteReportedMessage(report)}
-                              disabled={!report.reported_message_id}
+                              disabled={reportedMessages.length === 0}
                               className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold py-2.5 rounded-xl text-sm transition-colors disabled:cursor-not-allowed"
-                              title={!report.reported_message_id ? 'Báo cáo cũ chưa gắn tin nhắn cụ thể' : undefined}
+                              title={reportedMessages.length === 0 ? 'Báo cáo cũ chưa gắn tin nhắn cụ thể' : undefined}
                             >
-                              Xóa tin nhắn
+                              Xóa {reportedMessages.length || ''} tin nhắn
                             </button>
                             {isBanned ? (
                               <button onClick={() => handleUnbanUser(targetAccountId)} className="w-full bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold py-2.5 rounded-xl text-sm transition-colors">Mở khóa User</button>
