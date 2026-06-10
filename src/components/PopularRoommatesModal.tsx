@@ -1,6 +1,5 @@
-import { X, Heart, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
+import { X, Heart, TrendingUp } from "lucide-react";
 import { Roommate } from "../types";
-import { useState } from "react";
 import RoommateCard from "./RoommateCard";
 
 interface PopularRoommatesModalProps {
@@ -9,9 +8,9 @@ interface PopularRoommatesModalProps {
   popularRoommates: Roommate[];
   roommateLikeCounts: Record<string, number>;
   likedRoommateIds: string[];
-  onLikeRoommate: (id: string, isLiked: boolean) => void | Promise<boolean>;
+  onLikeRoommate?: (id: string, isLiked: boolean) => void | Promise<boolean>;
   onViewRoommate: (roommate: Roommate) => void;
-  onStartChat: (id: string) => void;
+  onStartChat?: (id: string) => void;
 }
 
 export default function PopularRoommatesModal({
@@ -24,46 +23,7 @@ export default function PopularRoommatesModal({
   onViewRoommate,
   onStartChat,
 }: PopularRoommatesModalProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [touchStart, setTouchStart] = useState(0);
-  const [touchEnd, setTouchEnd] = useState(0);
-
   if (!isOpen) return null;
-
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev === 0 ? popularRoommates.length - 1 : prev - 1));
-  };
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev === popularRoommates.length - 1 ? 0 : prev + 1));
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowLeft") handlePrev();
-    if (e.key === "ArrowRight") handleNext();
-    if (e.key === "Escape") onClose();
-  };
-
-  // Touch swipe handling
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (touchStart - touchEnd > 75) {
-      // Swipe left
-      handleNext();
-    }
-    if (touchStart - touchEnd < -75) {
-      // Swipe right
-      handlePrev();
-    }
-  };
 
   if (popularRoommates.length === 0) {
     return (
@@ -87,110 +47,59 @@ export default function PopularRoommatesModal({
     );
   }
 
-  const currentRoommate = popularRoommates[currentIndex];
-  const likeCount = roommateLikeCounts[currentRoommate.id] || 0;
-
   return (
     <div
-      className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center animate-fade-in"
+      className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center animate-fade-in p-4 sm:p-6 lg:p-8"
       onClick={onClose}
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
     >
       {/* Close Button */}
       <button
         onClick={onClose}
-        className="absolute top-6 right-6 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white transition-all z-10 group"
+        className="absolute top-4 right-4 sm:top-6 sm:right-6 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white transition-all z-10 group"
       >
         <X className="w-6 h-6 group-hover:rotate-90 transition-transform" />
       </button>
 
       {/* Content Container */}
       <div
-        className="relative max-w-2xl w-full mx-4"
+        className="relative w-full max-w-7xl h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-scale-in"
         onClick={(e) => e.stopPropagation()}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       >
         {/* Header */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-3">
-            <TrendingUp className="w-5 h-5 text-rose-400" />
-            <span className="text-white font-bold text-sm">Được Cộng Đồng Quan Tâm</span>
-          </div>
-          <p className="text-white/80 text-sm">
-            {currentIndex + 1} / {popularRoommates.length}
-          </p>
-        </div>
-
-        {/* Card Container with Navigation */}
-        <div className="relative">
-          {/* Previous Button */}
-          {popularRoommates.length > 1 && (
-            <button
-              onClick={handlePrev}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16 w-12 h-12 bg-white hover:bg-slate-50 rounded-full shadow-xl flex items-center justify-center text-slate-700 transition-all hover:scale-110 z-10"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-          )}
-
-          {/* Card */}
-          <div className="bg-white rounded-3xl shadow-2xl p-6 animate-scale-in">
-            {/* Like Badge */}
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg">
-                <Heart className="w-5 h-5 fill-current" />
-                <span className="font-bold">{likeCount} lượt quan tâm</span>
-              </div>
+        <div className="p-6 sm:p-8 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0 bg-slate-50/50">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center text-rose-500">
+              <TrendingUp className="w-6 h-6" />
             </div>
-
-            {/* Roommate Card */}
-            <RoommateCard
-              roommate={currentRoommate}
-              onViewDetails={onViewRoommate}
-              onLikeChange={onLikeRoommate}
-              isInitiallyLiked={likedRoommateIds.includes(currentRoommate.id)}
-              onStartChat={onStartChat}
-            />
-
-            {/* Swipe Hint */}
-            {popularRoommates.length > 1 && (
-              <div className="text-center mt-4 text-slate-400 text-sm">
-                <span className="hidden sm:inline">Dùng phím ← → hoặc </span>
-                Vuốt để xem thêm
-              </div>
-            )}
+            <div>
+              <h2 className="text-2xl font-black text-slate-800">Được Cộng Đồng Quan Tâm</h2>
+              <p className="text-slate-500 text-sm mt-1">Danh sách những người dùng nổi bật nhất trên hệ thống</p>
+            </div>
           </div>
-
-          {/* Next Button */}
-          {popularRoommates.length > 1 && (
-            <button
-              onClick={handleNext}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-16 w-12 h-12 bg-white hover:bg-slate-50 rounded-full shadow-xl flex items-center justify-center text-slate-700 transition-all hover:scale-110 z-10"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </button>
-          )}
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-50 border border-rose-100 text-rose-600 font-bold text-sm shadow-sm">
+            <Heart className="w-4 h-4 fill-current" />
+            {popularRoommates.length} hồ sơ nổi bật
+          </div>
         </div>
 
-        {/* Dots Indicator */}
-        {popularRoommates.length > 1 && (
-          <div className="flex justify-center gap-2 mt-6">
-            {popularRoommates.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentIndex(index)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  index === currentIndex
-                    ? "bg-white w-8"
-                    : "bg-white/30 hover:bg-white/50"
-                }`}
+        {/* Scrollable Grid Container */}
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 scrollbar-thin">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {popularRoommates.map((roommate) => (
+              <RoommateCard
+                key={roommate.id}
+                roommate={roommate}
+                compact
+                likeCount={roommateLikeCounts[roommate.id] || 0}
+                showLikeCount
+                onViewDetails={onViewRoommate}
+                onLikeChange={onLikeRoommate}
+                isInitiallyLiked={likedRoommateIds.includes(roommate.id)}
+                onStartChat={onStartChat}
               />
             ))}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
