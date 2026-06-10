@@ -86,6 +86,7 @@ export interface Room {
 
 export interface RoomReview {
   id: string;
+  reviewerId?: string;
   reviewerName: string;
   reviewerAvatar?: string;
   rating: number; // 1 to 5

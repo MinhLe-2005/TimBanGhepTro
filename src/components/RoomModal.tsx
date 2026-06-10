@@ -16,9 +16,11 @@ interface RoomModalProps {
   isAdmin?: boolean;
   onViewHostProfile?: (roommate: Roommate) => void;
   hasSignedAgreement?: boolean;
+  currentUserId?: string;
+  currentUserProfile?: { name?: string; avatar?: string } | null;
 }
 
-export default function RoomModal({ room, onClose, onInquire, onAddReview, roommates = [], isOwnProfile = false, onDeleteRoom, onEditRoom, isAdmin = false, onViewHostProfile, hasSignedAgreement = false }: RoomModalProps) {
+export default function RoomModal({ room, onClose, onInquire, onAddReview, roommates = [], isOwnProfile = false, onDeleteRoom, onEditRoom, isAdmin = false, onViewHostProfile, hasSignedAgreement = false, currentUserId, currentUserProfile }: RoomModalProps) {
   const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
   
   if (!room) return null;
@@ -90,7 +92,6 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
   };
   const hostReputationScore = calculateReputationScore(resolvedRoommate);
 
-  const [newName, setNewName] = useState("");
   const [newRating, setNewRating] = useState(5);
   const [newComment, setNewComment] = useState("");
   const [newImages, setNewImages] = useState<string[]>([]);
@@ -104,6 +105,14 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
       setPrivateNote(localStorage.getItem(`room_notes_${room.id}`) || "");
     }
   }, [room?.id]);
+
+  const ownReview = room.reviews?.find((review) => review.reviewerId === currentUserId);
+
+  useEffect(() => {
+    setNewRating(ownReview?.rating || 5);
+    setNewComment(ownReview?.comment || "");
+    setNewImages(ownReview?.images || []);
+  }, [room.id, ownReview?.id, ownReview?.rating, ownReview?.comment]);
 
   useEffect(() => {
     if (isSavingNote) {
@@ -176,9 +185,11 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
       });
 
       if (success !== false) {
-        setNewRating(0);
-        setNewComment("");
-        setNewImages([""]);
+        if (!ownReview) {
+          setNewRating(5);
+          setNewComment("");
+          setNewImages([]);
+        }
       }
     }
   };
@@ -565,19 +576,20 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
               <div className="bg-white border-2 border-slate-100 rounded-3xl p-5 sm:p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-5">
                 <h5 className="text-[13px] font-black text-[#006590] uppercase tracking-wider flex items-center gap-2">
                   <Star className="h-4 w-4" />
-                  Viết bài đánh giá mới
+                  {ownReview ? "Cập nhật đánh giá của bạn" : "Viết bài đánh giá mới"}
                 </h5>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">Tên của bạn</label>
-                    <input
-                      type="text"
-                      placeholder="Người dùng ẩn danh"
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      className="w-full border-2 border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-[13px] font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#006590] focus:bg-white transition-colors"
-                    />
+                    <label className="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">Người đánh giá</label>
+                    <div className="h-[46px] flex items-center gap-2.5 border-2 border-slate-100 bg-slate-50 rounded-xl px-3">
+                      {currentUserProfile?.avatar && (
+                        <img src={currentUserProfile.avatar} alt="" className="w-7 h-7 rounded-full object-cover" />
+                      )}
+                      <span className="text-[13px] font-bold text-slate-700">
+                        {currentUserProfile?.name || "Thành viên RoomieMatch"}
+                      </span>
+                    </div>
                   </div>
 
                   <div>
@@ -672,7 +684,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                     className="bg-[#006590] hover:bg-[#004e70] disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed disabled:shadow-none text-white text-[13px] font-black px-6 py-3.5 rounded-[14px] transition-all duration-200 flex items-center gap-2 shadow-[0_4px_15px_rgba(0,101,144,0.3)] uppercase cursor-pointer"
                   >
                     <Star className="h-4 w-4" />
-                    <span>Gửi đánh giá phòng</span>
+                    <span>{ownReview ? "Cập nhật đánh giá" : "Gửi đánh giá phòng"}</span>
                   </button>
                 </div>
               </div>

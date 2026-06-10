@@ -462,8 +462,9 @@ export default function App() {
 
       // Secondary data must not delay the public listing pages.
       try {
-        const [reviewsResult, bansResult] = await Promise.all([
+        const [reviewsResult, roomReviewsResult, bansResult] = await Promise.all([
           supabase.from('reviews').select('*'),
+          supabase.from('room_reviews').select('*'),
           supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS'),
         ]);
 
@@ -478,6 +479,14 @@ export default function App() {
         if (bansResult.error) {
           console.error("[Auth] Failed to fetch banned users:", bansResult.error);
         }
+
+        if (roomReviewsResult.data) {
+          setSupabaseRoomReviews(roomReviewsResult.data);
+          localStorage.setItem('roomiematch_cached_room_reviews', JSON.stringify(roomReviewsResult.data));
+        } else if (roomReviewsResult.error && roomReviewsResult.error.code !== "42P01") {
+          console.error("[Room reviews] Fetch failed:", roomReviewsResult.error);
+        }
+
         // Fetch Banned list
         const bansData = bansResult.data;
         if (bansData) {
@@ -531,6 +540,26 @@ export default function App() {
             // Fallback: refetch if needed
             const { data } = await supabase.from('rooms').select('*').order('createdAt', { ascending: false });
             if (data) setSupabaseRooms(data);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'room_reviews' },
+        (payload) => {
+          if (payload.eventType === 'INSERT' && payload.new) {
+            setSupabaseRoomReviews((previous) => [
+              payload.new,
+              ...previous.filter((review) => review.id !== payload.new.id),
+            ]);
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            setSupabaseRoomReviews((previous) =>
+              previous.map((review) => review.id === payload.new.id ? payload.new : review)
+            );
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            setSupabaseRoomReviews((previous) =>
+              previous.filter((review) => review.id !== payload.old.id)
+            );
           }
         }
       )
@@ -620,6 +649,13 @@ export default function App() {
       return [];
     }
   });
+  const [supabaseRoomReviews, setSupabaseRoomReviews] = useState<any[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("roomiematch_cached_room_reviews") || "[]");
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     try {
@@ -628,6 +664,14 @@ export default function App() {
       console.warn("[Cache] Could not cache roommates:", error);
     }
   }, [supabaseRoommates]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("roomiematch_cached_room_reviews", JSON.stringify(supabaseRoomReviews));
+    } catch (error) {
+      console.warn("[Cache] Could not cache room reviews:", error);
+    }
+  }, [supabaseRoomReviews]);
 
   useEffect(() => {
     try {
@@ -822,7 +866,30 @@ export default function App() {
       }
     });
     
-    let result = Array.from(uniqueByIdMap.values());
+    let result = Array.from(uniqueByIdMap.values()).map((room) => {
+      const databaseReviews = supabaseRoomReviews
+        .filter((review) => (review.room_id || review.roomId) === room.id)
+        .map((review) => ({
+          id: review.id,
+          reviewerId: review.reviewer_id || review.reviewerId,
+          reviewerName: review.reviewer_name || review.reviewerName || "Thành viên RoomieMatch",
+          reviewerAvatar: review.reviewer_avatar || review.reviewerAvatar,
+          rating: Number(review.rating),
+          comment: review.comment || "",
+          images: Array.isArray(review.images) ? review.images : [],
+          createdAt: review.created_at
+            ? new Date(review.created_at).toLocaleDateString("vi-VN")
+            : review.createdAt,
+        }));
+      const databaseReviewIds = new Set(databaseReviews.map((review) => review.id));
+      return {
+        ...room,
+        reviews: [
+          ...databaseReviews,
+          ...(room.reviews || []).filter((review) => !databaseReviewIds.has(review.id)),
+        ],
+      };
+    });
 
     // Update with current user's avatar if they own the room
     if (currentUserProfile) {
@@ -851,7 +918,7 @@ export default function App() {
     });
 
     return result;
-  }, [supabaseRooms, rooms, currentUserProfile, currentUser]);
+  }, [supabaseRooms, supabaseRoomReviews, rooms, currentUserProfile, currentUser]);
 
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [postModalInitialTab, setPostModalInitialTab] = useState<"roommate" | "room">("roommate");
@@ -1366,6 +1433,14 @@ export default function App() {
       }
     }
   }, [roommates, selectedRoommate]);
+
+  useEffect(() => {
+    if (!selectedRoom) return;
+    const updated = allRooms.find((room) => room.id === selectedRoom.id);
+    if (updated && JSON.stringify(updated.reviews) !== JSON.stringify(selectedRoom.reviews)) {
+      setSelectedRoom(updated);
+    }
+  }, [allRooms, selectedRoom]);
 
   useEffect(() => {
     let relevantChatIds: string[] = [];
@@ -2061,35 +2136,57 @@ export default function App() {
 
   const handleAddRoomReview = async (roomId: string, review: { reviewerName: string; rating: number; comment: string; images: string[] }) => {
     const isAuth = await requireAuth();
-    if (!isAuth) return false;
+    if (!isAuth || !currentUser) return false;
 
-    setRooms((prev) =>
-      prev.map((r) => {
-        if (r.id === roomId) {
-          const newReview = {
-            id: `rev-${Date.now()}`,
-            reviewerName: review.reviewerName || "Người dùng ẩn danh",
-            reviewerAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop",
-            rating: review.rating,
-            comment: review.comment,
-            images: review.images,
-            createdAt: new Date().toLocaleDateString("vi-VN"),
-          };
-          const updatedReviews = [newReview, ...(r.reviews || [])];
-          const updatedRoom = {
-            ...r,
-            reviews: updatedReviews,
-          };
-
-          if (selectedRoom && selectedRoom.id === roomId) {
-            setSelectedRoom(updatedRoom);
-          }
-
-          return updatedRoom;
-        }
-        return r;
-      })
+    const reviewerName =
+      currentUserProfile?.name ||
+      currentUser?.name ||
+      currentUser?.email?.split("@")[0] ||
+      "Thành viên RoomieMatch";
+    const reviewerAvatar =
+      currentUserProfile?.avatar ||
+      currentUser?.avatar ||
+      null;
+    const existingReview = supabaseRoomReviews.find(
+      (item) =>
+        (item.room_id || item.roomId) === roomId &&
+        (item.reviewer_id || item.reviewerId) === currentUser.id
     );
+    const databaseReview = {
+      id: existingReview?.id || `room-review-${crypto.randomUUID()}`,
+      room_id: roomId,
+      reviewer_id: currentUser.id,
+      reviewer_name: reviewerName,
+      reviewer_avatar: reviewerAvatar,
+      rating: review.rating,
+      comment: review.comment.trim(),
+      images: review.images,
+    };
+    const { data, error } = await supabase
+      .from("room_reviews")
+      .upsert(databaseReview, { onConflict: "room_id,reviewer_id" })
+      .select()
+      .single();
+
+    if (error || !data) {
+      console.error("[Room reviews] Save failed:", error);
+      toast(
+        error?.code === "42P01"
+          ? "Chưa có bảng đánh giá phòng. Hãy chạy file enable_room_reviews.sql trên Supabase."
+          : "Không thể lưu đánh giá phòng. Vui lòng thử lại.",
+        "error"
+      );
+      return false;
+    }
+
+    setSupabaseRoomReviews((previous) => [
+      data,
+      ...previous.filter((item) => item.id !== data.id && !(
+        (item.room_id || item.roomId) === roomId &&
+        (item.reviewer_id || item.reviewerId) === currentUser.id
+      )),
+    ]);
+    toast(existingReview ? "Đã cập nhật đánh giá phòng." : "Đã gửi đánh giá phòng.", "success");
     return true;
   };
 
@@ -2372,6 +2469,8 @@ export default function App() {
           onClose={handleCloseModal}
           onInquire={handleRoomInquiry}
           onAddReview={handleAddRoomReview}
+          currentUserId={currentUser?.id}
+          currentUserProfile={currentUserProfile}
           isOwnProfile={!!currentUser && (selectedRoom.postedBy === currentUser.id || (selectedRoom as any).user_id === currentUser.id)}
           hasSignedAgreement={roomUserHasSignedAgreement}
           onDeleteRoom={(id) => {
