@@ -81,7 +81,7 @@ export default function RoomCard({
   return (
     <div
       onClick={() => onViewDetails(room)}
-      className="group bg-white rounded-[24px] overflow-hidden border border-gray-100 cursor-pointer shadow-[0_10px_30px_rgba(15,23,42,0.04)] hover:shadow-[0_20px_40px_rgba(15,23,42,0.08)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col h-full"
+      className="group relative bg-white rounded-[24px] overflow-hidden border border-gray-100 cursor-pointer shadow-[0_10px_30px_rgba(15,23,42,0.04)] hover:shadow-[0_20px_40px_rgba(15,23,42,0.08)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col h-full"
     >
       {/* Room Image Container */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-50">

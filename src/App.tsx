@@ -280,7 +280,14 @@ export default function App() {
           const localRoommates = JSON.parse(localStorage.getItem("roomiematch_posted_roommates") || "[]");
           const remoteRoommateIds = new Set(freshRoommates.map((roommate: any) => String(roommate.id)));
           const unsyncedRoommates = localRoommates.filter(
-            (roommate: any) => roommate?.id && !remoteRoommateIds.has(String(roommate.id))
+            (roommate: any) => {
+              if (!roommate?.id || remoteRoommateIds.has(String(roommate.id))) return false;
+              const ownerId = String(roommate.user_id || roommate.postedBy || "");
+              const ownerName = String(roommate.name || "").trim().toLowerCase();
+              const cachedProfile = JSON.parse(localStorage.getItem("roomiematch_user_profile") || "null");
+              const currentName = String(cachedProfile?.name || currentUser?.name || "").trim().toLowerCase();
+              return !ownerId || ownerId === currentUser?.id || (!!currentName && ownerName === currentName);
+            }
           );
 
           if (currentUser?.id && unsyncedRoommates.length > 0) {
@@ -290,19 +297,30 @@ export default function App() {
               allowedKeys.forEach((key) => {
                 if (roommate[key] !== undefined) cleanRoommate[key] = roommate[key];
               });
-              cleanRoommate.postedBy = cleanRoommate.postedBy || currentUser.id;
-              cleanRoommate.user_id = cleanRoommate.user_id || currentUser.id;
+              cleanRoommate.postedBy = currentUser.id;
+              cleanRoommate.user_id = currentUser.id;
               cleanRoommate.is_listing = true;
               return cleanRoommate;
             });
-            const { data: syncedRoommates, error: syncRoommatesError } = await supabase
-              .from("roommates")
-              .upsert(ownedRoommates, { onConflict: "id" })
-              .select();
-            if (syncRoommatesError) {
-              console.error("[Listings] Failed to sync local roommates:", syncRoommatesError);
-            } else if (syncedRoommates?.length) {
+
+            const syncResults = await Promise.all(
+              ownedRoommates.map((roommate: any) =>
+                supabase.from("roommates").upsert(roommate, { onConflict: "id" }).select().single()
+              )
+            );
+            const syncedRoommates = syncResults.flatMap((result) => result.data ? [result.data] : []);
+            const failedRoommates = syncResults.filter((result) => result.error);
+            failedRoommates.forEach((result) => {
+              console.error("[Listings] Failed to sync a local roommate:", result.error);
+            });
+            if (syncedRoommates.length) {
               freshRoommates = [...syncedRoommates, ...freshRoommates];
+              localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(
+                localRoommates.map((roommate: any) => {
+                  const synced = syncedRoommates.find((item: any) => item.id === roommate.id);
+                  return synced || roommate;
+                })
+              ));
             }
           }
 
@@ -321,7 +339,14 @@ export default function App() {
           let freshRooms = roomsResult.data;
           const localRooms = JSON.parse(localStorage.getItem("roomiematch_posted_rooms") || "[]");
           const remoteRoomIds = new Set(freshRooms.map((room: any) => String(room.id)));
-          const unsyncedRooms = localRooms.filter((room: any) => room?.id && !remoteRoomIds.has(String(room.id)));
+          const unsyncedRooms = localRooms.filter((room: any) => {
+            if (!room?.id || remoteRoomIds.has(String(room.id))) return false;
+            const ownerId = String(room.user_id || room.postedBy || "");
+            const ownerName = String(room.hostName || "").trim().toLowerCase();
+            const cachedProfile = JSON.parse(localStorage.getItem("roomiematch_user_profile") || "null");
+            const currentName = String(cachedProfile?.name || currentUser?.name || "").trim().toLowerCase();
+            return !ownerId || ownerId === currentUser?.id || (!!currentName && ownerName === currentName);
+          });
 
           if (currentUser?.id && unsyncedRooms.length > 0) {
             const allowedKeys = ['id', 'title', 'price', 'location', 'district', 'type', 'images', 'features', 'isHot', 'status', 'isVerifiedRoom', 'bedrooms', 'wc', 'kitchen', 'hostName', 'hostAvatar', 'description', 'phoneNumber', 'pets', 'gender', 'postedBy', 'user_id', 'createdAt'];
@@ -330,18 +355,29 @@ export default function App() {
               allowedKeys.forEach((key) => {
                 if (room[key] !== undefined) cleanRoom[key] = room[key];
               });
-              cleanRoom.postedBy = cleanRoom.postedBy || currentUser.id;
-              cleanRoom.user_id = cleanRoom.user_id || currentUser.id;
+              cleanRoom.postedBy = currentUser.id;
+              cleanRoom.user_id = currentUser.id;
               return cleanRoom;
             });
-            const { data: syncedRooms, error: syncRoomsError } = await supabase
-              .from("rooms")
-              .upsert(ownedRooms, { onConflict: "id" })
-              .select();
-            if (syncRoomsError) {
-              console.error("[Listings] Failed to sync local rooms:", syncRoomsError);
-            } else if (syncedRooms?.length) {
+
+            const syncResults = await Promise.all(
+              ownedRooms.map((room: any) =>
+                supabase.from("rooms").upsert(room, { onConflict: "id" }).select().single()
+              )
+            );
+            const syncedRooms = syncResults.flatMap((result) => result.data ? [result.data] : []);
+            const failedRooms = syncResults.filter((result) => result.error);
+            failedRooms.forEach((result) => {
+              console.error("[Listings] Failed to sync a local room:", result.error);
+            });
+            if (syncedRooms.length) {
               freshRooms = [...syncedRooms, ...freshRooms];
+              localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(
+                localRooms.map((room: any) => {
+                  const synced = syncedRooms.find((item: any) => item.id === room.id);
+                  return synced || room;
+                })
+              ));
             }
           }
 
@@ -431,7 +467,7 @@ export default function App() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, currentUser?.name]);
 
   useEffect(() => {
     if (!import.meta.env.VITE_SUPABASE_URL) return;
