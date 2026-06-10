@@ -908,12 +908,16 @@ export default function ChatView({
           
           if (!partner) {
             console.warn('[Chat] Partner not found in any table, using fallback for:', partnerId);
+            // Fallback: try to find their name from any message they sent in the inbox
+            const theirMsg = inboxMessages.find(m => m.chat_id === msg.chat_id && m.sender_id === partnerId && m.sender_name);
+            const fallbackName = theirMsg?.sender_name || 'Người dùng';
+            
             // Default fallback (should rarely happen)
             partner = { 
               id: partnerId, 
               user_id: partnerId,
               auth_id: partnerId,
-              name: 'Người dùng', 
+              name: fallbackName, 
               avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop', 
               role: 'Thành viên', 
               isVerified: false, 
