@@ -114,7 +114,7 @@ export default function ChatView({
 
   const handleSendReport = async () => {
     if (!reportReason.trim() || selectedReportedMessageIds.length === 0) {
-      alert("Vui lòng chọn từ 1 đến 3 tin nhắn vi phạm và nhập lý do báo cáo.");
+      toast("Vui lòng chọn từ 1 đến 3 tin nhắn và nhập lý do báo cáo.", "warning", 4000);
       return;
     }
     const myId = currentUser?.id || currentUserProfile?.id;
@@ -140,7 +140,7 @@ export default function ChatView({
          });
          
          if (hasReported) {
-           alert("Bạn đã báo cáo người dùng này rồi. Vui lòng chờ Ban quản trị xử lý!");
+           toast("Bạn đã báo cáo người dùng này. Vui lòng chờ ban quản trị xử lý.", "warning", 4500);
            return;
          }
        }
@@ -166,7 +166,7 @@ export default function ChatView({
            finalImageUrl = urlData.publicUrl;
          } catch (err: any) {
            console.error("Lỗi upload ảnh:", err);
-           alert("Không thể tải ảnh minh chứng. Vui lòng thử lại hoặc gửi báo cáo không kèm ảnh.");
+           toast("Không thể tải ảnh minh chứng. Hãy thử lại hoặc gửi báo cáo không kèm ảnh.", "error", 5000);
            setIsUploadingReport(false);
            return;
          }
@@ -201,19 +201,19 @@ export default function ChatView({
        });
        if (reportError) {
          console.error("[Chat] Cannot send report:", reportError);
-         alert("Không thể gửi báo cáo lúc này. Vui lòng thử lại.");
+         toast("Không thể gửi báo cáo lúc này. Vui lòng thử lại.", "error", 4500);
          setIsUploadingReport(false);
          return;
        }
-       alert("Báo cáo của bạn đã được gửi đến ban quản trị.");
        setIsReportModalOpen(false);
        setReportReason("");
        setReportImageFile(null);
        setReportImagePreview(null);
        setSelectedReportedMessageIds([]);
        setIsUploadingReport(false);
+       toast("Đã gửi báo cáo đến ban quản trị.", "success", 4000);
     } else {
-       alert("Lỗi hệ thống, không thể gửi báo cáo lúc này.");
+       toast("Lỗi hệ thống, không thể gửi báo cáo lúc này.", "error", 4500);
     }
   };
 

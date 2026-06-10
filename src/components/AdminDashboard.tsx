@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, AlertTriangle, Shield, Trash2, Ban, ShieldCheck, FileText, UserCheck, Flag, Check, Star } from "lucide-react";
+import { Users, AlertTriangle, Shield, Trash2, Ban, ShieldCheck, FileText, UserCheck, Flag, Check, Star, RefreshCw } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { Roommate, Room } from "../types";
 import { useDialog } from "./ui/DialogProvider";
@@ -34,11 +34,15 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
       if (allRoommatesData) setAllSupabaseRoommates(allRoommatesData);
 
       // Fetch Reports
-      const { data: reportMsgs } = await supabase
+      const { data: reportMsgs, error: reportError } = await supabase
         .from('messages')
         .select('*')
-        .eq('chat_id', 'SYSTEM_REPORTS')
-        .order('timestamp', { ascending: false });
+        .eq('chat_id', 'SYSTEM_REPORTS');
+
+      if (reportError) {
+        console.error('[Admin] Cannot load chat reports:', reportError);
+        toast(`Không thể tải báo cáo chat: ${reportError.message}`, 'error', 5000);
+      }
 
       if (reportMsgs) {
         const parsedReports = reportMsgs.map(msg => {
@@ -50,7 +54,13 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
              created_at: msg.created_at || msg.timestamp,
              ...payload,
            };
-        }).filter(r => r.target_id);
+        })
+          .filter(r => r.target_id)
+          .sort(
+            (a, b) =>
+              new Date(b.created_at || 0).getTime() -
+              new Date(a.created_at || 0).getTime()
+          );
         setReports(parsedReports);
       }
 
@@ -149,7 +159,38 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     setIsLoading(false);
   };
 
-  useEffect(() => { fetchAdminData(); }, []);
+  useEffect(() => {
+    fetchAdminData();
+
+    const refreshReports = () => fetchAdminData();
+    const reportChannel = supabase
+      .channel('admin-report-updates')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'messages' },
+        (payload) => {
+          const row = (payload.new && Object.keys(payload.new).length > 0)
+            ? payload.new
+            : payload.old;
+          if (
+            row?.chat_id === 'SYSTEM_REPORTS' ||
+            row?.chat_id === 'SYSTEM_REVIEW_REPORTS'
+          ) {
+            refreshReports();
+          }
+        }
+      )
+      .subscribe();
+
+    window.addEventListener('focus', refreshReports);
+    document.addEventListener('visibilitychange', refreshReports);
+
+    return () => {
+      supabase.removeChannel(reportChannel);
+      window.removeEventListener('focus', refreshReports);
+      document.removeEventListener('visibilitychange', refreshReports);
+    };
+  }, []);
 
   // Listings = is_listing is not false; Profiles = is_listing is false
   const listings = allSupabaseRoommates.filter(r => r.is_listing !== false && r.is_listing !== 'false');
@@ -448,7 +489,20 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
             {/* TAB: REPORTS */}
             {activeTab === "reports" && (
               <div className="space-y-6">
-                <h3 className="text-lg font-black text-slate-800">Danh sách báo cáo</h3>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-800">Danh sách báo cáo</h3>
+                    <p className="mt-1 text-xs text-slate-500">Tự động cập nhật khi có báo cáo mới.</p>
+                  </div>
+                  <button
+                    onClick={fetchAdminData}
+                    disabled={isLoading}
+                    className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    Tải lại
+                  </button>
+                </div>
                 {reports.length === 0 ? (
                   <div className="text-center py-10 bg-slate-50 rounded-2xl">
                     <ShieldCheck className="w-12 h-12 text-emerald-400 mx-auto mb-3" />

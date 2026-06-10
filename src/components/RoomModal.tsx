@@ -15,21 +15,37 @@ interface RoomModalProps {
   onInquire: (hostName: string) => void;
   isAdmin?: boolean;
   onViewHostProfile?: (roommate: Roommate) => void;
-  onNavigateToTab?: (tab: string) => void;
   hasSignedAgreement?: boolean;
 }
 
-export default function RoomModal({ room, onClose, onInquire, onAddReview, roommates = [], isOwnProfile = false, onDeleteRoom, onEditRoom, isAdmin = false, onViewHostProfile, onNavigateToTab, hasSignedAgreement = false }: RoomModalProps) {
+export default function RoomModal({ room, onClose, onInquire, onAddReview, roommates = [], isOwnProfile = false, onDeleteRoom, onEditRoom, isAdmin = false, onViewHostProfile, hasSignedAgreement = false }: RoomModalProps) {
   const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
   
   if (!room) return null;
 
-  // Try to find matching roommate profile, but prioritize room's host data
-  const hostRoommate = roommates.find(
-    (r) => r.name.toLowerCase() === room.hostName.toLowerCase()
-  ) || roommates.find(
-    (r) => r.name.toLowerCase().includes(room.hostName.toLowerCase()) || room.hostName.toLowerCase().includes(r.name.toLowerCase())
+  // Match the room owner by account ID first. Prefer the personal profile over listings.
+  const roomOwnerId = room.user_id || room.postedBy;
+  const ownerMatches = roomOwnerId
+    ? roommates.filter(
+        (roommate) =>
+          roommate.user_id === roomOwnerId ||
+          roommate.auth_id === roomOwnerId ||
+          roommate.postedBy === roomOwnerId ||
+          roommate.id === roomOwnerId
+      )
+    : [];
+  const normalizedHostName = room.hostName.toLowerCase();
+  const nameMatches = roommates.filter(
+    (roommate) =>
+      roommate.name.toLowerCase() === normalizedHostName ||
+      roommate.name.toLowerCase().includes(normalizedHostName) ||
+      normalizedHostName.includes(roommate.name.toLowerCase())
   );
+  const hostRoommate =
+    ownerMatches.find((roommate) => roommate.is_listing === false) ||
+    ownerMatches[0] ||
+    nameMatches.find((roommate) => roommate.is_listing === false) ||
+    nameMatches[0];
 
   // Use room's data as primary source, but PRIORITIZE avatar from actual user profile
   const resolvedRoommate: Roommate = {
@@ -411,12 +427,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                     <button
                       onClick={() => {
                         console.log('[RoomModal] View host profile clicked:', hostRoommate);
-                        // Navigate to "Tìm Bạn" tab and show their profile
-                        onNavigateToTab && onNavigateToTab('roommates');
-                        // Delay to let tab switch, then open modal
-                        setTimeout(() => {
-                          onViewHostProfile(hostRoommate);
-                        }, 150);
+                        onViewHostProfile(hostRoommate);
                       }}
                       className="w-full bg-gradient-to-r from-[#006590] to-sky-600 hover:from-[#005176] hover:to-sky-700 text-white font-bold text-[14px] py-3.5 px-5 rounded-2xl shadow-lg shadow-sky-500/20 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2.5"
                     >
