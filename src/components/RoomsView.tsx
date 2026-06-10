@@ -74,14 +74,14 @@ export default function RoomsView({
 
   // Requested facilities definition
   const AMENITIES_LIST = [
-    { id: "dieuhoa", label: "Điều hòa", keywords: ["điều hoa", "máy lạnh", "điều hoà"] },
+    { id: "dieuhoa", label: "Điều hòa", keywords: ["điều hòa", "điều hoa", "máy lạnh", "điều hoà"] },
     { id: "maygiat", label: "Máy giặt", keywords: ["máy giặt", "giặt"] },
     { id: "nhabep", label: "Nhà bếp", keywords: ["nhà bếp", "bếp", "nấu ăn"] },
     { id: "wifi", label: "Wifi", keywords: ["wifi", "internet", "mạng"] },
     { id: "tulanh", label: "Tủ lạnh", keywords: ["tủ lạnh", "fridge"] },
     { id: "tv", label: "TV", keywords: ["tv", "tivi"] },
     { id: "baove", label: "Có bảo vệ", keywords: ["bảo vệ", "an ninh", "an toàn"] },
-    { id: "baigieuxe", label: "Bãi giữ xe", keywords: ["bãi giữ xe", "chỗ để xe", "gửi xe", "để xe", "đỗ xe"] },
+    { id: "baigieuxe", label: "Bãi giữ xe", keywords: ["bãi giữ xe", "bãi xe", "chỗ để xe", "gửi xe", "để xe", "đỗ xe"] },
   ];
 
   // Filter listings
