@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { X, User, Home, Plus, Briefcase, GraduationCap, DollarSign, Phone, MapPin, Hash, CheckSquare, Settings, Heart, Image, Check, Upload } from "lucide-react";
+import { X, Upload, Home, MapPin, Search, Users, Banknote, Shield, Check, FileText, Image as ImageIcon, Flame, LayoutGrid, HandCoins, Info } from "lucide-react";
 import { Roommate, Room } from "../types";
-import { SCHOOLS_BY_DISTRICT } from "../data";
+import { AVATAR_PRESETS, ROOM_IMAGE_PRESETS, SCHOOLS_BY_DISTRICT } from "../data";
+import { supabase } from "../lib/supabase";
+import ImageCropperModal from "./ImageCropperModal";
 
 interface PostListingModalProps {
   onClose: () => void;
@@ -24,39 +26,62 @@ export default function PostListingModal({
   const [activeTab, setActiveTab] = useState<"roommate" | "room">(initialTab);
   const [isSuccess, setIsSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  
+  // Cropper State
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [cropType, setCropType] = useState<"avatar" | "room" | null>(null);
 
   const handleRmAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Dung lượng ảnh tối đa là 2MB để đảm bảo hiệu suất lưu trữ và tải trang tốt nhất!");
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Dung lượng ảnh tối đa là 5MB để đảm bảo hiệu suất lưu trữ và tải trang tốt nhất!");
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
         if (typeof reader.result === "string") {
-          setRmAvatar(reader.result);
+          setCropImageSrc(reader.result);
+          setCropType("avatar");
         }
       };
       reader.readAsDataURL(file);
+      e.target.value = ''; // Reset input so same file can be selected again
     }
   };
 
   const handleRImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 3 * 1024 * 1024) {
-        alert("Dung lượng ảnh tối đa là 3MB để đảm bảo hiệu suất lưu trữ và tải trang tốt nhất!");
+      if (file.size > 10 * 1024 * 1024) {
+        alert("Dung lượng ảnh tối đa là 10MB để đảm bảo hiệu suất lưu trữ và tải trang tốt nhất!");
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
         if (typeof reader.result === "string") {
-          setRImage(reader.result);
+          setCropImageSrc(reader.result);
+          setCropType("room");
         }
       };
       reader.readAsDataURL(file);
+      e.target.value = '';
     }
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64data = reader.result as string;
+      if (cropType === "avatar") {
+        setRmAvatar(base64data);
+      } else if (cropType === "room") {
+        setRImage(base64data);
+      }
+      setCropImageSrc(null);
+      setCropType(null);
+    };
+    reader.readAsDataURL(croppedBlob);
   };
 
   // Roommate stock avatars preset 
@@ -879,6 +904,19 @@ export default function PostListingModal({
 
         </div>
       </div>
+
+      {cropImageSrc && cropType && (
+        <ImageCropperModal
+          imageSrc={cropImageSrc}
+          onClose={() => {
+            setCropImageSrc(null);
+            setCropType(null);
+          }}
+          onCropComplete={handleCropComplete}
+          aspectRatio={cropType === "avatar" ? 1 : 16 / 9}
+          circularCrop={cropType === "avatar"}
+        />
+      )}
     </div>
   );
 }
