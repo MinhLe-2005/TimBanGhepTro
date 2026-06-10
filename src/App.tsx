@@ -239,7 +239,37 @@ export default function App() {
         }
         const roommatesData = roommatesResult.data;
         if (roommatesData) {
-          const enhancedRoommates = roommatesData.map((rm: any) => ({
+          let freshRoommates = roommatesData;
+          const localRoommates = JSON.parse(localStorage.getItem("roomiematch_posted_roommates") || "[]");
+          const remoteRoommateIds = new Set(freshRoommates.map((roommate: any) => String(roommate.id)));
+          const unsyncedRoommates = localRoommates.filter(
+            (roommate: any) => roommate?.id && !remoteRoommateIds.has(String(roommate.id))
+          );
+
+          if (currentUser?.id && unsyncedRoommates.length > 0) {
+            const allowedKeys = ['id', 'name', 'age', 'role', 'phoneNumber', 'avatar', 'status', 'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags', 'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id', 'is_listing', 'createdAt'];
+            const ownedRoommates = unsyncedRoommates.map((roommate: any) => {
+              const cleanRoommate: any = {};
+              allowedKeys.forEach((key) => {
+                if (roommate[key] !== undefined) cleanRoommate[key] = roommate[key];
+              });
+              cleanRoommate.postedBy = cleanRoommate.postedBy || currentUser.id;
+              cleanRoommate.user_id = cleanRoommate.user_id || currentUser.id;
+              cleanRoommate.is_listing = true;
+              return cleanRoommate;
+            });
+            const { data: syncedRoommates, error: syncRoommatesError } = await supabase
+              .from("roommates")
+              .upsert(ownedRoommates, { onConflict: "id" })
+              .select();
+            if (syncRoommatesError) {
+              console.error("[Listings] Failed to sync local roommates:", syncRoommatesError);
+            } else if (syncedRoommates?.length) {
+              freshRoommates = [...syncedRoommates, ...freshRoommates];
+            }
+          }
+
+          const enhancedRoommates = freshRoommates.map((rm: any) => ({
             ...rm,
             reviews: []
           }));
@@ -251,8 +281,35 @@ export default function App() {
           console.error("[Listings] Failed to fetch rooms:", roomsResult.error);
         }
         if (roomsResult.data) {
-          setSupabaseRooms(roomsResult.data);
-          localStorage.setItem('roomiematch_cached_rooms', JSON.stringify(roomsResult.data));
+          let freshRooms = roomsResult.data;
+          const localRooms = JSON.parse(localStorage.getItem("roomiematch_posted_rooms") || "[]");
+          const remoteRoomIds = new Set(freshRooms.map((room: any) => String(room.id)));
+          const unsyncedRooms = localRooms.filter((room: any) => room?.id && !remoteRoomIds.has(String(room.id)));
+
+          if (currentUser?.id && unsyncedRooms.length > 0) {
+            const allowedKeys = ['id', 'title', 'price', 'location', 'district', 'type', 'images', 'features', 'isHot', 'status', 'isVerifiedRoom', 'bedrooms', 'wc', 'kitchen', 'hostName', 'hostAvatar', 'description', 'phoneNumber', 'pets', 'gender', 'postedBy', 'user_id', 'createdAt'];
+            const ownedRooms = unsyncedRooms.map((room: any) => {
+              const cleanRoom: any = {};
+              allowedKeys.forEach((key) => {
+                if (room[key] !== undefined) cleanRoom[key] = room[key];
+              });
+              cleanRoom.postedBy = cleanRoom.postedBy || currentUser.id;
+              cleanRoom.user_id = cleanRoom.user_id || currentUser.id;
+              return cleanRoom;
+            });
+            const { data: syncedRooms, error: syncRoomsError } = await supabase
+              .from("rooms")
+              .upsert(ownedRooms, { onConflict: "id" })
+              .select();
+            if (syncRoomsError) {
+              console.error("[Listings] Failed to sync local rooms:", syncRoomsError);
+            } else if (syncedRooms?.length) {
+              freshRooms = [...syncedRooms, ...freshRooms];
+            }
+          }
+
+          setSupabaseRooms(freshRooms);
+          localStorage.setItem('roomiematch_cached_rooms', JSON.stringify(freshRooms));
         }
       } catch (err) {
         console.error("Error fetching listings from Supabase:", err);
@@ -687,7 +744,7 @@ export default function App() {
 
       // Supabase Update
       if (import.meta.env.VITE_SUPABASE_URL) {
-        const validRoomKeys = ['title', 'price', 'location', 'district', 'type', 'images', 'features', 'isHot', 'status', 'isVerifiedRoom', 'bedrooms', 'wc', 'kitchen', 'hostName', 'hostAvatar', 'description', 'phoneNumber', 'pets', 'gender', 'postedBy', 'user_id', 'createdAt'];
+        const validRoomKeys = ['id', 'title', 'price', 'location', 'district', 'type', 'images', 'features', 'isHot', 'status', 'isVerifiedRoom', 'bedrooms', 'wc', 'kitchen', 'hostName', 'hostAvatar', 'description', 'phoneNumber', 'pets', 'gender', 'postedBy', 'user_id', 'createdAt'];
         const dbRoom: any = {};
         for (const key of validRoomKeys) {
           if (updatedRoom[key as keyof Room] !== undefined) {
@@ -712,8 +769,7 @@ export default function App() {
 
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
-      // ✅ Only send columns that actually exist in Supabase table. OMIT 'id'.
-      const validRoomKeys = ['title', 'price', 'location', 'district', 'type', 'images', 'features', 'isHot', 'status', 'isVerifiedRoom', 'bedrooms', 'wc', 'kitchen', 'hostName', 'hostAvatar', 'description', 'phoneNumber', 'pets', 'gender', 'postedBy', 'user_id', 'createdAt'];
+      const validRoomKeys = ['id', 'title', 'price', 'location', 'district', 'type', 'images', 'features', 'isHot', 'status', 'isVerifiedRoom', 'bedrooms', 'wc', 'kitchen', 'hostName', 'hostAvatar', 'description', 'phoneNumber', 'pets', 'gender', 'postedBy', 'user_id', 'createdAt'];
       const dbRoom: any = {};
       for (const key of validRoomKeys) {
         if (roomWithOwner[key as keyof Room] !== undefined) {
@@ -777,7 +833,7 @@ export default function App() {
 
       // Supabase Update
       if (import.meta.env.VITE_SUPABASE_URL) {
-        const validRoommateKeys = ['name', 'age', 'role', 'phoneNumber', 'avatar', 'status', 'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags', 'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id', 'is_listing', 'createdAt'];
+        const validRoommateKeys = ['id', 'name', 'age', 'role', 'phoneNumber', 'avatar', 'status', 'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags', 'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id', 'is_listing', 'createdAt'];
         const dbRoommate: any = {};
         for (const key of validRoommateKeys) {
           if (updatedRoommate[key as keyof Roommate] !== undefined) {
@@ -822,8 +878,7 @@ export default function App() {
 
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
-      // ✅ Only send columns that actually exist in Supabase table. OMIT 'id' so Supabase generates it (e.g. UUID)
-      const validRoommateKeys = ['name', 'age', 'role', 'phoneNumber', 'avatar', 'status', 'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags', 'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id', 'is_listing', 'createdAt'];
+      const validRoommateKeys = ['id', 'name', 'age', 'role', 'phoneNumber', 'avatar', 'status', 'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags', 'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id', 'is_listing', 'createdAt'];
       const dbRoommate: any = {};
       for (const key of validRoommateKeys) {
         if (roommateWithOwner[key as keyof Roommate] !== undefined) {

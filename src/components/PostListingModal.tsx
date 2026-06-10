@@ -261,8 +261,8 @@ export default function PostListingModal({
 
   const handleRoommateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rmName.trim() || !rmBudget || !rmPhone.trim()) {
-      alert("Vui lòng nhập đầy đủ các trường thông tin bắt buộc!");
+    if (!rmName.trim() || !rmBudget) {
+      alert("Vui lòng nhập tên và ngân sách dự kiến!");
       return;
     }
 
@@ -312,8 +312,8 @@ export default function PostListingModal({
 
   const handleRoomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rTitle.trim() || !rPrice || !rAddress.trim() || !rHostName.trim() || !rPhone.trim()) {
-      alert("Vui lòng điền đầy đủ các thông tin quan trọng!");
+    if (!rTitle.trim() || !rPrice || !rAddress.trim()) {
+      alert("Vui lòng nhập tiêu đề, giá và địa chỉ phòng!");
       return;
     }
 
@@ -353,7 +353,7 @@ export default function PostListingModal({
       bedrooms: Number(rBedrooms),
       wc: rWc,
       kitchen: rKitchen,
-      hostName: rHostName,
+      hostName: rHostName.trim() || currentProfile?.name || "Người đăng",
       hostAvatar: currentProfile?.avatar || AVATAR_PRESETS[0], // Use current user's avatar
       hostRole: rHostRole,
       description: rDescription || `Phòng cho thuê rộng rãi, đầy đủ ánh sáng, nội thất tiện nghi căn bản. Tọa lạc tại khu vực an ninh gần các trường học và khu mua sắm tiện ích.`,
@@ -602,8 +602,8 @@ export default function PostListingModal({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="block text-[13px] font-semibold text-slate-700">Số điện thoại <span className="text-rose-500">*</span></label>
-                      <input type="text" required value={rmPhone} onChange={(e) => setRmPhone(e.target.value)} placeholder="09xx xxx xxx"
+                      <label className="block text-[13px] font-semibold text-slate-700">Số điện thoại <span className="text-slate-400 font-normal">(không bắt buộc)</span></label>
+                      <input type="text" value={rmPhone} onChange={(e) => setRmPhone(e.target.value)} placeholder="09xx xxx xxx"
                         className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] font-bold outline-none text-slate-800 transition-all placeholder:text-slate-300 placeholder:font-normal" />
                     </div>
                     <div className="space-y-1.5">
@@ -867,8 +867,8 @@ export default function PostListingModal({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="block text-[13px] font-semibold text-slate-700">Tên người đăng <span className="text-rose-500">*</span></label>
-                      <input type="text" required value={rHostName} onChange={(e) => setRHostName(e.target.value)} placeholder="VD: Khánh Linh"
+                      <label className="block text-[13px] font-semibold text-slate-700">Tên người đăng</label>
+                      <input type="text" value={rHostName} onChange={(e) => setRHostName(e.target.value)} placeholder="VD: Khánh Linh"
                         className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
                     </div>
                     <div className="space-y-1.5">
@@ -879,8 +879,8 @@ export default function PostListingModal({
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="block text-[13px] font-semibold text-slate-700">Số điện thoại liên hệ <span className="text-rose-500">*</span></label>
-                    <input type="text" required value={rPhone} onChange={(e) => setRPhone(e.target.value)} placeholder="09xx xxx xxx"
+                    <label className="block text-[13px] font-semibold text-slate-700">Số điện thoại liên hệ <span className="text-slate-400 font-normal">(không bắt buộc)</span></label>
+                    <input type="text" value={rPhone} onChange={(e) => setRPhone(e.target.value)} placeholder="09xx xxx xxx"
                       className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] font-bold outline-none text-slate-800 transition-all placeholder:text-slate-300 placeholder:font-normal" />
                   </div>
 
