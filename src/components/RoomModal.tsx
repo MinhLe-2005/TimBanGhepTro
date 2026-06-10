@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Flame, Shield, MapPin, Bed, Bath, User, MessageSquare, Handshake, Check, Info, Star, Upload, Trash2, Moon, Dog, ChefHat, Compass, Sparkles, Heart, Smile, FileText, Phone } from "lucide-react";
+import { X, Flame, Shield, MapPin, Bed, Bath, User, MessageSquare, Handshake, Check, Info, Star, Upload, Trash2, Moon, Dog, ChefHat, Compass, Sparkles, Heart, Smile, FileText, Phone, Ban, Users } from "lucide-react";
 import { Room, Roommate } from "../types";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { calculateReputationScore, getReputationLabel } from "../utils/scoring";
@@ -22,6 +22,18 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
   const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
   
   if (!room) return null;
+
+  let targetTenants = 0;
+  let currentTenants = 0;
+  const displayFeatures: string[] = [];
+  
+  if (room.features) {
+    room.features.forEach(f => {
+      if (f.startsWith("TARGET_TENANTS:")) targetTenants = parseInt(f.split(":")[1]);
+      else if (f.startsWith("CURRENT_TENANTS:")) currentTenants = parseInt(f.split(":")[1]);
+      else displayFeatures.push(f);
+    });
+  }
 
   // Match the room owner by account ID first. Prefer the personal profile over listings.
   const roomOwnerId = room.user_id || room.postedBy;
@@ -232,13 +244,20 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
           {/* Badges for Gender & Pets */}
           <div className="flex flex-wrap gap-2.5">
             {/* Availability Status */}
-            {room.status === "hết phòng" ? (
-              <span className="text-[12px] uppercase tracking-wider font-black bg-red-500 text-white px-4 py-2 rounded-xl shadow-md flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-white/80" /> Đã hết phòng
+            {room.status === "hết phòng" || (targetTenants > 0 && currentTenants >= targetTenants) ? (
+              <span className="text-[12px] uppercase tracking-wider font-black bg-slate-800 text-white px-4 py-2 rounded-xl shadow-md flex items-center gap-2">
+                <Ban className="h-4 w-4" /> Đã hết phòng
               </span>
             ) : (
               <span className="text-[12px] uppercase tracking-wider font-black bg-emerald-500 text-white px-4 py-2 rounded-xl shadow-md flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" /> Còn phòng sẵn sàng
+                Còn phòng sẵn sàng
+              </span>
+            )}
+            
+            {targetTenants > 0 && (
+              <span className={`text-[12px] uppercase tracking-wider font-black px-4 py-2 rounded-xl shadow-md flex items-center gap-2 border-2 ${currentTenants >= targetTenants ? 'bg-red-50 text-red-600 border-red-200' : 'bg-blue-50 text-[#006590] border-blue-200'}`}>
+                <Users className="h-4.5 w-4.5" /> 
+                {currentTenants >= targetTenants ? `Đã đủ (${currentTenants}/${targetTenants})` : `Còn ${Math.max(0, targetTenants - currentTenants)} chỗ (${currentTenants}/${targetTenants})`}
               </span>
             )}
 
@@ -267,7 +286,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
           <div>
             <h4 className="text-[13px] font-black text-[#006590] uppercase tracking-wider mb-3">Đặc trưng nổi bật</h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {room.features.map((feat, idx) => (
+              {displayFeatures.map((feat, idx) => (
                 <div key={idx} className="bg-white border-2 border-slate-100 shadow-sm px-4 py-3.5 rounded-2xl flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-sky-500 shrink-0" />
                   <span className="text-[14px] font-bold text-slate-800">{feat}</span>
