@@ -47,6 +47,7 @@ export default function App() {
   
   // Authentication states
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true); // Add loading state
   const [isBanned, setIsBanned] = useState(false);
   const [supabaseBannedIds, setSupabaseBannedIds] = useState<string[]>([]);
 
@@ -62,6 +63,7 @@ export default function App() {
             setCurrentUserProfile(null);
             localStorage.removeItem("roomiematch_user_profile");
             toast('Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.', 'error', 8000);
+            setAuthLoading(false); // Done loading
             return;
           }
         } catch(e) {}
@@ -73,6 +75,7 @@ export default function App() {
           avatar: session.user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop",
         });
       }
+      setAuthLoading(false); // Done loading
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -1760,6 +1763,18 @@ export default function App() {
       currentAccountIds.some((id) => supabaseBannedIds.includes(String(id)))
     );
   }, [currentUser?.id, currentUserProfile, supabaseBannedIds]);
+
+  // Show loading spinner while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#f0f4f8] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600 font-semibold">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isBanned) {
     return (
