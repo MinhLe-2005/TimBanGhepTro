@@ -206,18 +206,27 @@ export default function App() {
         const cachedReviews = localStorage.getItem('rm_cache_reviews');
         
         if (cachedRoommates) {
-          setSupabaseRoommates(JSON.parse(cachedRoommates));
-          hasCachedData = true;
+          const parsed = JSON.parse(cachedRoommates);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setSupabaseRoommates(parsed);
+            hasCachedData = true;
+          }
         }
         if (cachedRooms) {
-          setSupabaseRooms(JSON.parse(cachedRooms));
-          hasCachedData = true;
+          const parsed = JSON.parse(cachedRooms);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setSupabaseRooms(parsed);
+            hasCachedData = true;
+          }
         }
         if (cachedReviews) {
-          setSupabaseReviews(JSON.parse(cachedReviews));
+          const parsed = JSON.parse(cachedReviews);
+          if (Array.isArray(parsed)) {
+            setSupabaseReviews(parsed);
+          }
         }
         
-        // Stop loading spinner immediately if we have cached data to show
+        // Stop loading spinner immediately only if we actually have data to show
         if (hasCachedData) {
           setIsRoommatesLoading(false);
         }
