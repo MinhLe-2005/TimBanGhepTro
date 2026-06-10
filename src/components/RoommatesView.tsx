@@ -6,6 +6,7 @@ import RoommateCard from "./RoommateCard";
 
 interface RoommatesViewProps {
   roommates: Roommate[];
+  isLoading?: boolean; // Add loading prop
   onViewRoommate: (roommate: Roommate) => void;
   currentUserProfile: any;
   likedRoommateIds: string[];
@@ -23,6 +24,7 @@ interface RoommatesViewProps {
 
 export default function RoommatesView({
   roommates,
+  isLoading = false, // Default to false
   onViewRoommate,
   currentUserProfile,
   likedRoommateIds,
@@ -464,7 +466,18 @@ export default function RoommatesView({
       </div>
 
       {/* Roommates Grid Results */}
-      {filteredRoommates.length > 0 ? (
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-24">
+          <div className="relative">
+            {/* Animated gradient spinner */}
+            <div className="w-20 h-20 border-4 border-slate-200 border-t-rose-500 rounded-full animate-spin"></div>
+            {/* Inner pulsing circle */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-rose-100 rounded-full animate-pulse"></div>
+          </div>
+          <p className="mt-6 text-lg font-bold text-slate-600">Đang tải danh sách...</p>
+          <p className="mt-2 text-sm text-slate-400">Vui lòng chờ trong giây lát</p>
+        </div>
+      ) : filteredRoommates.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6 [contain:layout_style_paint]">
           {filteredRoommates.map((roommate) => (
             <RoommateCard

@@ -188,9 +188,14 @@ export default function App() {
   // Fetch data from Supabase
   useEffect(() => {
     const fetchSupabaseData = async () => {
-      if (!import.meta.env.VITE_SUPABASE_URL) return; // Fallback to local data if not configured
+      if (!import.meta.env.VITE_SUPABASE_URL) {
+        setIsRoommatesLoading(false); // No Supabase, use local data only
+        return;
+      }
 
       try {
+        setIsRoommatesLoading(true); // Start loading
+        
         const [roommatesResult, roomsResult, reviewsResult, bansResult] = await Promise.all([
           supabase.from('roommates').select('*').order('createdAt', { ascending: false }),
           supabase.from('rooms').select('*').order('createdAt', { ascending: false }),
@@ -223,6 +228,8 @@ export default function App() {
         }
       } catch (err) {
         console.error("Error fetching from Supabase:", err);
+      } finally {
+        setIsRoommatesLoading(false); // Done loading (success or error)
       }
     };
 
@@ -345,6 +352,8 @@ export default function App() {
       return [];
     }
   });
+  const [isRoommatesLoading, setIsRoommatesLoading] = useState(true); // Add loading state
+  
   const [supabaseRooms, setSupabaseRooms] = useState<any[]>(() => {
     try {
       return JSON.parse(localStorage.getItem("roomiematch_cached_rooms") || "[]");
@@ -1914,6 +1923,7 @@ export default function App() {
         {activeTab === "roommates" && (
           <RoommatesView
             roommates={allRoommates}
+            isLoading={isRoommatesLoading}
             likedRoommateIds={likedRoommateIds}
             onLikeRoommate={handleLikeRoommate}
             onViewRoommate={setSelectedRoommate}
