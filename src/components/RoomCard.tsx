@@ -1,7 +1,6 @@
-import { Heart, Flame, Bed, Bath, Shield, ChefHat, MapPin, Cpu, Car, Eye, Star, Trash2, Ban, Users } from "lucide-react";
+import { Heart, Flame, Bed, Bath, Shield, ChefHat, MapPin, Cpu, Car, Eye, Star, Trash2, Ban, Users, AlertCircle } from "lucide-react";
 import { Room } from "../types";
 import { useState } from "react";
-import { useConfirmDialog } from "../hooks/useConfirmDialog";
 
 interface RoomCardProps {
   room: Room;
@@ -23,7 +22,7 @@ export default function RoomCard({
   currentUserId,
 }: RoomCardProps) {
   const [isLiked, setIsLiked] = useState(isInitiallyLiked);
-  const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   const formatPrice = (price: number) => {
     return price.toLocaleString("vi-VN") + "đ";
@@ -168,16 +167,9 @@ export default function RoomCard({
             )}
             {onDelete && (
               <button
-                onClick={async (e) => { 
+                onClick={(e) => { 
                   e.stopPropagation(); 
-                  const confirmed = await confirm({
-                    title: "Xóa tin đăng phòng trọ",
-                    message: "Bạn có chắc chắn muốn xóa tin đăng này không?",
-                    confirmText: "Xóa",
-                    cancelText: "Hủy",
-                    type: "danger"
-                  });
-                  if (confirmed) onDelete(room.id);
+                  setIsConfirmingDelete(true);
                 }}
                 className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold shadow-md transition-all duration-200"
               >
@@ -264,8 +256,38 @@ export default function RoomCard({
         </div>
       </div>
       
-      {/* Confirm Dialog */}
-      <ConfirmDialogComponent />
+      {/* Inline Delete Confirmation Overlay */}
+      {isConfirmingDelete && (
+        <div 
+          className="absolute inset-0 z-50 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mb-4 border border-red-100 shadow-sm">
+            <AlertCircle className="w-7 h-7 text-red-500" />
+          </div>
+          <h4 className="text-lg font-black text-slate-800 mb-2">Xóa bài đăng này?</h4>
+          <p className="text-xs text-slate-500 mb-6 font-medium px-2">
+            Hành động này không thể hoàn tác. Bài đăng sẽ bị xóa vĩnh viễn khỏi hệ thống.
+          </p>
+          <div className="flex gap-3 w-full">
+            <button
+              onClick={() => setIsConfirmingDelete(false)}
+              className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition-all duration-200"
+            >
+              Hủy
+            </button>
+            <button
+              onClick={() => {
+                setIsConfirmingDelete(false);
+                if (onDelete) onDelete(room.id);
+              }}
+              className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm shadow-md shadow-red-500/20 transition-all duration-200"
+            >
+              Xóa ngay
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

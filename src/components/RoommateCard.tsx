@@ -1,7 +1,6 @@
-import { Heart, Pencil, Star, Trash2, ShieldCheck } from "lucide-react";
+import { Heart, Pencil, Star, Trash2, ShieldCheck, AlertCircle } from "lucide-react";
 import { Roommate } from "../types";
 import { useEffect, useState } from "react";
-import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { getAverageRating, calculateReputationScore, getReputationLabel } from "../utils/scoring";
 
 interface RoommateCardProps {
@@ -34,7 +33,7 @@ export default function RoommateCard({
   showLikeCount = false,
 }: RoommateCardProps) {
   const [isLiked, setIsLiked] = useState(isInitiallyLiked);
-  const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   useEffect(() => {
     setIsLiked(isInitiallyLiked);
@@ -127,19 +126,9 @@ export default function RoommateCard({
             {onEdit && onDelete && <span className="h-4 w-px bg-slate-200" />}
             {onDelete && (
               <button
-                onClick={async (e) => {
+                onClick={(e) => {
                   e.stopPropagation();
-                  const confirmed = await confirm({
-                    title: "Xóa tin đăng",
-                    message: "Bạn có chắc chắn muốn xóa tin đăng này không?",
-                    confirmText: "Xóa",
-                    cancelText: "Hủy",
-                    type: "danger"
-                  });
-                  if (confirmed) {
-                    onClearSelectedRoommate && onClearSelectedRoommate();
-                    onDelete(roommate.id);
-                  }
+                  setIsConfirmingDelete(true);
                 }}
                 className="flex h-8 items-center gap-1 rounded-lg px-2.5 text-[10px] font-bold text-red-600 transition-all hover:bg-red-50 active:scale-95"
                 title="Xóa tin đăng"
@@ -251,8 +240,39 @@ export default function RoommateCard({
         </div>}
       </div>
       
-      {/* Confirm Dialog */}
-      <ConfirmDialogComponent />
+      {/* Inline Delete Confirmation Overlay */}
+      {isConfirmingDelete && (
+        <div 
+          className="absolute inset-0 z-50 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mb-4 border border-red-100 shadow-sm">
+            <AlertCircle className="w-7 h-7 text-red-500" />
+          </div>
+          <h4 className="text-lg font-black text-slate-800 mb-2">Xóa bài đăng này?</h4>
+          <p className="text-xs text-slate-500 mb-6 font-medium px-2">
+            Hành động này không thể hoàn tác. Bài đăng sẽ bị xóa vĩnh viễn khỏi hệ thống.
+          </p>
+          <div className="flex gap-3 w-full">
+            <button
+              onClick={() => setIsConfirmingDelete(false)}
+              className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition-all duration-200"
+            >
+              Hủy
+            </button>
+            <button
+              onClick={() => {
+                setIsConfirmingDelete(false);
+                if (onClearSelectedRoommate) onClearSelectedRoommate();
+                if (onDelete) onDelete(roommate.id);
+              }}
+              className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm shadow-md shadow-red-500/20 transition-all duration-200"
+            >
+              Xóa ngay
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

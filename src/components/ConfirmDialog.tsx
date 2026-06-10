@@ -1,4 +1,6 @@
 import { X, AlertCircle, CheckCircle, Info, AlertTriangle } from "lucide-react";
+import { createPortal } from "react-dom";
+import { useEffect, useState } from "react";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -21,7 +23,13 @@ export default function ConfirmDialog({
   cancelText = "Hủy",
   type = "info"
 }: ConfirmDialogProps) {
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   const typeStyles = {
     danger: {
@@ -61,9 +69,9 @@ export default function ConfirmDialog({
   const style = typeStyles[type];
   const Icon = style.icon;
 
-  return (
+  return createPortal(
     <div 
-      className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/40 animate-fade-in"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in"
       onClick={(e) => {
         e.stopPropagation();
         onClose();
@@ -71,39 +79,39 @@ export default function ConfirmDialog({
     >
       {/* Dialog */}
       <div 
-        className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200"
+        className="relative bg-white rounded-[24px] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors z-10"
+          className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors z-10"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4.5 w-4.5" />
         </button>
 
         {/* Content */}
-        <div className="p-6 space-y-4">
+        <div className="p-7 space-y-5">
           {/* Icon */}
-          <div className={`w-14 h-14 rounded-2xl ${style.iconBg} ${style.iconColor} flex items-center justify-center mx-auto`}>
-            <Icon className="h-7 w-7" />
+          <div className={`w-16 h-16 rounded-2xl ${style.iconBg} ${style.iconColor} flex items-center justify-center mx-auto shadow-sm border border-white`}>
+            <Icon className="h-8 w-8 stroke-[2.5px]" />
           </div>
 
-          {/* Title */}
-          <h3 className="text-xl font-black text-slate-800 text-center tracking-tight">
-            {title}
-          </h3>
-
-          {/* Message */}
-          <p className="text-sm text-slate-600 text-center leading-relaxed">
-            {message}
-          </p>
+          {/* Title & Message */}
+          <div className="space-y-2">
+            <h3 className="text-[20px] font-black text-slate-800 text-center tracking-tight">
+              {title}
+            </h3>
+            <p className="text-[14px] font-medium text-slate-500 text-center leading-relaxed px-2">
+              {message}
+            </p>
+          </div>
 
           {/* Buttons */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-3">
             <button
               onClick={onClose}
-              className="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition-all duration-200 active:scale-95"
+              className="flex-1 py-3.5 px-4 rounded-[16px] bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-[14px] transition-all duration-200 active:scale-95"
             >
               {cancelText}
             </button>
@@ -112,13 +120,14 @@ export default function ConfirmDialog({
                 onConfirm();
                 onClose();
               }}
-              className={`flex-1 py-3 px-4 rounded-xl text-white font-bold text-sm transition-all duration-200 active:scale-95 shadow-lg ${style.buttonBg}`}
+              className={`flex-1 py-3.5 px-4 rounded-[16px] text-white font-bold text-[14px] transition-all duration-200 active:scale-95 shadow-md ${style.buttonBg}`}
             >
               {confirmText}
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
