@@ -863,16 +863,35 @@ export default function App() {
       const { data, error } = await supabase
         .from("roommate_likes")
         .select("roommate_id, user_id");
-      if (error || !data) return;
+      
+      console.log("[DEBUG] Fetching roommate likes...", { data, error });
+      
+      if (error || !data) {
+        console.log("[DEBUG] Error or no data:", error);
+        return;
+      }
 
-      const counts: Record<string, number> = data.reduce((result: Record<string, number>, like: any) => {
+      // Count all likes, excluding self-likes (where user likes their own profile)
+      const counts: Record<string, number> = {};
+      
+      data.forEach((like: any) => {
         const target = allRoommates.find((roommate) => roommate.id === like.roommate_id);
-        if (target && (target.postedBy === like.user_id || target.user_id === like.user_id)) {
-          return result;
+        
+        // Skip if user is liking their own profile
+        const isSelfLike = target && (
+          target.postedBy === like.user_id || 
+          target.user_id === like.user_id ||
+          target.auth_id === like.user_id
+        );
+        
+        if (!isSelfLike) {
+          counts[like.roommate_id] = (counts[like.roommate_id] || 0) + 1;
         }
-        result[like.roommate_id] = (result[like.roommate_id] || 0) + 1;
-        return result;
-      }, {});
+      });
+      
+      console.log("[DEBUG] Calculated like counts:", counts);
+      console.log("[DEBUG] All roommates count:", allRoommates.length);
+      
       if (currentUser?.id) {
         const savedLikes: string[] = JSON.parse(
           localStorage.getItem("roomiematch_liked_roommates") || "[]"
@@ -909,6 +928,7 @@ export default function App() {
         localStorage.setItem("roomiematch_liked_roommates", JSON.stringify(syncedLikes));
       }
 
+      console.log("[DEBUG] Final like counts being set:", counts);
       setRoommateLikeCounts(counts);
     };
 
@@ -924,12 +944,15 @@ export default function App() {
           schema: 'public',
           table: 'roommate_likes'
         },
-        () => {
+        (payload) => {
+          console.log("[DEBUG] Realtime event received:", payload);
           // Refetch counts when likes change
           fetchRoommateLikes();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[DEBUG] Realtime subscription status:", status);
+      });
     
     return () => {
       supabase.removeChannel(likesChannel);

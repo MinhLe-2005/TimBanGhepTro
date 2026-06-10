@@ -112,6 +112,7 @@ export default function HomeView({
   const locations = ["Tất cả Đà Nẵng", "Hải Châu", "Sơn Trà", "Ngũ Hành Sơn", "Liên Chiểu", "Thanh Khê", "Cẩm Lệ"];
   const budgets = ["Tất cả mức giá", "Dưới 2 triệu", "2 - 3 triệu", "3 - 5 triệu", "Trên 5 triệu"];
   const lifestyles = ["Mọi phong cách", "Ngăn nắp", "Yêu động vật", "Không hút thuốc", "Cú đêm", "Thích nấu ăn"];
+  
   const popularRoommates = roommates
     .filter(
       (roommate) =>
@@ -124,6 +125,9 @@ export default function HomeView({
         (roommateLikeCounts[b.id] || 0) - (roommateLikeCounts[a.id] || 0)
     )
     .slice(0, 5);
+  
+  console.log("[DEBUG HomeView] roommateLikeCounts:", roommateLikeCounts);
+  console.log("[DEBUG HomeView] popularRoommates:", popularRoommates.map(r => ({ id: r.id, name: r.name, likes: roommateLikeCounts[r.id] })));
 
   return (
     <div className="space-y-20 animate-fade-in relative pt-20 lg:pt-28 px-4 lg:px-8 max-w-[1350px] mx-auto">
