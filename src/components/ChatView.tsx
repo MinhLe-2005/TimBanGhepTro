@@ -976,23 +976,39 @@ export default function ChatView({
           }
         }
 
-        // Convert to array - now using single canonical ID per person, no deduplication needed
-        const conversationsArray = Array.from(conversationMap.values())
-          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        // Convert to array and DEDUPLICATE based on partner identity
+        // Use a Set to track seen partners by their unique identifier combo (name + avatar + user_id/auth_id)
+        const seenPartners = new Set<string>();
+        const deduplicatedConversations: any[] = [];
         
-        console.log('[Chat] Setting conversations:', conversationsArray.length, 'conversations (', conversationMap.size, 'map entries)');
-        conversationsArray.forEach((conv, idx) => {
+        Array.from(conversationMap.values())
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+          .forEach((conv) => {
+            // Create a unique key based on partner's actual identity markers
+            const partnerKey = `${conv.partner.name}_${conv.partner.avatar || ''}_${conv.partner.user_id || conv.partner.auth_id || conv.partner.id}`;
+            
+            if (!seenPartners.has(partnerKey)) {
+              seenPartners.add(partnerKey);
+              deduplicatedConversations.push(conv);
+              console.log('[Chat] Added conversation:', conv.partner.name, 'with key:', partnerKey);
+            } else {
+              console.log('[Chat] SKIPPED DUPLICATE:', conv.partner.name, 'with key:', partnerKey);
+            }
+          });
+        
+        console.log('[Chat] Setting conversations:', deduplicatedConversations.length, 'after deduplication (was', conversationMap.size, 'map entries)');
+        deduplicatedConversations.forEach((conv, idx) => {
           console.log(`[Chat] Conv ${idx}:`, {
             name: conv.partner.name,
             partnerId: conv.partnerId,
             hasMessages: !!chats[conv.partnerId]
           });
         });
-        setConversations(conversationsArray);
+        setConversations(deduplicatedConversations);
         try {
           localStorage.setItem(
             `roomiematch_inbox_${myAuthId}`,
-            JSON.stringify(conversationsArray)
+            JSON.stringify(deduplicatedConversations)
           );
         } catch (cacheError) {
           console.warn("[Chat] Could not cache inbox:", cacheError);
@@ -1885,151 +1901,162 @@ export default function ChatView({
         </div>
       )}
 
-      {/* Report Modal */}
+      {/* Report Modal - FULLSCREEN HORIZONTAL LAYOUT */}
       {isReportModalOpen && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={closeReportModal} />
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto relative animate-in fade-in zoom-in-95 p-6 space-y-5">
-             <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-               <h3 className="text-xl font-black text-rose-600 flex items-center gap-2">
-                 <AlertOctagon className="w-6 h-6" /> Báo cáo vi phạm
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl h-[90vh] overflow-hidden relative animate-in fade-in zoom-in-95 flex flex-col">
+             {/* Header */}
+             <div className="flex justify-between items-center border-b border-slate-200 p-6 bg-gradient-to-r from-rose-50 to-white shrink-0">
+               <h3 className="text-2xl font-black text-rose-600 flex items-center gap-3">
+                 <AlertOctagon className="w-7 h-7" /> Báo cáo vi phạm
                </h3>
-               <button onClick={closeReportModal} className="text-slate-400 hover:text-slate-600 p-1">
-                 <X className="w-5 h-5" />
+               <button onClick={closeReportModal} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-full transition-colors">
+                 <X className="w-6 h-6" />
                </button>
              </div>
              
-             <div className="space-y-4">
-               <div>
-                 <label className="block text-sm font-bold text-slate-700 mb-1.5">
-                   Tin nhắn vi phạm <span className="text-rose-500">*</span>
-                   <span className="ml-2 text-xs font-semibold text-slate-400">
-                     ({selectedReportedMessageIds.length}/3)
-                   </span>
-                 </label>
-                 <div className="relative mb-2">
-                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                   <input
-                     type="search"
-                     value={reportMessageSearch}
-                     onChange={(event) => setReportMessageSearch(event.target.value)}
-                     placeholder="Tìm trong 20 tin nhắn gần nhất..."
-                     className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm outline-none transition-all focus:border-rose-400 focus:bg-white focus:ring-2 focus:ring-rose-100"
-                   />
-                 </div>
-                 {reportablePartnerMessages.length > 0 ? (
-                   <div className="max-h-44 overflow-y-auto space-y-2 rounded-xl bg-slate-50 p-2 border border-slate-200">
-                     {filteredReportableMessages.map(message => (
-                       <button
-                         key={message.id}
-                         type="button"
-                         onClick={() => {
-                           setSelectedReportedMessageIds(previous => {
-                             if (previous.includes(message.id)) {
-                               return previous.filter(id => id !== message.id);
-                             }
-                             if (previous.length >= 3) {
-                               toast("Chỉ được chọn tối đa 3 tin nhắn.", "warning");
-                               return previous;
-                             }
-                             return [...previous, message.id];
-                           });
-                         }}
-                         className={`w-full rounded-xl border p-3 text-left transition-all ${
-                           selectedReportedMessageIds.includes(message.id)
-                             ? "border-rose-400 bg-rose-50 ring-2 ring-rose-100"
-                             : "border-slate-200 bg-white hover:border-slate-300"
-                         }`}
-                       >
-                         <div className="flex items-start justify-between gap-3">
-                           <div className="min-w-0">
-                             <p className="text-sm font-semibold text-slate-700 line-clamp-2 break-words">
-                               {message.text || "Đã gửi một hình ảnh"}
-                             </p>
-                             {message.imageUrl && (
-                               <img
-                                 src={message.imageUrl}
-                                 alt=""
-                                 className="mt-2 h-14 w-20 rounded-lg object-cover border border-slate-200"
-                               />
-                             )}
-                           </div>
-                           <span className="text-[10px] text-slate-400 shrink-0">
-                             {selectedReportedMessageIds.includes(message.id)
-                               ? `Đã chọn ${selectedReportedMessageIds.indexOf(message.id) + 1}`
-                               : new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                           </span>
-                         </div>
-                       </button>
-                     ))}
-                     {filteredReportableMessages.length === 0 && (
-                       <p className="p-3 text-center text-xs font-semibold text-slate-500">
-                         Không tìm thấy tin nhắn phù hợp.
-                       </p>
-                     )}
+             {/* Main Content - Horizontal Layout */}
+             <div className="flex-1 overflow-hidden flex">
+               {/* Left Side - Form */}
+               <div className="w-1/2 border-r border-slate-200 p-6 overflow-y-auto space-y-6">
+                 {/* Message Selection */}
+                 <div>
+                   <label className="block text-base font-bold text-slate-700 mb-2">
+                     Tin nhắn vi phạm <span className="text-rose-500">*</span>
+                     <span className="ml-2 text-sm font-semibold text-slate-400">
+                       ({selectedReportedMessageIds.length}/3)
+                     </span>
+                   </label>
+                   <div className="relative mb-3">
+                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                     <input
+                       type="search"
+                       value={reportMessageSearch}
+                       onChange={(event) => setReportMessageSearch(event.target.value)}
+                       placeholder="Tìm trong 20 tin nhắn gần nhất..."
+                       className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none transition-all focus:border-rose-400 focus:bg-white focus:ring-2 focus:ring-rose-100"
+                     />
                    </div>
-                 ) : (
-                   <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-700">
-                     Chưa có tin nhắn nào từ người này để báo cáo.
-                   </p>
-                 )}
-               </div>
-               <div>
-                 <label className="block text-sm font-bold text-slate-700 mb-1.5">Lý do báo cáo <span className="text-rose-500">*</span></label>
-                 <textarea
-                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none transition-all h-28 resize-none"
-                   placeholder="Nhập lý do chi tiết..."
-                   value={reportReason}
-                   onChange={e => setReportReason(e.target.value)}
-                 />
-               </div>
-               <div>
-                 <label className="block text-sm font-bold text-slate-700 mb-1.5">Ảnh minh chứng <span className="font-medium text-slate-400">(không bắt buộc)</span></label>
-                 <label className="w-full flex flex-col items-center justify-center bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl px-4 py-6 hover:bg-slate-100 hover:border-rose-400 transition-all cursor-pointer">
-                   <input
-                     type="file"
-                     accept="image/*"
-                     className="hidden"
-                     disabled={isUploadingReport}
-                     onChange={e => {
-                       if (e.target.files && e.target.files[0]) {
-                         const file = e.target.files[0];
-                         setReportImageFile(file);
-                         // Create preview
-                         const reader = new FileReader();
-                         reader.onloadend = () => {
-                           setReportImagePreview(reader.result as string);
-                         };
-                         reader.readAsDataURL(file);
-                       }
-                     }}
-                   />
-                   {reportImageFile && reportImagePreview ? (
-                     <div className="flex flex-col items-center gap-3 w-full">
-                       {/* Image Preview */}
-                       <div className="w-full max-w-xs rounded-lg overflow-hidden border-2 border-emerald-500 shadow-md">
-                         <img src={reportImagePreview} alt="Preview" className="w-full h-auto object-contain max-h-48" />
-                       </div>
-                       <div className="flex flex-col items-center gap-1">
-                         <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-                         <span className="text-sm font-bold text-emerald-600 truncate max-w-[200px]">{reportImageFile.name}</span>
-                         <span className="text-xs text-slate-500">Nhấn để chọn ảnh khác</span>
-                       </div>
+                   {reportablePartnerMessages.length > 0 ? (
+                     <div className="max-h-64 overflow-y-auto space-y-2 rounded-xl bg-slate-50 p-3 border border-slate-200">
+                       {filteredReportableMessages.map(message => (
+                         <button
+                           key={message.id}
+                           type="button"
+                           onClick={() => {
+                             setSelectedReportedMessageIds(previous => {
+                               if (previous.includes(message.id)) {
+                                 return previous.filter(id => id !== message.id);
+                               }
+                               if (previous.length >= 3) {
+                                 toast("Chỉ được chọn tối đa 3 tin nhắn.", "warning");
+                                 return previous;
+                               }
+                               return [...previous, message.id];
+                             });
+                           }}
+                           className={`w-full rounded-xl border p-4 text-left transition-all ${
+                             selectedReportedMessageIds.includes(message.id)
+                               ? "border-rose-400 bg-rose-50 ring-2 ring-rose-100"
+                               : "border-slate-200 bg-white hover:border-slate-300"
+                           }`}
+                         >
+                           <div className="flex items-start justify-between gap-3">
+                             <div className="min-w-0">
+                               <p className="text-sm font-semibold text-slate-700 line-clamp-2 break-words">
+                                 {message.text || "Đã gửi một hình ảnh"}
+                               </p>
+                               {message.imageUrl && (
+                                 <img
+                                   src={message.imageUrl}
+                                   alt=""
+                                   className="mt-2 h-16 w-24 rounded-lg object-cover border border-slate-200"
+                                 />
+                               )}
+                             </div>
+                             <span className="text-xs text-slate-400 shrink-0">
+                               {selectedReportedMessageIds.includes(message.id)
+                                 ? `Đã chọn ${selectedReportedMessageIds.indexOf(message.id) + 1}`
+                                 : new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                             </span>
+                           </div>
+                         </button>
+                       ))}
+                       {filteredReportableMessages.length === 0 && (
+                         <p className="p-4 text-center text-sm font-semibold text-slate-500">
+                           Không tìm thấy tin nhắn phù hợp.
+                         </p>
+                       )}
                      </div>
                    ) : (
-                     <div className="flex flex-col items-center gap-2 text-slate-500">
-                       <UploadCloud className="w-8 h-8 text-slate-400" />
-                       <span className="text-sm font-bold">Nhấn để tải ảnh lên</span>
-                       <span className="text-xs">Hỗ trợ JPG, PNG, GIF</span>
-                     </div>
+                     <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-700">
+                       Chưa có tin nhắn nào từ người này để báo cáo.
+                     </p>
                    )}
-                 </label>
+                 </div>
+                 
+                 {/* Reason Textarea */}
+                 <div>
+                   <label className="block text-base font-bold text-slate-700 mb-2">Lý do báo cáo <span className="text-rose-500">*</span></label>
+                   <textarea
+                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all h-32 resize-none"
+                     placeholder="Nhập lý do chi tiết..."
+                     value={reportReason}
+                     onChange={e => setReportReason(e.target.value)}
+                   />
+                 </div>
+               </div>
+               
+               {/* Right Side - Image Upload & Preview */}
+               <div className="w-1/2 p-6 overflow-y-auto bg-slate-50">
+                 <div>
+                   <label className="block text-base font-bold text-slate-700 mb-2">Ảnh minh chứng <span className="font-medium text-slate-400">(không bắt buộc)</span></label>
+                   <label className="w-full h-[calc(100%-3rem)] min-h-[400px] flex flex-col items-center justify-center bg-white border-2 border-dashed border-slate-300 rounded-2xl hover:bg-slate-50 hover:border-rose-400 transition-all cursor-pointer">
+                     <input
+                       type="file"
+                       accept="image/*"
+                       className="hidden"
+                       disabled={isUploadingReport}
+                       onChange={e => {
+                         if (e.target.files && e.target.files[0]) {
+                           const file = e.target.files[0];
+                           setReportImageFile(file);
+                           const reader = new FileReader();
+                           reader.onloadend = () => {
+                             setReportImagePreview(reader.result as string);
+                           };
+                           reader.readAsDataURL(file);
+                         }
+                       }}
+                     />
+                     {reportImageFile && reportImagePreview ? (
+                       <div className="flex flex-col items-center gap-4 w-full h-full p-6">
+                         {/* Large Image Preview */}
+                         <div className="flex-1 w-full rounded-xl overflow-hidden border-2 border-emerald-500 shadow-lg flex items-center justify-center bg-slate-100">
+                           <img src={reportImagePreview} alt="Preview" className="max-w-full max-h-full object-contain" />
+                         </div>
+                         <div className="flex flex-col items-center gap-2">
+                           <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                           <span className="text-base font-bold text-emerald-600 truncate max-w-[300px]">{reportImageFile.name}</span>
+                           <span className="text-sm text-slate-500">Nhấn để chọn ảnh khác</span>
+                         </div>
+                       </div>
+                     ) : (
+                       <div className="flex flex-col items-center gap-3 text-slate-500">
+                         <UploadCloud className="w-16 h-16 text-slate-400" />
+                         <span className="text-lg font-bold">Nhấn để tải ảnh lên</span>
+                         <span className="text-sm">Hỗ trợ JPG, PNG, GIF</span>
+                       </div>
+                     )}
+                   </label>
+                 </div>
                </div>
              </div>
 
-             <div className="flex gap-3 pt-2">
-               <button disabled={isUploadingReport} onClick={closeReportModal} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors disabled:opacity-50">Hủy</button>
-               <button disabled={isUploadingReport} onClick={handleSendReport} className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+             {/* Footer - Action Buttons */}
+             <div className="flex gap-4 p-6 border-t border-slate-200 bg-slate-50 shrink-0">
+               <button disabled={isUploadingReport} onClick={closeReportModal} className="flex-1 py-3.5 bg-white hover:bg-slate-100 text-slate-700 font-bold rounded-xl transition-colors disabled:opacity-50 border border-slate-200 text-base">Hủy</button>
+               <button disabled={isUploadingReport} onClick={handleSendReport} className="flex-1 py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-base">
                  {isUploadingReport ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
                  {isUploadingReport ? "Đang gửi..." : "Gửi Báo Cáo"}
                </button>
