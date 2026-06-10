@@ -2337,7 +2337,7 @@ export default function App() {
         {activeTab === "home" && (
           <HomeView
             roommates={allRoommates}
-            rooms={rooms}
+            rooms={allRooms}
             likedRoommateIds={likedRoommateIds}
             roommateLikeCounts={roommateLikeCounts}
             likedRoomIds={likedRoomIds}
