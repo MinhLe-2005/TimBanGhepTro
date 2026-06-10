@@ -56,7 +56,7 @@ export default function PopularRoommatesModal({
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={onClose} />
 
       {/* Modal Wrapper */}
-      <div className="relative w-full max-w-5xl z-10 animate-fade-in">
+      <div className="relative w-full max-w-7xl z-10 animate-fade-in">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -94,7 +94,7 @@ export default function PopularRoommatesModal({
 
           {/* Scrollable Grid Container */}
           <div className="overflow-y-auto w-full h-full p-4 sm:p-6 lg:p-8 scrollbar-thin scrollbar-thumb-slate-200 hover:scrollbar-thumb-slate-300">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5 sm:gap-6">
               {popularRoommates.map((roommate) => (
                 <RoommateCard
                   key={roommate.id}
