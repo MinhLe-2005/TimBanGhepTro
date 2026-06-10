@@ -616,6 +616,27 @@ export default function ChatView({
   }, [activeRoommate, activeRoommateId]);
   
   const chatId = myChatId && partnerChatId ? [myChatId, partnerChatId].sort().join("_") : null;
+
+  // Handle read receipts when opening chat or receiving new message
+  useEffect(() => {
+    if (!activeRoommateId || !myChatId || activeMessages.length === 0) return;
+    const unreadFromPartner = activeMessages.filter(
+      msg => msg.senderId !== "me" && msg.senderId !== myChatId && !msg.reactions?.["read"]?.includes(myChatId)
+    );
+    if (unreadFromPartner.length > 0) {
+      const lastUnread = unreadFromPartner[unreadFromPartner.length - 1];
+      if (import.meta.env.VITE_SUPABASE_URL) {
+        const currentReactions = lastUnread.reactions || {};
+        const readUsers = currentReactions["read"] || [];
+        if (!readUsers.includes(myChatId)) {
+          const updatedReactions = { ...currentReactions, "read": [...readUsers, myChatId] };
+          supabase.from('messages').update({ reactions: updatedReactions }).eq('id', lastUnread.id).then(({ error }) => {
+            if (error) console.error("Error marking read receipt:", error);
+          });
+        }
+      }
+    }
+  }, [activeMessages, activeRoommateId, myChatId]);
   
   console.log('[Chat] Chat IDs:', {
     myChatId,
@@ -1509,9 +1530,8 @@ export default function ChatView({
                   const isLast = index === activeMessages.length - 1;
                   const timeElapsed = Date.now() - new Date(msg.timestamp).getTime();
                   const hasPartnerRepliedAfter = activeMessages.slice(index + 1).some(m => m.senderId !== "me" && m.senderId !== myChatId && m.text !== "[SYSTEM_BLOCK]" && m.text !== "[SYSTEM_UNBLOCK]");
-                  const statusText = hasPartnerRepliedAfter 
-                    ? "Đã xem" 
-                    : (timeElapsed < 5000 ? "Đã gửi" : "Đã nhận");
+                  const isRead = msg.reactions?.["read"]?.includes(partnerChatId || "") || hasPartnerRepliedAfter;
+                  const statusText = isRead ? "Đã xem" : "Đã gửi";
                   
                   let isAgreementDraft = false;
                   let isAgreementSigned = false;

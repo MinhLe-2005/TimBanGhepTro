@@ -36,11 +36,13 @@ export default function MessageReactions({
   // Keep only the latest emoji for each user. This also cleans up old duplicated data.
   const latestReactionByUser = new Map<string, string>();
   Object.entries(reactions).forEach(([emoji, users]) => {
+    if (emoji === "read") return; // Ignore read receipt
     users.forEach((userId) => latestReactionByUser.set(userId, emoji));
   });
 
   const normalizedReactions = Object.entries(reactions).reduce<Record<string, string[]>>(
     (result, [emoji, users]) => {
+      if (emoji === "read") return result; // Ignore read receipt
       const latestUsers = users.filter((userId) => latestReactionByUser.get(userId) === emoji);
       if (latestUsers.length > 0) result[emoji] = latestUsers;
       return result;
