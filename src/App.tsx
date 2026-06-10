@@ -198,8 +198,36 @@ export default function App() {
         return;
       }
 
+      // --- 1. Optimistic UI / Cache loading ---
+      let hasCachedData = false;
       try {
-        setIsRoommatesLoading(true); // Start loading
+        const cachedRoommates = localStorage.getItem('rm_cache_roommates');
+        const cachedRooms = localStorage.getItem('rm_cache_rooms');
+        const cachedReviews = localStorage.getItem('rm_cache_reviews');
+        
+        if (cachedRoommates) {
+          setSupabaseRoommates(JSON.parse(cachedRoommates));
+          hasCachedData = true;
+        }
+        if (cachedRooms) {
+          setSupabaseRooms(JSON.parse(cachedRooms));
+          hasCachedData = true;
+        }
+        if (cachedReviews) {
+          setSupabaseReviews(JSON.parse(cachedReviews));
+        }
+        
+        // Stop loading spinner immediately if we have cached data to show
+        if (hasCachedData) {
+          setIsRoommatesLoading(false);
+        }
+      } catch (e) {
+        console.error("Lỗi đọc cache:", e);
+      }
+
+      // --- 2. Fetch fresh data from server ---
+      try {
+        if (!hasCachedData) setIsRoommatesLoading(true); // Only show spinner if no cache
         
         const [roommatesResult, roomsResult, reviewsResult, bansResult] = await Promise.all([
           supabase.from('roommates').select('*').order('createdAt', { ascending: false }),
@@ -215,10 +243,19 @@ export default function App() {
             reviews: []
           }));
           setSupabaseRoommates(enhancedRoommates);
+          // Update cache
+          localStorage.setItem('rm_cache_roommates', JSON.stringify(enhancedRoommates));
         }
 
-        if (roomsResult.data) setSupabaseRooms(roomsResult.data);
-        if (reviewsResult.data) setSupabaseReviews(reviewsResult.data);
+        if (roomsResult.data) {
+          setSupabaseRooms(roomsResult.data);
+          localStorage.setItem('rm_cache_rooms', JSON.stringify(roomsResult.data));
+        }
+        
+        if (reviewsResult.data) {
+          setSupabaseReviews(reviewsResult.data);
+          localStorage.setItem('rm_cache_reviews', JSON.stringify(reviewsResult.data));
+        }
 
         // Fetch Banned list
         const bansData = bansResult.data;
@@ -227,8 +264,6 @@ export default function App() {
             .filter((message: any) => String(message.text || "").startsWith("[BAN]"))
             .map((message: any) => String(message.text).replace("[BAN]", "").trim());
           if (currentUser?.id && bannedIds.includes(currentUser.id)) setIsBanned(true);
-          // Note: we can't check currentUserProfile.id perfectly here if it's not loaded, 
-          // but we'll re-check when currentUserProfile changes.
           setSupabaseBannedIds(bannedIds);
         }
       } catch (err) {
