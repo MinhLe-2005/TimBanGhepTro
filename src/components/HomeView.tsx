@@ -87,25 +87,53 @@ export default function HomeView({
 
   const scrollPrev = () => {
     if (carouselRef.current) {
-      carouselRef.current.scrollBy({ left: -getScrollAmount(carouselRef), behavior: "smooth" });
+      const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
+      
+      // If at the beginning, jump to the end (loop back)
+      if (scrollLeft <= 0) {
+        carouselRef.current.scrollTo({ left: scrollWidth - clientWidth, behavior: "auto" });
+      } else {
+        carouselRef.current.scrollBy({ left: -getScrollAmount(carouselRef), behavior: "smooth" });
+      }
     }
   };
 
   const scrollNext = () => {
     if (carouselRef.current) {
-      carouselRef.current.scrollBy({ left: getScrollAmount(carouselRef), behavior: "smooth" });
+      const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
+      
+      // If at the end, jump to the beginning (loop forward)
+      if (scrollLeft + clientWidth >= scrollWidth - 10) {
+        carouselRef.current.scrollTo({ left: 0, behavior: "auto" });
+      } else {
+        carouselRef.current.scrollBy({ left: getScrollAmount(carouselRef), behavior: "smooth" });
+      }
     }
   };
 
   const scrollRoomPrev = () => {
     if (roomCarouselRef.current) {
-      roomCarouselRef.current.scrollBy({ left: -getScrollAmount(roomCarouselRef), behavior: "smooth" });
+      const { scrollLeft, scrollWidth, clientWidth } = roomCarouselRef.current;
+      
+      // If at the beginning, jump to the end (loop back)
+      if (scrollLeft <= 0) {
+        roomCarouselRef.current.scrollTo({ left: scrollWidth - clientWidth, behavior: "auto" });
+      } else {
+        roomCarouselRef.current.scrollBy({ left: -getScrollAmount(roomCarouselRef), behavior: "smooth" });
+      }
     }
   };
 
   const scrollRoomNext = () => {
     if (roomCarouselRef.current) {
-      roomCarouselRef.current.scrollBy({ left: getScrollAmount(roomCarouselRef), behavior: "smooth" });
+      const { scrollLeft, scrollWidth, clientWidth } = roomCarouselRef.current;
+      
+      // If at the end, jump to the beginning (loop forward)
+      if (scrollLeft + clientWidth >= scrollWidth - 10) {
+        roomCarouselRef.current.scrollTo({ left: 0, behavior: "auto" });
+      } else {
+        roomCarouselRef.current.scrollBy({ left: getScrollAmount(roomCarouselRef), behavior: "smooth" });
+      }
     }
   };
 
@@ -376,9 +404,21 @@ export default function HomeView({
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin">
-                {roommates
-                  .filter((r) => likedRoommateIds.includes(r.id))
-                  .map((roommate) => (
+                {(() => {
+                  // Debug logging
+                  console.log('[HomeView] likedRoommateIds:', likedRoommateIds);
+                  console.log('[HomeView] roommates sample IDs:', roommates.slice(0, 3).map(r => ({ id: r.id, user_id: r.user_id, name: r.name })));
+                  
+                  // Filter with flexible ID matching (id, user_id, or auth_id)
+                  const likedRoommates = roommates.filter((r) => 
+                    likedRoommateIds.includes(r.id) || 
+                    likedRoommateIds.includes(r.user_id) ||
+                    likedRoommateIds.includes(r.auth_id)
+                  );
+                  
+                  console.log('[HomeView] Filtered likedRoommates:', likedRoommates.length, likedRoommates.map(r => r.name));
+                  
+                  return likedRoommates.map((roommate) => (
                     <RoommateCard
                       key={roommate.id}
                       roommate={roommate}
@@ -387,7 +427,8 @@ export default function HomeView({
                       isInitiallyLiked={true}
                       onStartChat={onStartChat}
                     />
-                  ))}
+                  ));
+                })()}
               </div>
             )}
           </div>
