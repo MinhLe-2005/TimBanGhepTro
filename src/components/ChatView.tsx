@@ -14,6 +14,7 @@ interface ChatViewProps {
   setActiveRoommateId: (id: string | null) => void;
   currentUserProfile?: any;
   currentUser?: any;
+  bannedUserIds?: string[];
   onRequireAuth?: () => void;
   onRequireProfile?: () => void;
   onNavigateToTab?: (tabId: string) => void;
@@ -28,6 +29,7 @@ export default function ChatView({
   setActiveRoommateId,
   currentUserProfile,
   currentUser,
+  bannedUserIds = [],
   onRequireAuth,
   onRequireProfile,
   onNavigateToTab,
@@ -355,12 +357,20 @@ export default function ChatView({
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isActiveUserBlocked || isBlockedByPartner || isActiveUserBanned) {
+      e.target.value = "";
+      return;
+    }
     const file = e.target.files?.[0];
     if (file) attachImageFile(file);
     e.target.value = "";
   };
 
   const handleChatPaste = (e: React.ClipboardEvent<HTMLFormElement>) => {
+    if (isActiveUserBlocked || isBlockedByPartner || isActiveUserBanned) {
+      e.preventDefault();
+      return;
+    }
     const imageItem = Array.from(e.clipboardData.items).find((item) =>
       item.type.startsWith("image/")
     );
@@ -395,6 +405,16 @@ export default function ChatView({
     : conversations[0]?.partner;
   
   const isActiveUserBlocked = activeRoommate ? blockedUsers.includes(activeRoommate.id) : false;
+  const activeUserIds = activeRoommate
+    ? [
+        activeRoommate.id,
+        activeRoommate.user_id,
+        activeRoommate.auth_id,
+        (activeRoommate as any).postedBy,
+        activeRoommateId,
+      ].filter(Boolean)
+    : [];
+  const isActiveUserBanned = activeUserIds.some((id) => bannedUserIds.includes(String(id)));
   
   console.log('[Chat] Active roommate:', {
     id: activeRoommate?.id,
@@ -963,7 +983,7 @@ export default function ChatView({
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!inputText.trim() && !attachedImage) || !activeRoommateId || !currentUserProfile) return;
-    if (isActiveUserBlocked || isBlockedByPartner) return;
+    if (isActiveUserBlocked || isBlockedByPartner || isActiveUserBanned) return;
 
     const userMessageText = inputText.trim();
     const sentImage = attachedImage;
@@ -1007,6 +1027,19 @@ export default function ChatView({
       
       if (error) {
         console.error("[Chat] Error sending message to Supabase:", error);
+        setChats((previous) => ({
+          ...previous,
+          [activeRoommateId]: (previous[activeRoommateId] || []).filter(
+            (message) => message.id !== newMsg.id
+          ),
+        }));
+        toast(
+          isActiveUserBanned
+            ? "Người dùng này đã bị khóa nên không thể nhận tin nhắn."
+            : "Không thể gửi tin nhắn lúc này. Vui lòng thử lại.",
+          "error",
+          4000
+        );
       } else {
         console.log("[Chat] Message sent successfully to Supabase:", data);
       }
@@ -1568,12 +1601,21 @@ export default function ChatView({
               </div>
             )}
 
+            {isActiveUserBanned && (
+              <div className="mx-4 mb-2 flex items-center justify-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+                <Lock className="h-5 w-5 shrink-0 text-amber-600" />
+                <p className="text-sm font-bold text-amber-800">
+                  Người dùng này đã bị quản trị viên khóa
+                </p>
+              </div>
+            )}
+
             {/* Text Send Form area with image sending */}
             <form
               onSubmit={handleSend}
               onPaste={handleChatPaste}
               className={`p-4 border-t border-slate-100 bg-white shrink-0 space-y-2 ${
-                isBlockedByPartner ? 'opacity-60' : ''
+                isBlockedByPartner || isActiveUserBanned ? 'opacity-60' : ''
               }`}
             >
               {attachedImage && (
@@ -1605,7 +1647,7 @@ export default function ChatView({
                 <label
                   htmlFor="chat-image-input"
                   className={`bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-[#006590] w-12 h-12 rounded-full duration-150 flex items-center justify-center cursor-pointer transition-all shrink-0 ${
-                    isActiveUserBlocked || isBlockedByPartner ? 'opacity-40 pointer-events-none' : ''
+                    isActiveUserBlocked || isBlockedByPartner || isActiveUserBanned ? 'opacity-40 pointer-events-none' : ''
                   }`}
                   title="Chọn ảnh hoặc dán ảnh bằng Ctrl+V"
                 >
@@ -1619,13 +1661,15 @@ export default function ChatView({
                   placeholder={
                     isActiveUserBlocked
                       ? 'Bạn đã chặn người dùng này'
+                      : isActiveUserBanned
+                        ? 'Người dùng này đã bị khóa'
                       : isBlockedByPartner
                         ? 'Bạn không thể nhắn tin vì đã bị chặn'
                         : 'Nhắn tin hoặc dán ảnh bằng Ctrl+V...'
                   }
-                  disabled={isActiveUserBlocked || isBlockedByPartner}
+                  disabled={isActiveUserBlocked || isBlockedByPartner || isActiveUserBanned}
                   className={`flex-1 bg-slate-50 border border-slate-200 rounded-full px-5 py-3.5 text-sm outline-none focus:border-sky-500/50 focus:bg-white transition-all shadow-inner ${
-                    isActiveUserBlocked || isBlockedByPartner ? 'opacity-50 cursor-not-allowed' : ''
+                    isActiveUserBlocked || isBlockedByPartner || isActiveUserBanned ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 />
                 {isActiveUserBlocked ? (
@@ -1640,7 +1684,7 @@ export default function ChatView({
                 ) : (
                   <button
                     type="submit"
-                    disabled={(!inputText.trim() && !attachedImage) || isTyping || isBlockedByPartner}
+                    disabled={(!inputText.trim() && !attachedImage) || isTyping || isBlockedByPartner || isActiveUserBanned}
                     className="bg-gradient-to-r from-sky-500 to-[#006590] text-white w-12 h-12 rounded-full hover:shadow-lg disabled:opacity-50 disabled:from-slate-300 disabled:to-slate-400 duration-150 flex items-center justify-center cursor-pointer transition-all hover:scale-105 shrink-0"
                   >
                     <Send className="h-5 w-5 -ml-0.5 mt-0.5" />

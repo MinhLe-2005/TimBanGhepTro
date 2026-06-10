@@ -22,6 +22,40 @@ GRANT EXECUTE ON FUNCTION public.is_roomiematch_admin() TO authenticated;
 
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
+CREATE OR REPLACE FUNCTION public.roomiematch_chat_has_banned_user(target_chat_id text)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.messages ban_message
+    WHERE ban_message.chat_id = 'SYSTEM_BANS'
+      AND ban_message.text LIKE '[BAN]%'
+      AND position(
+        trim(replace(ban_message.text, '[BAN]', ''))
+        IN coalesce(target_chat_id, '')
+      ) > 0
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.roomiematch_chat_has_banned_user(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.roomiematch_chat_has_banned_user(text) TO authenticated;
+
+DROP POLICY IF EXISTS "Users can insert messages" ON public.messages;
+DROP POLICY IF EXISTS "Users can insert messages to their chats" ON public.messages;
+DROP POLICY IF EXISTS "Enable insert for authenticated users" ON public.messages;
+DROP POLICY IF EXISTS "RoomieMatch users can insert messages" ON public.messages;
+CREATE POLICY "RoomieMatch users can insert messages"
+ON public.messages FOR INSERT
+TO authenticated
+WITH CHECK (
+  sender_id = auth.uid()::text
+  AND NOT public.roomiematch_chat_has_banned_user(chat_id)
+);
+
 DROP POLICY IF EXISTS "Admin can read moderation messages" ON public.messages;
 CREATE POLICY "Admin can read moderation messages"
 ON public.messages FOR SELECT
@@ -29,6 +63,12 @@ USING (
   public.is_roomiematch_admin()
   AND chat_id LIKE 'SYSTEM_%'
 );
+
+DROP POLICY IF EXISTS "Authenticated users can read ban status" ON public.messages;
+CREATE POLICY "Authenticated users can read ban status"
+ON public.messages FOR SELECT
+TO authenticated
+USING (chat_id = 'SYSTEM_BANS');
 
 DROP POLICY IF EXISTS "Admin can delete moderation content" ON public.messages;
 CREATE POLICY "Admin can delete moderation content"

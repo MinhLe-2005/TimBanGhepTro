@@ -48,6 +48,7 @@ export default function App() {
   // Authentication states
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isBanned, setIsBanned] = useState(false);
+  const [supabaseBannedIds, setSupabaseBannedIds] = useState<string[]>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -207,8 +208,10 @@ export default function App() {
 
         // Fetch Banned list
         const { data: bansData } = await supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS');
-        if (bansData && bansData.length > 0) {
-          const bannedIds = bansData.map((m: any) => m.text.replace('[BAN]', '').trim());
+        if (bansData) {
+          const bannedIds = bansData
+            .filter((message: any) => String(message.text || "").startsWith("[BAN]"))
+            .map((message: any) => String(message.text).replace("[BAN]", "").trim());
           if (currentUser?.id && bannedIds.includes(currentUser.id)) setIsBanned(true);
           // Note: we can't check currentUserProfile.id perfectly here if it's not loaded, 
           // but we'll re-check when currentUserProfile changes.
@@ -267,6 +270,48 @@ export default function App() {
 
     return () => { supabase.removeChannel(channel); };
   }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (!import.meta.env.VITE_SUPABASE_URL) return;
+
+    const refreshBannedUsers = async () => {
+      const { data } = await supabase
+        .from("messages")
+        .select("text")
+        .eq("chat_id", "SYSTEM_BANS");
+      const bannedIds: string[] = (data || [])
+        .filter((message: any) => String(message.text || "").startsWith("[BAN]"))
+        .map((message: any) => String(message.text).replace("[BAN]", "").trim());
+      const uniqueBannedIds = [...new Set<string>(bannedIds)];
+      setSupabaseBannedIds(uniqueBannedIds);
+    };
+
+    refreshBannedUsers();
+    const channel = supabase
+      .channel("ban-status-updates")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: "chat_id=eq.SYSTEM_BANS",
+        },
+        refreshBannedUsers
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "messages" },
+        refreshBannedUsers
+      )
+      .subscribe();
+
+    window.addEventListener("focus", refreshBannedUsers);
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener("focus", refreshBannedUsers);
+    };
+  }, []);
 
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -1687,12 +1732,17 @@ export default function App() {
     return true;
   };
 
-  const [supabaseBannedIds, setSupabaseBannedIds] = useState<string[]>([]);
   useEffect(() => {
-    if (currentUserProfile?.id && supabaseBannedIds.includes(currentUserProfile.id)) {
-      setIsBanned(true);
-    }
-  }, [currentUserProfile, supabaseBannedIds]);
+    const currentAccountIds = [
+      currentUser?.id,
+      currentUserProfile?.id,
+      currentUserProfile?.user_id,
+      currentUserProfile?.auth_id,
+    ].filter(Boolean);
+    setIsBanned(
+      currentAccountIds.some((id) => supabaseBannedIds.includes(String(id)))
+    );
+  }, [currentUser?.id, currentUserProfile, supabaseBannedIds]);
 
   if (isBanned) {
     return (
@@ -1809,6 +1859,7 @@ export default function App() {
             setActiveRoommateId={setActiveChatRoommateId}
             currentUserProfile={currentUserProfile}
             currentUser={currentUser}
+            bannedUserIds={supabaseBannedIds}
             onRequireAuth={requireAuth}
             onRequireProfile={() => setIsProfileModalOpen(true)}
             onNavigateToTab={setActiveTab}
