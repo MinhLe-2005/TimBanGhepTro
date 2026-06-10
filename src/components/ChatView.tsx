@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { Send, CheckCircle2, AlertCircle, MessageSquare, PhoneCall, Image as ImageIcon, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck, Ban, AlertOctagon, UploadCloud, Clock, CheckSquare, Users, CreditCard, Heart, Check, Star, FileEdit, ChevronLeft, ChevronRight, Flag, Search } from "lucide-react";
 import { Roommate, Message } from "../types";
 import { supabase } from "../lib/supabase";
@@ -1902,7 +1903,7 @@ export default function ChatView({
       )}
 
       {/* Report Modal - FULLSCREEN HORIZONTAL LAYOUT */}
-      {isReportModalOpen && (
+      {isReportModalOpen && createPortal(
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl h-[90vh] overflow-hidden relative animate-in fade-in zoom-in-95 flex flex-col">
              {/* Header */}
@@ -2060,14 +2061,15 @@ export default function ChatView({
                  {isUploadingReport ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
                  {isUploadingReport ? "Đang gửi..." : "Gửi Báo Cáo"}
                </button>
-             </div>
-          </div>
-        </div>
+              </div>
+           </div>
+         </div>,
+         document.body
       )}
       
       {/* Agreement Modal - Displayed inline in chat */}
-      {isAgreementModalOpen && activeRoommate && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+      {isAgreementModalOpen && activeRoommate && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4 animate-fade-in">
           <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-sky-50 to-white">
@@ -2690,12 +2692,13 @@ export default function ChatView({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {activeImageIndex !== null && chatImages[activeImageIndex]?.imageUrl && (
+      {activeImageIndex !== null && chatImages[activeImageIndex]?.imageUrl && createPortal(
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/90 p-4 backdrop-blur-sm"
           onClick={() => setActiveImageIndex(null)}
         >
           <div
@@ -2746,7 +2749,8 @@ export default function ChatView({
               {activeImageIndex + 1} / {chatImages.length}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       
       {/* Confirm Dialog */}
