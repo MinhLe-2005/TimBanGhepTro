@@ -14,3 +14,6 @@ export const isModerationChannel = (
   chatId: string | undefined,
   prefix: string
 ) => Boolean(chatId && (chatId === prefix || chatId.startsWith(`${prefix}_`)));
+
+export const isSystemChannel = (chatId: string | undefined) =>
+  Boolean(chatId?.startsWith("SYSTEM_"));

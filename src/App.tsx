@@ -12,7 +12,7 @@ import AgreementView from "./components/AgreementView";
 import HistoryView from "./components/HistoryView";
 import InfoView from "./components/InfoView";
 import AdminDashboard from "./components/AdminDashboard";
-import { getModerationChannel, REVIEW_REPORT_PREFIX } from "./lib/moderation";
+import { getModerationChannel, isSystemChannel, REVIEW_REPORT_PREFIX } from "./lib/moderation";
 import { useDialog } from "./components/ui/DialogProvider";
 
 import RoommateModal from "./components/RoommateModal";
@@ -368,7 +368,11 @@ export default function App() {
     const sub = supabase.channel('header_messages')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         const newMessage = payload.new;
-        if (newMessage.sender_id !== myChatId && newMessage.chat_id.includes(myChatId)) {
+        if (
+          newMessage.sender_id !== myChatId &&
+          newMessage.chat_id.includes(myChatId) &&
+          !isSystemChannel(newMessage.chat_id)
+        ) {
           const isAgreementSystemMessage =
             newMessage.text?.startsWith('[AGREEMENT_SIGNED]') ||
             newMessage.text?.startsWith('[AGREEMENT_CANCELLED]');

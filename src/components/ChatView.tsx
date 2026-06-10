@@ -5,7 +5,7 @@ import { supabase } from "../lib/supabase";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useDialog } from "./ui/DialogProvider";
 import MessageReactions from "./MessageReactions";
-import { CHAT_REPORT_PREFIX, getModerationChannel } from "../lib/moderation";
+import { CHAT_REPORT_PREFIX, getModerationChannel, isSystemChannel } from "../lib/moderation";
 
 interface ChatViewProps {
   roommates: Roommate[];
@@ -693,12 +693,13 @@ export default function ChatView({
       });
 
       if (!error && data) {
-        console.log('[Chat] Found', data.length, 'messages in inbox');
+        const inboxMessages = data.filter(msg => !isSystemChannel(msg.chat_id));
+        console.log('[Chat] Found', inboxMessages.length, 'user messages in inbox');
         const conversationMap = new Map();
 
         // Collect all unique partner IDs
         const partnerIds = new Set<string>();
-        data.forEach(msg => {
+        inboxMessages.forEach(msg => {
           const ids = msg.chat_id.split('_');
           const partnerId = ids[0] === myAuthId ? ids[1] : ids[0];
           if (partnerId !== myAuthId) partnerIds.add(partnerId);
@@ -762,7 +763,7 @@ export default function ChatView({
         // Track agreements for badge notifications
         const agreementMap: Record<string, boolean> = {};
 
-        data.forEach(msg => {
+        inboxMessages.forEach(msg => {
           const ids = msg.chat_id.split('_');
           const partnerId = ids[0] === myAuthId ? ids[1] : ids[0];
           if (partnerId === myAuthId) return;
@@ -939,7 +940,7 @@ export default function ChatView({
       .channel('inbox_updates')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         const newMsg = payload.new as any;
-        if (newMsg.chat_id?.includes(myAuthId)) {
+        if (newMsg.chat_id?.includes(myAuthId) && !isSystemChannel(newMsg.chat_id)) {
           fetchInbox();
         }
       })
