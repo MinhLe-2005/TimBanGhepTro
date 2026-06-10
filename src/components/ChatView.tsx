@@ -53,7 +53,28 @@ export default function ChatView({
   });
 
   const [conversations, setConversations] = useState<any[]>([]);
+  const [isInboxLoading, setIsInboxLoading] = useState(true);
   const fetchInboxRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      setConversations([]);
+      setIsInboxLoading(false);
+      return;
+    }
+
+    try {
+      const cached = JSON.parse(
+        localStorage.getItem(`roomiematch_inbox_${currentUser.id}`) || "[]"
+      );
+      if (Array.isArray(cached)) {
+        setConversations(cached);
+        setIsInboxLoading(cached.length === 0);
+      }
+    } catch {
+      setIsInboxLoading(true);
+    }
+  }, [currentUser?.id]);
   
   useEffect(() => {
     localStorage.removeItem("roomiematch_hidden_conversations");
@@ -738,18 +759,31 @@ export default function ChatView({
         
         if (partnerIds.size > 0) {
           const partnerArr = Array.from(partnerIds);
+          partnerArr.forEach(partnerId => {
+            const cachedPartner = roommates.find(roommate =>
+              roommate.id === partnerId ||
+              roommate.user_id === partnerId ||
+              roommate.auth_id === partnerId
+            );
+            if (cachedPartner) dbPartnerMap.set(partnerId, cachedPartner);
+          });
+          const missingPartnerArr = partnerArr.filter(partnerId => !dbPartnerMap.has(partnerId));
           
-          console.log('[Chat] Fetching profiles for partners:', partnerArr);
+          console.log('[Chat] Fetching missing profiles for partners:', missingPartnerArr);
           
           // Batch fetch ALL fields from roommates table (has full data)
           // Priority: roommates (full data with budget, lifestyle, bio) > profiles (basic data only)
-          const [roommatesById, roommatesByUserId, profilesById, profilesByAuthId, roommates_auth_id] = await Promise.all([
-            supabase.from('roommates').select('*').in('id', partnerArr),
-            supabase.from('roommates').select('*').in('user_id', partnerArr),
-            supabase.from('profiles').select('*').in('id', partnerArr),
-            supabase.from('profiles').select('*').in('auth_id', partnerArr),
-            supabase.from('roommates').select('*').in('auth_id', partnerArr)
-          ]);
+          const emptyResult = { data: [] as any[] };
+          const [roommatesById, roommatesByUserId, profilesById, profilesByAuthId, roommates_auth_id] =
+            missingPartnerArr.length > 0
+              ? await Promise.all([
+                  supabase.from('roommates').select('*').in('id', missingPartnerArr),
+                  supabase.from('roommates').select('*').in('user_id', missingPartnerArr),
+                  supabase.from('profiles').select('*').in('id', missingPartnerArr),
+                  supabase.from('profiles').select('*').in('auth_id', missingPartnerArr),
+                  supabase.from('roommates').select('*').in('auth_id', missingPartnerArr)
+                ])
+              : [emptyResult, emptyResult, emptyResult, emptyResult, emptyResult];
           
           console.log('[Chat] Fetch results:', {
             roommatesById: roommatesById.data?.length,
@@ -955,10 +989,20 @@ export default function ChatView({
           });
         });
         setConversations(conversationsArray);
+        try {
+          localStorage.setItem(
+            `roomiematch_inbox_${myAuthId}`,
+            JSON.stringify(conversationsArray)
+          );
+        } catch (cacheError) {
+          console.warn("[Chat] Could not cache inbox:", cacheError);
+        }
         setConversationsWithAgreements(agreementMap);
+        setIsInboxLoading(false);
         
       } else if (error) {
         console.error('[Chat] Error fetching inbox:', error);
+        setIsInboxLoading(false);
       }
 
     };
@@ -1134,7 +1178,19 @@ export default function ChatView({
 
         {/* Inbox chat list wrapper */}
         <div className="flex-grow overflow-y-auto p-3 space-y-1.5 scrollbar-thin">
-          {conversations.length === 0 ? (
+          {conversations.length === 0 && isInboxLoading ? (
+            <div className="space-y-3 p-1">
+              {[0, 1, 2].map(item => (
+                <div key={item} className="flex animate-pulse items-center gap-3 rounded-2xl bg-white p-3">
+                  <div className="h-11 w-11 shrink-0 rounded-full bg-slate-200" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-2/3 rounded bg-slate-200" />
+                    <div className="h-2.5 w-1/2 rounded bg-slate-100" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : conversations.length === 0 ? (
             <div className="text-center py-8 text-slate-400 font-medium text-sm">
               Chưa có cuộc trò chuyện nào.
             </div>
@@ -1695,13 +1751,21 @@ export default function ChatView({
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center p-8 text-center scrollbar-none">
-            <div>
-              <AlertCircle className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-400 font-bold text-base">Chưa có cuộc trò chuyện nào</p>
-              <p className="text-xs text-slate-500 mt-1 max-w-xs leading-normal">
-                Hãy ghé qua tab **Tìm Bạn Ở Ghép**, chọn một roommate lý tưởng và bấm **Bắt đầu Trò Chuyện** để kết nối ngay nhé!
-              </p>
-            </div>
+            {isInboxLoading ? (
+              <div className="w-full max-w-md animate-pulse space-y-4">
+                <div className="mx-auto h-14 w-14 rounded-full bg-slate-200" />
+                <div className="mx-auto h-4 w-48 rounded bg-slate-200" />
+                <div className="mx-auto h-3 w-72 max-w-full rounded bg-slate-100" />
+              </div>
+            ) : (
+              <div>
+                <AlertCircle className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-400 font-bold text-base">Chưa có cuộc trò chuyện nào</p>
+                <p className="text-xs text-slate-500 mt-1 max-w-xs leading-normal">
+                  Hãy ghé qua tab **Tìm Bạn Ở Ghép**, chọn một roommate lý tưởng và bấm **Bắt đầu Trò Chuyện** để kết nối ngay nhé!
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -188,11 +188,15 @@ export default function App() {
       if (!import.meta.env.VITE_SUPABASE_URL) return; // Fallback to local data if not configured
 
       try {
-        // Fetch Roommates
-        const { data: roommatesData } = await supabase.from('roommates').select('*').order('createdAt', { ascending: false });
-        if (roommatesData && roommatesData.length > 0) {
-          const { data: reviewsData } = await supabase.from('reviews').select('*');
-          if (reviewsData) setSupabaseReviews(reviewsData);
+        const [roommatesResult, roomsResult, reviewsResult, bansResult] = await Promise.all([
+          supabase.from('roommates').select('*').order('createdAt', { ascending: false }),
+          supabase.from('rooms').select('*').order('createdAt', { ascending: false }),
+          supabase.from('reviews').select('*'),
+          supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS'),
+        ]);
+
+        const roommatesData = roommatesResult.data;
+        if (roommatesData) {
           const enhancedRoommates = roommatesData.map((rm: any) => ({
             ...rm,
             reviews: []
@@ -200,14 +204,11 @@ export default function App() {
           setSupabaseRoommates(enhancedRoommates);
         }
 
-        // Fetch Rooms
-        const { data: roomsData } = await supabase.from('rooms').select('*').order('createdAt', { ascending: false });
-        if (roomsData && roomsData.length > 0) {
-          setSupabaseRooms(roomsData);
-        }
+        if (roomsResult.data) setSupabaseRooms(roomsResult.data);
+        if (reviewsResult.data) setSupabaseReviews(reviewsResult.data);
 
         // Fetch Banned list
-        const { data: bansData } = await supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS');
+        const bansData = bansResult.data;
         if (bansData) {
           const bannedIds = bansData
             .filter((message: any) => String(message.text || "").startsWith("[BAN]"))
@@ -219,8 +220,6 @@ export default function App() {
         }
       } catch (err) {
         console.error("Error fetching from Supabase:", err);
-      } finally {
-        setIsSupabaseLoading(false);
       }
     };
 
@@ -336,18 +335,36 @@ export default function App() {
   });
 
   // States to hold Supabase fetched lists
-  const [supabaseRoommates, setSupabaseRoommates] = useState<any[]>([]);
-  const [supabaseRooms, setSupabaseRooms] = useState<any[]>([]);
-  const [isSupabaseLoading, setIsSupabaseLoading] = useState(!!import.meta.env.VITE_SUPABASE_URL);
+  const [supabaseRoommates, setSupabaseRoommates] = useState<any[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("roomiematch_cached_roommates") || "[]");
+    } catch {
+      return [];
+    }
+  });
+  const [supabaseRooms, setSupabaseRooms] = useState<any[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("roomiematch_cached_rooms") || "[]");
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
-    if (!isSupabaseLoading) return;
-    const timeoutId = window.setTimeout(() => {
-      console.warn("[Supabase] Loading timed out, showing available local data.");
-      setIsSupabaseLoading(false);
-    }, 12000);
-    return () => window.clearTimeout(timeoutId);
-  }, [isSupabaseLoading]);
+    try {
+      localStorage.setItem("roomiematch_cached_roommates", JSON.stringify(supabaseRoommates));
+    } catch (error) {
+      console.warn("[Cache] Could not cache roommates:", error);
+    }
+  }, [supabaseRoommates]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("roomiematch_cached_rooms", JSON.stringify(supabaseRooms));
+    } catch (error) {
+      console.warn("[Cache] Could not cache rooms:", error);
+    }
+  }, [supabaseRooms]);
 
   // Auto-sync profile when logging in or refreshing
   useEffect(() => {
@@ -1810,29 +1827,22 @@ export default function App() {
         )}
 
         {activeTab === "roommates" && (
-          isSupabaseLoading ? (
-            <div className="flex flex-col justify-center items-center py-32 space-y-4">
-               <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[#006590]"></div>
-               <p className="text-slate-500 font-medium animate-pulse">Đang tải dữ liệu...</p>
-            </div>
-          ) : (
-            <RoommatesView
-              roommates={allRoommates}
-              likedRoommateIds={likedRoommateIds}
-              onLikeRoommate={handleLikeRoommate}
-              onViewRoommate={setSelectedRoommate}
-              currentUserProfile={currentUserProfile}
-              onStartChat={startChatConversation}
-              onOpenPostModal={isAdmin ? undefined : () => handleOpenPostModal("roommate")}
-              onRequireAuth={requireAuth}
-              onDeleteRoommate={handleDeleteRoommate}
-              onEditRoommate={handleEditRoommate}
-              currentUserId={currentUser?.id}
-              initialFilters={globalSearchFilters}
-              isAdmin={isAdmin}
-              onClearSelectedRoommate={() => setSelectedRoommate(null)}
-            />
-          )
+          <RoommatesView
+            roommates={allRoommates}
+            likedRoommateIds={likedRoommateIds}
+            onLikeRoommate={handleLikeRoommate}
+            onViewRoommate={setSelectedRoommate}
+            currentUserProfile={currentUserProfile}
+            onStartChat={startChatConversation}
+            onOpenPostModal={isAdmin ? undefined : () => handleOpenPostModal("roommate")}
+            onRequireAuth={requireAuth}
+            onDeleteRoommate={handleDeleteRoommate}
+            onEditRoommate={handleEditRoommate}
+            currentUserId={currentUser?.id}
+            initialFilters={globalSearchFilters}
+            isAdmin={isAdmin}
+            onClearSelectedRoommate={() => setSelectedRoommate(null)}
+          />
         )}
 
         {activeTab === "rooms" && (
