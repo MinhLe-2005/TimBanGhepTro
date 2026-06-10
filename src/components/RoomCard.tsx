@@ -225,11 +225,11 @@ export default function RoomCard({
           </div>
           <div className="flex flex-col bg-slate-50 p-2 rounded-lg border border-slate-100/50">
             <span className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-wider">Tiền điện</span>
-            <span className="font-semibold text-slate-700 truncate">{room.electricity || 'Giá NN'}</span>
+            <span className="font-semibold text-slate-700 truncate">{room.electricity || 'Chưa cập nhật'}</span>
           </div>
           <div className="flex flex-col bg-slate-50 p-2 rounded-lg border border-slate-100/50">
             <span className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-wider">Tiền nước</span>
-            <span className="font-semibold text-slate-700 truncate">{room.water || 'Giá NN'}</span>
+            <span className="font-semibold text-slate-700 truncate">{room.water || 'Chưa cập nhật'}</span>
           </div>
         </div>
 

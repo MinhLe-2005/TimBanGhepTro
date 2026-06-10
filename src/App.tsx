@@ -24,6 +24,34 @@ import PostListingModal from "./components/PostListingModal";
 type ListingKind = "room" | "roommate";
 type ListingAction = "create" | "update";
 
+const ROOM_DB_KEYS = [
+  'id', 'title', 'price', 'location', 'district', 'type', 'images', 'features',
+  'isHot', 'status', 'isVerifiedRoom', 'bedrooms', 'wc', 'kitchen', 'hostName',
+  'hostAvatar', 'hostRole', 'description', 'phoneNumber', 'pets', 'gender',
+  'electricity', 'water', 'parking', 'proximity', 'roommateInfo', 'habits',
+  'postedBy', 'user_id', 'createdAt'
+] as const;
+
+const ROOMMATE_DB_KEYS = [
+  'id', 'name', 'age', 'role', 'school', 'phoneNumber', 'avatar', 'status',
+  'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags',
+  'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id',
+  'is_listing', 'createdAt'
+] as const;
+
+const withoutExtendedRoomFields = (room: Record<string, any>) => {
+  const {
+    electricity, water, parking, proximity, hostRole, roommateInfo, habits,
+    ...legacyRoom
+  } = room;
+  return legacyRoom;
+};
+
+const withoutExtendedRoommateFields = (roommate: Record<string, any>) => {
+  const { school, ...legacyRoommate } = roommate;
+  return legacyRoommate;
+};
+
 const getListingErrorMessage = (
   error: { code?: string; message?: string } | null,
   kind: ListingKind,
@@ -279,22 +307,26 @@ export default function App() {
           let freshRoommates = roommatesData;
           const localRoommates = JSON.parse(localStorage.getItem("roomiematch_posted_roommates") || "[]");
           const remoteRoommateIds = new Set(freshRoommates.map((roommate: any) => String(roommate.id)));
-          const unsyncedRoommates = localRoommates.filter(
+          const syncableRoommates = localRoommates.filter(
             (roommate: any) => {
-              if (!roommate?.id || remoteRoommateIds.has(String(roommate.id))) return false;
+              if (!roommate?.id) return false;
               const ownerId = String(roommate.user_id || roommate.postedBy || "");
               const ownerName = String(roommate.name || "").trim().toLowerCase();
               const cachedProfile = JSON.parse(localStorage.getItem("roomiematch_user_profile") || "null");
               const currentName = String(cachedProfile?.name || currentUser?.name || "").trim().toLowerCase();
-              return !ownerId || ownerId === currentUser?.id || (!!currentName && ownerName === currentName);
+              const isOwner = !ownerId || ownerId === currentUser?.id || (!!currentName && ownerName === currentName);
+              const remote = freshRoommates.find((item: any) => String(item.id) === String(roommate.id));
+              return isOwner && (
+                !remoteRoommateIds.has(String(roommate.id)) ||
+                (!!roommate.school && !remote?.school)
+              );
             }
           );
 
-          if (currentUser?.id && unsyncedRoommates.length > 0) {
-            const allowedKeys = ['id', 'name', 'age', 'role', 'phoneNumber', 'avatar', 'status', 'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags', 'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id', 'is_listing', 'createdAt'];
-            const ownedRoommates = unsyncedRoommates.map((roommate: any) => {
+          if (currentUser?.id && syncableRoommates.length > 0) {
+            const ownedRoommates = syncableRoommates.map((roommate: any) => {
               const cleanRoommate: any = {};
-              allowedKeys.forEach((key) => {
+              ROOMMATE_DB_KEYS.forEach((key) => {
                 if (roommate[key] !== undefined) cleanRoommate[key] = roommate[key];
               });
               cleanRoommate.postedBy = currentUser.id;
@@ -304,9 +336,21 @@ export default function App() {
             });
 
             const syncResults = await Promise.all(
-              ownedRoommates.map((roommate: any) =>
-                supabase.from("roommates").upsert(roommate, { onConflict: "id" }).select().single()
-              )
+              ownedRoommates.map(async (roommate: any) => {
+                let result = await supabase
+                  .from("roommates")
+                  .upsert(roommate, { onConflict: "id" })
+                  .select()
+                  .single();
+                if (result.error && (result.error.code === "PGRST204" || result.error.code === "42703")) {
+                  result = await supabase
+                    .from("roommates")
+                    .upsert(withoutExtendedRoommateFields(roommate), { onConflict: "id" })
+                    .select()
+                    .single();
+                }
+                return result;
+              })
             );
             const syncedRoommates = syncResults.flatMap((result) => result.data ? [result.data] : []);
             const failedRoommates = syncResults.filter((result) => result.error);
@@ -314,7 +358,11 @@ export default function App() {
               console.error("[Listings] Failed to sync a local roommate:", result.error);
             });
             if (syncedRoommates.length) {
-              freshRoommates = [...syncedRoommates, ...freshRoommates];
+              const mergedRoommates = new Map(
+                freshRoommates.map((roommate: any) => [String(roommate.id), roommate])
+              );
+              syncedRoommates.forEach((roommate: any) => mergedRoommates.set(String(roommate.id), roommate));
+              freshRoommates = Array.from(mergedRoommates.values());
               localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(
                 localRoommates.map((roommate: any) => {
                   const synced = syncedRoommates.find((item: any) => item.id === roommate.id);
@@ -339,20 +387,26 @@ export default function App() {
           let freshRooms = roomsResult.data;
           const localRooms = JSON.parse(localStorage.getItem("roomiematch_posted_rooms") || "[]");
           const remoteRoomIds = new Set(freshRooms.map((room: any) => String(room.id)));
-          const unsyncedRooms = localRooms.filter((room: any) => {
-            if (!room?.id || remoteRoomIds.has(String(room.id))) return false;
+          const syncableRooms = localRooms.filter((room: any) => {
+            if (!room?.id) return false;
             const ownerId = String(room.user_id || room.postedBy || "");
             const ownerName = String(room.hostName || "").trim().toLowerCase();
             const cachedProfile = JSON.parse(localStorage.getItem("roomiematch_user_profile") || "null");
             const currentName = String(cachedProfile?.name || currentUser?.name || "").trim().toLowerCase();
-            return !ownerId || ownerId === currentUser?.id || (!!currentName && ownerName === currentName);
+            const isOwner = !ownerId || ownerId === currentUser?.id || (!!currentName && ownerName === currentName);
+            const remote = freshRooms.find((item: any) => String(item.id) === String(room.id));
+            const hasRicherDetails = (
+              (!!room.electricity && !remote?.electricity) ||
+              (!!room.water && !remote?.water) ||
+              (!!room.roommateInfo && !remote?.roommateInfo)
+            );
+            return isOwner && (!remoteRoomIds.has(String(room.id)) || hasRicherDetails);
           });
 
-          if (currentUser?.id && unsyncedRooms.length > 0) {
-            const allowedKeys = ['id', 'title', 'price', 'location', 'district', 'type', 'images', 'features', 'isHot', 'status', 'isVerifiedRoom', 'bedrooms', 'wc', 'kitchen', 'hostName', 'hostAvatar', 'description', 'phoneNumber', 'pets', 'gender', 'postedBy', 'user_id', 'createdAt'];
-            const ownedRooms = unsyncedRooms.map((room: any) => {
+          if (currentUser?.id && syncableRooms.length > 0) {
+            const ownedRooms = syncableRooms.map((room: any) => {
               const cleanRoom: any = {};
-              allowedKeys.forEach((key) => {
+              ROOM_DB_KEYS.forEach((key) => {
                 if (room[key] !== undefined) cleanRoom[key] = room[key];
               });
               cleanRoom.postedBy = currentUser.id;
@@ -361,9 +415,21 @@ export default function App() {
             });
 
             const syncResults = await Promise.all(
-              ownedRooms.map((room: any) =>
-                supabase.from("rooms").upsert(room, { onConflict: "id" }).select().single()
-              )
+              ownedRooms.map(async (room: any) => {
+                let result = await supabase
+                  .from("rooms")
+                  .upsert(room, { onConflict: "id" })
+                  .select()
+                  .single();
+                if (result.error && (result.error.code === "PGRST204" || result.error.code === "42703")) {
+                  result = await supabase
+                    .from("rooms")
+                    .upsert(withoutExtendedRoomFields(room), { onConflict: "id" })
+                    .select()
+                    .single();
+                }
+                return result;
+              })
             );
             const syncedRooms = syncResults.flatMap((result) => result.data ? [result.data] : []);
             const failedRooms = syncResults.filter((result) => result.error);
@@ -371,7 +437,11 @@ export default function App() {
               console.error("[Listings] Failed to sync a local room:", result.error);
             });
             if (syncedRooms.length) {
-              freshRooms = [...syncedRooms, ...freshRooms];
+              const mergedRooms = new Map(
+                freshRooms.map((room: any) => [String(room.id), room])
+              );
+              syncedRooms.forEach((room: any) => mergedRooms.set(String(room.id), room));
+              freshRooms = Array.from(mergedRooms.values());
               localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(
                 localRooms.map((room: any) => {
                   const synced = syncedRooms.find((item: any) => item.id === room.id);
@@ -670,10 +740,23 @@ export default function App() {
 
   // Merge local roommates with Supabase roommates (deduplicate by id AND name)
   const allRoommates = useMemo(() => {
-    const combined = [...supabaseRoommates, ...roommates];
+    const initialRoommateIds = new Set(INITIAL_ROOMMATES.map((roommate) => String(roommate.id)));
+    const currentName = String(currentUserProfile?.name || currentUser?.name || "").trim().toLowerCase();
+    const visibleLocalRoommates = import.meta.env.VITE_SUPABASE_URL
+      ? roommates.filter((roommate) => {
+          if (initialRoommateIds.has(String(roommate.id))) return true;
+          const ownerId = String(roommate.user_id || roommate.postedBy || "");
+          const ownerName = String(roommate.name || "").trim().toLowerCase();
+          return !!currentUser?.id && (
+            ownerId === currentUser.id ||
+            (!ownerId && !!currentName && ownerName === currentName)
+          );
+        })
+      : roommates;
+    const combined = [...supabaseRoommates, ...visibleLocalRoommates];
     console.log('[App] Merging roommates:', {
       supabaseCount: supabaseRoommates.length,
-      localCount: roommates.length,
+      localCount: visibleLocalRoommates.length,
       combinedCount: combined.length
     });
     
@@ -708,14 +791,25 @@ export default function App() {
     });
 
     return result;
-  }, [supabaseRoommates, roommates]);
+  }, [supabaseRoommates, roommates, currentUser, currentUserProfile]);
 
   // Merge local rooms with Supabase rooms (deduplicate by id)
   const allRooms = useMemo(() => {
-    const combined = [...supabaseRooms, ...rooms];
+    const currentName = String(currentUserProfile?.name || currentUser?.name || "").trim().toLowerCase();
+    const visibleLocalRooms = import.meta.env.VITE_SUPABASE_URL
+      ? rooms.filter((room) => {
+          const ownerId = String(room.user_id || room.postedBy || "");
+          const ownerName = String(room.hostName || "").trim().toLowerCase();
+          return !!currentUser?.id && (
+            ownerId === currentUser.id ||
+            (!ownerId && !!currentName && ownerName === currentName)
+          );
+        })
+      : rooms;
+    const combined = [...supabaseRooms, ...visibleLocalRooms];
     console.log('[App] Merging rooms:', {
       supabaseCount: supabaseRooms.length,
-      localCount: rooms.length,
+      localCount: visibleLocalRooms.length,
       combinedCount: combined.length
     });
     
@@ -817,9 +911,8 @@ export default function App() {
 
       // Supabase Update
       if (import.meta.env.VITE_SUPABASE_URL) {
-        const validRoomKeys = ['id', 'title', 'price', 'location', 'district', 'type', 'images', 'features', 'isHot', 'status', 'isVerifiedRoom', 'bedrooms', 'wc', 'kitchen', 'hostName', 'hostAvatar', 'description', 'phoneNumber', 'pets', 'gender', 'postedBy', 'user_id', 'createdAt'];
         const dbRoom: any = {};
-        for (const key of validRoomKeys) {
+        for (const key of ROOM_DB_KEYS) {
           if (updatedRoom[key as keyof Room] !== undefined) {
             dbRoom[key] = updatedRoom[key as keyof Room];
           }
@@ -827,8 +920,11 @@ export default function App() {
 
         let { error } = await supabase.from('rooms').update(dbRoom).eq('id', editingListingData.id);
         if (error && (error.code === 'PGRST204' || error.code === '42703')) {
-          const { postedBy, ...dbRoomFallback } = dbRoom;
-          error = (await supabase.from('rooms').update(dbRoomFallback).eq('id', editingListingData.id)).error;
+          error = (
+            await supabase.from('rooms')
+              .update(withoutExtendedRoomFields(dbRoom))
+              .eq('id', editingListingData.id)
+          ).error;
         }
         if (error) {
           console.error("Error updating room to Supabase:", error);
@@ -842,9 +938,8 @@ export default function App() {
 
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
-      const validRoomKeys = ['id', 'title', 'price', 'location', 'district', 'type', 'images', 'features', 'isHot', 'status', 'isVerifiedRoom', 'bedrooms', 'wc', 'kitchen', 'hostName', 'hostAvatar', 'description', 'phoneNumber', 'pets', 'gender', 'postedBy', 'user_id', 'createdAt'];
       const dbRoom: any = {};
-      for (const key of validRoomKeys) {
+      for (const key of ROOM_DB_KEYS) {
         if (roomWithOwner[key as keyof Room] !== undefined) {
           dbRoom[key] = roomWithOwner[key as keyof Room];
         }
@@ -852,8 +947,7 @@ export default function App() {
 
       let { error, data } = await supabase.from('rooms').insert(dbRoom).select();
       if (error && (error.code === 'PGRST204' || error.code === '42703')) {
-        const { postedBy, user_id, ...dbRoomFallback } = dbRoom;
-        const result = await supabase.from('rooms').insert(dbRoomFallback).select();
+        const result = await supabase.from('rooms').insert(withoutExtendedRoomFields(dbRoom)).select();
         error = result.error;
         data = result.data;
       }
@@ -863,10 +957,11 @@ export default function App() {
         return false;
       } else if (data && data.length > 0) {
         console.log("[App] Successfully inserted room to Supabase:", data[0]);
-        setSupabaseRooms((prev) => [data[0], ...prev]);
+        const savedRoom = { ...roomWithOwner, ...data[0] };
+        setSupabaseRooms((prev) => [savedRoom, ...prev]);
         localStorage.setItem(
           "roomiematch_posted_rooms",
-          JSON.stringify([data[0], ...JSON.parse(localStorage.getItem("roomiematch_posted_rooms") || "[]")])
+          JSON.stringify([savedRoom, ...JSON.parse(localStorage.getItem("roomiematch_posted_rooms") || "[]")])
         );
         return true;
       }
@@ -906,9 +1001,8 @@ export default function App() {
 
       // Supabase Update
       if (import.meta.env.VITE_SUPABASE_URL) {
-        const validRoommateKeys = ['id', 'name', 'age', 'role', 'phoneNumber', 'avatar', 'status', 'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags', 'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id', 'is_listing', 'createdAt'];
         const dbRoommate: any = {};
-        for (const key of validRoommateKeys) {
+        for (const key of ROOMMATE_DB_KEYS) {
           if (updatedRoommate[key as keyof Roommate] !== undefined) {
             dbRoommate[key] = updatedRoommate[key as keyof Roommate];
           }
@@ -916,8 +1010,11 @@ export default function App() {
 
         let { error } = await supabase.from('roommates').update(dbRoommate).eq('id', editingListingData.id);
         if (error && (error.code === 'PGRST204' || error.code === '42703')) {
-          const { postedBy, ...dbRoommateFallback } = dbRoommate;
-          error = (await supabase.from('roommates').update(dbRoommateFallback).eq('id', editingListingData.id)).error;
+          error = (
+            await supabase.from('roommates')
+              .update(withoutExtendedRoommateFields(dbRoommate))
+              .eq('id', editingListingData.id)
+          ).error;
         }
         if (error) {
           console.error("Error updating roommate to Supabase:", error);
@@ -951,9 +1048,8 @@ export default function App() {
 
     // Supabase Insert
     if (import.meta.env.VITE_SUPABASE_URL) {
-      const validRoommateKeys = ['id', 'name', 'age', 'role', 'phoneNumber', 'avatar', 'status', 'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags', 'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id', 'is_listing', 'createdAt'];
       const dbRoommate: any = {};
-      for (const key of validRoommateKeys) {
+      for (const key of ROOMMATE_DB_KEYS) {
         if (roommateWithOwner[key as keyof Roommate] !== undefined) {
           dbRoommate[key] = roommateWithOwner[key as keyof Roommate];
         }
@@ -962,7 +1058,7 @@ export default function App() {
 
       let { error, data } = await supabase.from('roommates').insert(dbRoommate).select();
       if (error && (error.code === 'PGRST204' || error.code === '42703')) {
-        const { postedBy, user_id, ...dbRoommateFallback1 } = dbRoommate;
+        const dbRoommateFallback1 = withoutExtendedRoommateFields(dbRoommate);
         let result = await supabase.from('roommates').insert(dbRoommateFallback1).select();
         if (result.error && (result.error.code === 'PGRST204' || result.error.code === '42703')) {
            const { is_listing, ...dbRoommateFallback2 } = dbRoommateFallback1;
@@ -977,10 +1073,11 @@ export default function App() {
         return false;
       } else if (data && data.length > 0) {
         console.log("[App] Successfully inserted roommate to Supabase:", data[0]);
-        setSupabaseRoommates((prev) => [data[0], ...prev]);
+        const savedRoommate = { ...roommateWithOwner, ...data[0] };
+        setSupabaseRoommates((prev) => [savedRoommate, ...prev]);
         localStorage.setItem(
           "roomiematch_posted_roommates",
-          JSON.stringify([data[0], ...JSON.parse(localStorage.getItem("roomiematch_posted_roommates") || "[]")])
+          JSON.stringify([savedRoommate, ...JSON.parse(localStorage.getItem("roomiematch_posted_roommates") || "[]")])
         );
         return true;
       }
@@ -1513,38 +1610,6 @@ export default function App() {
     });
     setRoommates(updated);
   }, [currentUserProfile, supabaseReviews, currentUser, supabaseRoommates]);
-
-  // Sync rooms with updated profile
-  useEffect(() => {
-    const saved = localStorage.getItem("roomiematch_posted_rooms");
-    const parsed = saved ? JSON.parse(saved) : [];
-    
-    // Deduplicate: INITIAL_ROOMS override older Supabase entries
-    const initialRoomIds = INITIAL_ROOMS.map(r => r.id);
-    const filteredSupabaseRooms = supabaseRooms.filter(r => !initialRoomIds.includes(r.id));
-    
-    const allRoomsRaw = [...parsed, ...filteredSupabaseRooms, ...INITIAL_ROOMS];
-    const uniqueRoomsMap = new Map();
-    allRoomsRaw.forEach(r => {
-      // Overwrite existing to ensure INITIAL_ROOMS (at the end) wins
-      uniqueRoomsMap.set(r.id, r);
-    });
-    let allRooms = Array.from(uniqueRoomsMap.values());
-
-    if (currentUserProfile) {
-      allRooms = allRooms.map(r => {
-        const isOwner = (currentUser && r.postedBy === currentUser.id) || r.hostName === currentUserProfile.name;
-        return {
-          ...r,
-          price: r.price || 0,
-          hostAvatar: isOwner ? currentUserProfile.avatar : r.hostAvatar,
-          hostName: isOwner ? currentUserProfile.name : r.hostName,
-          postedBy: isOwner && currentUser ? currentUser.id : (r.postedBy || r.user_id),
-        };
-      });
-    }
-    setRooms(allRooms);
-  }, [currentUserProfile, currentUser, supabaseRooms]);
 
   const handleSaveProfile = async (profile: any) => {
     setCurrentUserProfile(profile);
