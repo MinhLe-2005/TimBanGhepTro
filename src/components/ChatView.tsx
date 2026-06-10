@@ -96,22 +96,6 @@ export default function ChatView({
     }
   });
 
-  useEffect(() => {
-    if (activeRoommateId && chats[activeRoommateId]?.length > 0) {
-      const lastMsg = chats[activeRoommateId][chats[activeRoommateId].length - 1];
-      const ts = new Date(lastMsg.timestamp).getTime();
-      setLastReadTimestamps(prev => {
-        const current = prev[activeRoommateId] || 0;
-        if (ts > current) {
-          const next = { ...prev, [activeRoommateId]: ts };
-          localStorage.setItem(`roomiematch_read_ts_${currentUser?.id || 'guest'}`, JSON.stringify(next));
-          return next;
-        }
-        return prev;
-      });
-    }
-  }, [activeRoommateId, chats, currentUser?.id]);
-  
   // Track if signed agreement exists (to show review button)
   const [hasSignedAgreement, setHasSignedAgreement] = useState(false);
 
@@ -620,6 +604,24 @@ export default function ChatView({
   // Handle read receipts when opening chat or receiving new message
   useEffect(() => {
     if (!activeRoommateId || !myChatId || activeMessages.length === 0) return;
+
+    // 1. Update local read timestamps so sidebar indicator clears immediately
+    const lastMsg = activeMessages[activeMessages.length - 1];
+    const ts = new Date(lastMsg.timestamp).getTime();
+    setLastReadTimestamps(prev => {
+      const current1 = prev[activeRoommateId] || 0;
+      const current2 = (partnerChatId && prev[partnerChatId]) || 0;
+      const current = Math.max(current1, current2);
+      if (ts > current) {
+        const next = { ...prev, [activeRoommateId]: ts };
+        if (partnerChatId) next[partnerChatId] = ts;
+        localStorage.setItem(`roomiematch_read_ts_${currentUser?.id || 'guest'}`, JSON.stringify(next));
+        return next;
+      }
+      return prev;
+    });
+
+    // 2. Sync read receipts to server for partner to see
     const unreadFromPartner = activeMessages.filter(
       msg => msg.senderId !== "me" && msg.senderId !== myChatId && !msg.reactions?.["read"]?.includes(myChatId)
     );
@@ -636,7 +638,7 @@ export default function ChatView({
         }
       }
     }
-  }, [activeMessages, activeRoommateId, myChatId]);
+  }, [activeMessages, activeRoommateId, partnerChatId, myChatId]);
   
   console.log('[Chat] Chat IDs:', {
     myChatId,
