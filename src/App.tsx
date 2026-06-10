@@ -383,6 +383,7 @@ export default function App() {
 
         if (roomsResult.error) {
           console.error("[Listings] Failed to fetch rooms:", roomsResult.error);
+          setIsRoomsLoading(false); // Stop skeleton even on error
         }
         if (roomsResult.data) {
           let freshRooms = roomsResult.data;
@@ -458,6 +459,7 @@ export default function App() {
         }
       } catch (err) {
         console.error("Error fetching listings from Supabase:", err);
+        setIsRoomsLoading(false); // Stop skeleton on exception too
       } finally {
         setIsRoommatesLoading(false);
       }
