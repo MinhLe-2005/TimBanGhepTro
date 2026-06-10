@@ -113,6 +113,15 @@ export default function ChatView({
   const [signatureName, setSignatureName] = useState("");
   const [isSigningAgreement, setIsSigningAgreement] = useState(false);
 
+  const closeReportModal = () => {
+    setIsReportModalOpen(false);
+    setReportReason("");
+    setReportImageFile(null);
+    setReportImagePreview(null);
+    setSelectedReportedMessageIds([]);
+    setIsUploadingReport(false);
+  };
+
   const handleSendReport = async () => {
     if (!reportReason.trim() || selectedReportedMessageIds.length === 0) {
       toast("Vui lòng chọn từ 1 đến 3 tin nhắn và nhập lý do báo cáo.", "warning", 4000);
@@ -141,6 +150,7 @@ export default function ChatView({
          });
          
          if (hasReported) {
+           closeReportModal();
            toast("Bạn đã báo cáo người dùng này. Vui lòng chờ ban quản trị xử lý.", "warning", 4500);
            return;
          }
@@ -206,12 +216,7 @@ export default function ChatView({
          setIsUploadingReport(false);
          return;
        }
-       setIsReportModalOpen(false);
-       setReportReason("");
-       setReportImageFile(null);
-       setReportImagePreview(null);
-       setSelectedReportedMessageIds([]);
-       setIsUploadingReport(false);
+       closeReportModal();
        toast("Đã gửi báo cáo đến ban quản trị.", "success", 4000);
     } else {
        toast("Lỗi hệ thống, không thể gửi báo cáo lúc này.", "error", 4500);
@@ -1772,13 +1777,13 @@ export default function ChatView({
       {/* Report Modal */}
       {isReportModalOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsReportModalOpen(false)} />
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={closeReportModal} />
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto relative animate-in fade-in zoom-in-95 p-6 space-y-5">
              <div className="flex justify-between items-center border-b border-slate-100 pb-4">
                <h3 className="text-xl font-black text-rose-600 flex items-center gap-2">
                  <AlertOctagon className="w-6 h-6" /> Báo cáo vi phạm
                </h3>
-               <button onClick={() => setIsReportModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1">
+               <button onClick={closeReportModal} className="text-slate-400 hover:text-slate-600 p-1">
                  <X className="w-5 h-5" />
                </button>
              </div>
@@ -1897,7 +1902,7 @@ export default function ChatView({
              </div>
 
              <div className="flex gap-3 pt-2">
-               <button disabled={isUploadingReport} onClick={() => setIsReportModalOpen(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors disabled:opacity-50">Hủy</button>
+               <button disabled={isUploadingReport} onClick={closeReportModal} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors disabled:opacity-50">Hủy</button>
                <button disabled={isUploadingReport} onClick={handleSendReport} className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                  {isUploadingReport ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
                  {isUploadingReport ? "Đang gửi..." : "Gửi Báo Cáo"}
