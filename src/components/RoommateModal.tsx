@@ -408,7 +408,7 @@ export default function RoommateModal({
                 {
                   label: "Uy tín",
                   value: getReputationLabel(reputationScore),
-                  sub: reviewsCount > 0 ? `${reviewsCount} đánh giá` : "Chưa có đánh giá",
+                  sub: reviewsCount > 0 && averageRating !== null ? `⭐ ${averageRating.toFixed(1)} (${reviewsCount} đánh giá)` : "Chưa có đánh giá",
                   icon: ShieldCheck,
                   color: "bg-emerald-50 text-emerald-700",
                   isReputation: true,

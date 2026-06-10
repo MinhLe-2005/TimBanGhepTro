@@ -2,7 +2,7 @@ import { Heart, Pencil, Star, Trash2 } from "lucide-react";
 import { Roommate } from "../types";
 import { useEffect, useState } from "react";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
-import { getAverageRating } from "../utils/scoring";
+import { getAverageRating, calculateReputationScore, getReputationLabel } from "../utils/scoring";
 
 interface RoommateCardProps {
   roommate: Roommate;
@@ -55,16 +55,17 @@ export default function RoommateCard({
 
   const reviewsCount = roommate.reviews ? roommate.reviews.length : 0;
   const averageRating = getAverageRating(roommate.reviews);
+  const reputationScore = calculateReputationScore(roommate);
 
   return (
     <div
       onClick={() => onViewDetails(roommate)}
-      className="group relative flex flex-col h-full bg-white rounded-[24px] overflow-hidden border border-slate-100 cursor-pointer shadow-[0_4px_20px_rgba(15,23,42,0.04)] hover:shadow-[0_15px_35px_rgba(15,23,42,0.08)] hover:-translate-y-1 transition-all duration-300"
+      className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-[24px] bg-white text-left transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_12px_40px_rgba(15,23,42,0.12)] border border-slate-200/60"
     >
       {/* Profile Image & Top Badges */}
       <div className={`relative overflow-hidden bg-slate-50 shrink-0 ${compact ? "aspect-[4/3]" : "aspect-[4/5]"}`}>
         <img
-          src={roommate.avatar}
+          src={roommate.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop"}
           alt={roommate.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           referrerPolicy="no-referrer"
@@ -161,9 +162,24 @@ export default function RoommateCard({
           </div>
         </div>
 
-        <div className="text-[13px] text-slate-500 mb-2 truncate" title={`${roommate.role} tại ${roommate.district || roommate.location.split(',')[0]}`}>
+        <div className="text-[13px] text-slate-500 mb-1 truncate" title={`${roommate.role} tại ${roommate.district || roommate.location.split(',')[0]}`}>
           <span className="font-semibold text-slate-700">{roommate.role}</span> <span className="mx-1.5 text-slate-300">•</span> {roommate.district || roommate.location.split(',')[0]}
         </div>
+
+        {reputationScore !== null && (
+          <div className={`flex items-center gap-1.5 ${compact ? "mb-2" : "mb-3"}`}>
+            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md border ${
+              reputationScore >= 70 ? 'bg-emerald-50 border-emerald-100 text-emerald-700' :
+              reputationScore >= 50 ? 'bg-amber-50 border-amber-100 text-amber-700' :
+              'bg-rose-50 border-rose-100 text-rose-700'
+            }`}>
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span className="text-[10px] font-black uppercase tracking-wide">
+                Uy tín {getReputationLabel(reputationScore)}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Detailed Info Grid */}
         <div className={`grid grid-cols-2 gap-2 text-[12px] ${compact ? "mb-2" : "mb-3"}`}>
