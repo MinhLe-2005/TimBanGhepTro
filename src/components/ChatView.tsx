@@ -1001,10 +1001,21 @@ export default function ChatView({
           let activePartner = roommates.find(r => r.id === activeRoommateId || r.user_id === activeRoommateId) || dbPartnerMap.get(activeRoommateId);
           
           if (activePartner) {
-            // Use activeRoommateId as canonical key (it's from user selection)
-            const canonicalId = activeRoommateId;
+            // Use activePartner's user_id or auth_id if available, otherwise fallback to activeRoommateId
+            const canonicalId = activePartner.user_id || activePartner.auth_id || activeRoommateId;
             
-            if (!conversationMap.has(canonicalId)) {
+            // Also check if we already have a conversation with this partner under ANY key
+            let hasExisting = false;
+            for (const conv of conversationMap.values()) {
+              if ((activePartner.user_id && conv.partner.user_id === activePartner.user_id) || 
+                  (activePartner.auth_id && conv.partner.auth_id === activePartner.auth_id) || 
+                  (activePartner.id && conv.partner.id === activePartner.id)) {
+                hasExisting = true;
+                break;
+              }
+            }
+            
+            if (!hasExisting && !conversationMap.has(canonicalId)) {
               // Ensure partner has complete data structure
               if (!activePartner.lifestyle) {
                 console.warn('[Chat] Active partner missing lifestyle, adding defaults');
