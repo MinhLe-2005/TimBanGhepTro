@@ -3,6 +3,7 @@ import { Sparkles, Users, Building, ShieldCheck, HeartHandshake, Eye, ArrowRight
 import { Roommate, Room } from "../types";
 import RoommateCard from "./RoommateCard";
 import RoomCard from "./RoomCard";
+import PopularRoommatesModal from "./PopularRoommatesModal";
 
 interface HomeViewProps {
   roommates: Roommate[];
@@ -45,6 +46,7 @@ export default function HomeView({
   const [selectedLifestyle, setSelectedLifestyle] = useState("Mọi phong cách");
   const [isRoommateCarouselPaused, setIsRoommateCarouselPaused] = useState(false);
   const [isRoomCarouselPaused, setIsRoomCarouselPaused] = useState(false);
+  const [isPopularModalOpen, setIsPopularModalOpen] = useState(false);
 
   // Carousel Logic
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -486,7 +488,7 @@ export default function HomeView({
               </p>
             </div>
             <button
-              onClick={() => onNavigateToTab("roommates")}
+              onClick={() => setIsPopularModalOpen(true)}
               className="flex shrink-0 items-center gap-2 text-sm font-bold text-[#006590] transition-colors hover:text-rose-600"
             >
               Xem thêm
@@ -846,6 +848,27 @@ export default function HomeView({
         </div>
       </section>
 
+      {/* Popular Roommates Modal */}
+      <PopularRoommatesModal
+        isOpen={isPopularModalOpen}
+        onClose={() => setIsPopularModalOpen(false)}
+        popularRoommates={roommates
+          .filter(
+            (roommate) =>
+              roommate.is_listing === true &&
+              roommate.status !== "Đã tìm được" &&
+              (roommateLikeCounts[roommate.id] || 0) > 0
+          )
+          .sort(
+            (a, b) =>
+              (roommateLikeCounts[b.id] || 0) - (roommateLikeCounts[a.id] || 0)
+          )}
+        roommateLikeCounts={roommateLikeCounts}
+        likedRoommateIds={likedRoommateIds}
+        onLikeRoommate={onLikeRoommate}
+        onViewRoommate={onViewRoommate}
+        onStartChat={onStartChat}
+      />
 
     </div>
   );
