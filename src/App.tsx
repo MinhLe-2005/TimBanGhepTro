@@ -794,6 +794,7 @@ export default function App() {
     const currentName = String(currentUserProfile?.name || currentUser?.name || "").trim().toLowerCase();
     const visibleLocalRoommates = import.meta.env.VITE_SUPABASE_URL
       ? roommates.filter((roommate) => {
+          if (supabaseRoommates.some(sr => sr.id === roommate.id)) return true;
           if (initialRoommateIds.has(String(roommate.id))) return true;
           const ownerId = String(roommate.user_id || roommate.postedBy || "");
           const ownerName = String(roommate.name || "").trim().toLowerCase();
@@ -2531,7 +2532,7 @@ export default function App() {
       {selectedRoom && (
         <RoomModal
           room={selectedRoom}
-          roommates={filteredRoommates}
+          roommates={allRoommates}
           onClose={handleCloseModal}
           onInquire={handleRoomInquiry}
           onAddReview={handleAddRoomReview}
