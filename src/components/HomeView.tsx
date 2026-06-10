@@ -58,11 +58,22 @@ export default function HomeView({
     return firstChild ? firstChild.clientWidth + 16 : 304;
   };
 
-  const handleScrollNext = (ref: React.RefObject<HTMLDivElement | null>) => {
+  const handleScrollNext = (ref: React.RefObject<HTMLDivElement | null>, originalItemCount: number) => {
     if (ref.current) {
       const { scrollLeft, scrollWidth, clientWidth } = ref.current;
-      const originalWidth = scrollWidth / 3;
       const scrollAmount = getScrollAmount(ref);
+      
+      // If we don't have enough items to duplicate, just scroll to start when reaching the end
+      if (originalItemCount < 4) {
+        if (scrollLeft + clientWidth >= scrollWidth - 10) {
+          ref.current.scrollTo({ left: 0, behavior: "smooth" });
+        } else {
+          ref.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+        }
+        return;
+      }
+
+      const originalWidth = scrollWidth / 3;
       
       // Seamlessly jump back by one copy if we reach the third copy
       if (scrollLeft >= originalWidth * 2 - clientWidth) {
@@ -76,11 +87,18 @@ export default function HomeView({
     }
   };
 
-  const handleScrollPrev = (ref: React.RefObject<HTMLDivElement | null>) => {
+  const handleScrollPrev = (ref: React.RefObject<HTMLDivElement | null>, originalItemCount: number) => {
     if (ref.current) {
       const { scrollLeft, scrollWidth } = ref.current;
-      const originalWidth = scrollWidth / 3;
       const scrollAmount = getScrollAmount(ref);
+      
+      if (originalItemCount < 4) {
+        if (scrollLeft <= 0) return;
+        ref.current.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+        return;
+      }
+
+      const originalWidth = scrollWidth / 3;
       
       // Seamlessly jump forward by one copy if we are in the first copy
       if (scrollLeft <= originalWidth) {
@@ -95,15 +113,18 @@ export default function HomeView({
   };
 
   useEffect(() => {
+    const listedRoommatesLength = roommates.filter(r => r.is_listing === true).length;
+    const listedRoomsLength = rooms.length; // assuming all rooms are listed
+
     const roommateInterval = setInterval(() => {
       if (!isRoommateCarouselPaused) {
-        handleScrollNext(carouselRef);
+        handleScrollNext(carouselRef, listedRoommatesLength);
       }
     }, 2500);
 
     const roomInterval = setInterval(() => {
       if (!isRoomCarouselPaused) {
-        handleScrollNext(roomCarouselRef);
+        handleScrollNext(roomCarouselRef, listedRoomsLength);
       }
     }, 2500);
 
@@ -111,12 +132,12 @@ export default function HomeView({
       clearInterval(roommateInterval);
       clearInterval(roomInterval);
     };
-  }, [isRoommateCarouselPaused, isRoomCarouselPaused]);
+  }, [isRoommateCarouselPaused, isRoomCarouselPaused, roommates, rooms]);
 
-  const scrollPrev = () => handleScrollPrev(carouselRef);
-  const scrollNext = () => handleScrollNext(carouselRef);
-  const scrollRoomPrev = () => handleScrollPrev(roomCarouselRef);
-  const scrollRoomNext = () => handleScrollNext(roomCarouselRef);
+  const scrollPrev = () => handleScrollPrev(carouselRef, roommates.filter(r => r.is_listing === true).length);
+  const scrollNext = () => handleScrollNext(carouselRef, roommates.filter(r => r.is_listing === true).length);
+  const scrollRoomPrev = () => handleScrollPrev(roomCarouselRef, rooms.length);
+  const scrollRoomNext = () => handleScrollNext(roomCarouselRef, rooms.length);
 
   const locations = ["Tất cả Đà Nẵng", "Hải Châu", "Sơn Trà", "Ngũ Hành Sơn", "Liên Chiểu", "Thanh Khê", "Cẩm Lệ"];
   const budgets = ["Tất cả mức giá", "Dưới 2 triệu", "2 - 3 triệu", "3 - 5 triệu", "Trên 5 triệu"];
@@ -550,18 +571,24 @@ export default function HomeView({
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {/* Chỉ hiển thị listings (is_listing=true), không hiển thị profiles. */}
-            {roommates.filter(r => r.is_listing === true).map((rm, index) => (
-              <div key={rm.id} className="shrink-0 snap-start w-[82%] sm:w-[calc(50%-8px)] md:w-[calc(33.333%-11px)] lg:w-[calc(25%-12px)] xl:w-[calc(20%-13px)]">
-                <RoommateCard
-                  roommate={rm}
-                  compact
-                  onViewDetails={onViewRoommate}
-                  onLikeChange={isAdmin ? undefined : onLikeRoommate}
-                  isInitiallyLiked={likedRoommateIds.includes(rm.id)}
-                  onStartChat={isAdmin ? undefined : onStartChat}
-                />
-              </div>
-            ))}
+            {(() => {
+              const listedRoommates = roommates.filter(r => r.is_listing === true);
+              const items = listedRoommates.length >= 4 
+                ? [...listedRoommates, ...listedRoommates, ...listedRoommates]
+                : listedRoommates;
+              return items.map((rm, index) => (
+                <div key={`${rm.id}-${index}`} className="shrink-0 snap-start w-[82%] sm:w-[calc(50%-8px)] md:w-[calc(33.333%-11px)] lg:w-[calc(25%-12px)] xl:w-[calc(20%-13px)]">
+                  <RoommateCard
+                    roommate={rm}
+                    compact
+                    onViewDetails={onViewRoommate}
+                    onLikeChange={isAdmin ? undefined : onLikeRoommate}
+                    isInitiallyLiked={likedRoommateIds.includes(rm.id)}
+                    onStartChat={isAdmin ? undefined : onStartChat}
+                  />
+                </div>
+              ));
+            })()}
           </div>
 
           {/* Nút Next */}
@@ -619,16 +646,21 @@ export default function HomeView({
             className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-8 pt-3"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            {[...rooms, ...rooms, ...rooms].map((room, index) => (
-              <div key={`${room.id}-${index}`} className="shrink-0 snap-start w-[82%] sm:w-[calc(50%-8px)] md:w-[calc(33.333%-11px)] lg:w-[calc(25%-12px)] xl:w-[calc(20%-13px)]">
-                <RoomCard
-                  room={room}
-                  onViewDetails={onViewRoom}
-                  onLikeChange={isAdmin ? undefined : onLikeRoom}
-                  isInitiallyLiked={likedRoomIds.includes(room.id)}
-                />
-              </div>
-            ))}
+            {(() => {
+              const items = rooms.length >= 4
+                ? [...rooms, ...rooms, ...rooms]
+                : rooms;
+              return items.map((room, index) => (
+                <div key={`${room.id}-${index}`} className="shrink-0 snap-start w-[82%] sm:w-[calc(50%-8px)] md:w-[calc(33.333%-11px)] lg:w-[calc(25%-12px)] xl:w-[calc(20%-13px)]">
+                  <RoomCard
+                    room={room}
+                    onViewDetails={onViewRoom}
+                    onLikeChange={isAdmin ? undefined : onLikeRoom}
+                    isInitiallyLiked={likedRoomIds.includes(room.id)}
+                  />
+                </div>
+              ));
+            })()}
           </div>
 
           {/* Nút Next */}

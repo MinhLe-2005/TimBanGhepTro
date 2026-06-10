@@ -234,9 +234,6 @@ export default function App() {
       try {
         setIsRoommatesLoading(true); // Always show spinner until fresh data is fetched
         
-        // Enforce a minimum loading time (1.5s) so the splash screen doesn't flash too quickly
-        const minLoadingTime = new Promise(resolve => setTimeout(resolve, 1500));
-        
         const [roommatesResult, roomsResult, reviewsResult, bansResult] = await Promise.all([
           supabase.from('roommates').select('*').order('createdAt', { ascending: false }),
           supabase.from('rooms').select('*').order('createdAt', { ascending: false }),
@@ -274,9 +271,6 @@ export default function App() {
           if (currentUser?.id && bannedIds.includes(currentUser.id)) setIsBanned(true);
           setSupabaseBannedIds(bannedIds);
         }
-
-        // Wait for the minimum splash screen time to complete
-        await minLoadingTime;
       } catch (err) {
         console.error("Error fetching from Supabase:", err);
       } finally {
