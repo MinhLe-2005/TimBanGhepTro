@@ -493,7 +493,12 @@ export default function App() {
     combined.forEach(rm => {
       const existingById = uniqueByIdMap.get(rm.id);
       // If same ID appears twice, prefer the listing version over profile
-      if (!existingById || (rm.is_listing && !existingById.is_listing)) {
+      // Also strictly prefer the version that has been enriched with reviews
+      if (!existingById || 
+          (rm.is_listing && !existingById.is_listing) ||
+          ((rm.reviews?.length || 0) > (existingById.reviews?.length || 0)) ||
+          (rm.reviews && !existingById.reviews)
+      ) {
         uniqueByIdMap.set(rm.id, rm);
       }
     });
