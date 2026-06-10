@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Send, CheckCircle2, AlertCircle, MessageSquare, PhoneCall, Image as ImageIcon, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck, Ban, AlertOctagon, UploadCloud, Clock, CheckSquare, Users, CreditCard, Heart, Check, Star, FileEdit, ChevronLeft, ChevronRight, Flag } from "lucide-react";
+import { Send, CheckCircle2, AlertCircle, MessageSquare, PhoneCall, Image as ImageIcon, FileText, X, Lock, BadgeCheck, PencilLine, Lightbulb, ShieldCheck, Ban, AlertOctagon, UploadCloud, Clock, CheckSquare, Users, CreditCard, Heart, Check, Star, FileEdit, ChevronLeft, ChevronRight, Flag, Search } from "lucide-react";
 import { Roommate, Message } from "../types";
 import { supabase } from "../lib/supabase";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -107,6 +107,7 @@ export default function ChatView({
   const [reportImagePreview, setReportImagePreview] = useState<string | null>(null);
   const [isUploadingReport, setIsUploadingReport] = useState(false);
   const [selectedReportedMessageIds, setSelectedReportedMessageIds] = useState<string[]>([]);
+  const [reportMessageSearch, setReportMessageSearch] = useState("");
 
   // Signature modal for agreement signing
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
@@ -119,6 +120,7 @@ export default function ChatView({
     setReportImageFile(null);
     setReportImagePreview(null);
     setSelectedReportedMessageIds([]);
+    setReportMessageSearch("");
     setIsUploadingReport(false);
   };
 
@@ -134,27 +136,6 @@ export default function ChatView({
          activeRoommate?.auth_id ||
          activeRoommate?.id ||
          activeRoommateId;
-       // Anti-spam check: Did this user already report this target?
-       const { data: existingReports } = await supabase
-         .from('messages')
-         .select('text')
-         .eq('chat_id', getModerationChannel(CHAT_REPORT_PREFIX, myId))
-         .eq('sender_id', myId);
-       
-       if (existingReports && existingReports.length > 0) {
-         const hasReported = existingReports.some(msg => {
-           try {
-             const payload = JSON.parse(msg.text.replace('[REPORT]', '').trim());
-             return payload.target_id === targetAccountId || payload.target_id === activeRoommateId;
-           } catch { return false; }
-         });
-         
-         if (hasReported) {
-           closeReportModal();
-           toast("Bạn đã báo cáo người dùng này. Vui lòng chờ ban quản trị xử lý.", "warning", 4500);
-           return;
-         }
-       }
 
        setIsUploadingReport(true);
        let finalImageUrl = "";
@@ -477,12 +458,34 @@ export default function ChatView({
           !text.startsWith("[")
         );
       })
-      .slice(-8)
+      .slice(-20)
       .reverse();
   }, [activeMessages, currentUser?.id, currentUserProfile?.id]);
+  const filteredReportableMessages = useMemo(() => {
+    const normalizedSearch = reportMessageSearch
+      .trim()
+      .toLocaleLowerCase("vi")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    if (!normalizedSearch) return reportablePartnerMessages;
+
+    return reportablePartnerMessages.filter((message) => {
+      const searchableText = [
+        message.text || "hình ảnh",
+        new Date(message.timestamp).toLocaleString("vi-VN"),
+      ]
+        .join(" ")
+        .toLocaleLowerCase("vi")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+      return searchableText.includes(normalizedSearch);
+    });
+  }, [reportMessageSearch, reportablePartnerMessages]);
 
   const openMessageReport = (messageId: string) => {
     setSelectedReportedMessageIds([messageId]);
+    setReportMessageSearch("");
     setReportReason("");
     setReportImageFile(null);
     setReportImagePreview(null);
@@ -1796,9 +1799,19 @@ export default function ChatView({
                      ({selectedReportedMessageIds.length}/3)
                    </span>
                  </label>
+                 <div className="relative mb-2">
+                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                   <input
+                     type="search"
+                     value={reportMessageSearch}
+                     onChange={(event) => setReportMessageSearch(event.target.value)}
+                     placeholder="Tìm trong 20 tin nhắn gần nhất..."
+                     className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm outline-none transition-all focus:border-rose-400 focus:bg-white focus:ring-2 focus:ring-rose-100"
+                   />
+                 </div>
                  {reportablePartnerMessages.length > 0 ? (
                    <div className="max-h-44 overflow-y-auto space-y-2 rounded-xl bg-slate-50 p-2 border border-slate-200">
-                     {reportablePartnerMessages.map(message => (
+                     {filteredReportableMessages.map(message => (
                        <button
                          key={message.id}
                          type="button"
@@ -1841,6 +1854,11 @@ export default function ChatView({
                          </div>
                        </button>
                      ))}
+                     {filteredReportableMessages.length === 0 && (
+                       <p className="p-3 text-center text-xs font-semibold text-slate-500">
+                         Không tìm thấy tin nhắn phù hợp.
+                       </p>
+                     )}
                    </div>
                  ) : (
                    <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-700">
