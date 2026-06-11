@@ -576,7 +576,7 @@ export default function PostListingModal({
                     </div>
                     <div className="space-y-1.5">
                       <label className="block text-[13px] font-semibold text-slate-700">Ngân sách tối đa / tháng <span className="text-rose-500">*</span></label>
-                      <input type="number" required value={rmBudget} onChange={(e) => setRmBudget(e.target.value)} placeholder="VD: 2500000"
+                      <input type="number" value={rmBudget} onChange={(e) => setRmBudget(e.target.value)} placeholder="VD: 2500000"
                         className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] font-bold text-[#006590] outline-none transition-all placeholder:text-slate-300 placeholder:font-normal" />
                     </div>
                   </div>
@@ -803,7 +803,7 @@ export default function PostListingModal({
 
                   <div className="space-y-1.5">
                     <label className="block text-[13px] font-semibold text-slate-700">Tiêu đề tin đăng <span className="text-rose-500">*</span></label>
-                    <input type="text" required value={rTitle} onChange={(e) => setRTitle(e.target.value)}
+                    <input type="text" value={rTitle} onChange={(e) => setRTitle(e.target.value)}
                       placeholder="VD: Phòng trọ khép kín mới xây gần Đại học Bách Khoa, có điều hòa..."
                       className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
                   </div>
@@ -811,7 +811,7 @@ export default function PostListingModal({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="block text-[13px] font-semibold text-slate-700">Giá thuê / tháng (VNĐ) <span className="text-rose-500">*</span></label>
-                      <input type="number" required value={rPrice} onChange={(e) => setRPrice(e.target.value)} placeholder="VD: 3000000"
+                      <input type="number" value={rPrice} onChange={(e) => setRPrice(e.target.value)} placeholder="VD: 3000000"
                         className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] font-bold text-[#006590] outline-none transition-all placeholder:text-slate-300 placeholder:font-normal" />
                     </div>
                     <div className="space-y-1.5">
