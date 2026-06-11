@@ -211,11 +211,13 @@ export default function HomeView({
           {/* Top/Left Text Content */}
           <div className="max-w-xl w-full flex flex-col justify-end mt-12 lg:mt-0">
             {/* Tag */}
-            <div className="inline-flex items-center gap-2 mb-5 px-3.5 py-1.5 rounded-full bg-rose-500/30 border border-rose-400/50 text-rose-200 text-[12px] font-bold uppercase tracking-[0.12em] w-fit shadow-lg">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
-              Nền tảng ghép phòng số 1 Đà Nẵng
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-500/20 border border-rose-400/30 backdrop-blur-md mb-8">
+              <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
+              <span className="text-[10px] font-bold text-rose-200 uppercase tracking-widest">
+                Trải nghiệm dịch vụ cùng chúng tôi
+              </span>
             </div>
-
+            
             <h1 className="text-[42px] sm:text-5xl lg:text-[64px] font-black text-white tracking-tight leading-[1.08] mb-5 drop-shadow-lg">
               Tìm Roommate<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-orange-300 to-amber-300">
