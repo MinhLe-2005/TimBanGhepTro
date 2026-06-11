@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search, SlidersHorizontal, ArrowDownWideNarrow, ListFilter, MapPin, Sparkles, Building, GraduationCap, User, Moon, Cat, Info, DollarSign, CheckSquare } from "lucide-react";
+import { useDialog } from "./ui/DialogProvider";
 import { Roommate } from "../types";
 import { SCHOOLS_BY_DISTRICT } from "../data";
 import RoommateCard from "./RoommateCard";
@@ -39,6 +40,7 @@ export default function RoommatesView({
   initialFilters,
   isAdmin = false,
 }: RoommatesViewProps) {
+  const { toast } = useDialog();
   const [searchTerm, setSearchTerm] = useState("");
   const [genderFilter, setGenderFilter] = useState<"Tất cả" | "Nam" | "Nữ" | "Khác">("Tất cả");
   const [sleepFilter, setSleepFilter] = useState("Tất cả");
@@ -223,7 +225,16 @@ export default function RoommatesView({
           
           {!isAdmin && (
             <button
-              onClick={() => { onOpenPostModal && onOpenPostModal(); }}
+              onClick={() => {
+                if (currentUserId) {
+                  const hasPostedRoommate = roommates.some(r => r.postedBy === currentUserId || r.user_id === currentUserId);
+                  if (hasPostedRoommate) {
+                    toast('Bạn đã đăng 1 bài tìm bạn ghép phòng. Mỗi người chỉ được phép đăng tối đa 1 bài. Vui lòng xóa bài cũ nếu muốn tạo bài mới!', 'warning', 6000);
+                    return;
+                  }
+                }
+                onOpenPostModal && onOpenPostModal();
+              }}
               className="group flex items-center justify-center gap-2.5 px-8 py-4 bg-white hover:bg-sky-50 text-[#004e70] font-black text-[15px] rounded-2xl cursor-pointer duration-300 shadow-[0_10px_25px_rgba(0,0,0,0.15)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.2)] hover:-translate-y-1 active:scale-95 shrink-0 w-full md:w-auto"
             >
               <Sparkles className="h-5 w-5 text-[#006590] group-hover:scale-110 transition-transform duration-300" />
