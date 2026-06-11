@@ -1288,19 +1288,13 @@ export default function App() {
       rooms.find((room) => room.id === id);
 
     if (import.meta.env.VITE_SUPABASE_URL) {
-      const { data: deletedRooms, error } = await supabase
+      const { error } = await supabase
         .from('rooms')
         .delete()
-        .eq('id', id)
-        .select('id');
-      if (error || !deletedRooms?.length) {
+        .eq('id', id);
+      if (error) {
         console.error("Error deleting room from Supabase:", error);
-        toast(
-          error
-            ? "Không thể xóa bài đăng. Vui lòng thử lại."
-            : "Bài đăng chưa được xóa trên hệ thống. Vui lòng kiểm tra quyền xóa trong Supabase.",
-          "error"
-        );
+        toast("Không thể xóa bài đăng. Vui lòng thử lại.", "error");
         return false;
       }
     }
