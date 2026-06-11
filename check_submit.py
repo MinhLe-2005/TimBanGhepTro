@@ -5,7 +5,7 @@ with io.open('src/components/PostListingModal.tsx', 'r', encoding='utf-8') as f:
 
 lines = content.split('\n')
 for i, line in enumerate(lines):
-    if "onSubmitRoom" in line or "handleFormSubmit" in line or "onPostListing" in line:
-        for j in range(max(0, i-2), min(i+15, len(lines))):
+    if "const handleRoomSubmit =" in line:
+        for j in range(max(0, i-5), min(i+50, len(lines))):
             print(f"Line {j+1}: {lines[j].strip()}")
         break

@@ -1142,9 +1142,9 @@ export default function App() {
         await removePublicStorageUrls(uploadedRoomImageUrls, "room-images").catch(() => {});
         toast(getListingErrorMessage(error, "room", "create"), 'error', 5500);
         return false;
-      } else if (data && data.length > 0) {
-        console.log("[App] Successfully inserted room to Supabase:", data[0]);
-        const savedRoom = { ...roomWithOwner, ...data[0] };
+      } else {
+        console.log("[App] Successfully inserted room to Supabase");
+        const savedRoom = (data && data.length > 0) ? { ...roomWithOwner, ...data[0] } : roomWithOwner;
         setSupabaseRooms((prev) => [savedRoom, ...prev]);
         localStorage.setItem(
           "roomiematch_posted_rooms",
@@ -1152,8 +1152,6 @@ export default function App() {
         );
         return true;
       }
-      toast('Tin phòng chưa được lưu thành công. Vui lòng thử lại.', 'error', 5000);
-      return false;
     }
 
     setRooms((prev) => [roomWithOwner, ...prev]);
@@ -1258,9 +1256,9 @@ export default function App() {
         console.error("Error inserting roommate to Supabase:", error);
         toast(getListingErrorMessage(error, "roommate", "create"), 'error', 5500);
         return false;
-      } else if (data && data.length > 0) {
-        console.log("[App] Successfully inserted roommate to Supabase:", data[0]);
-        const savedRoommate = { ...roommateWithOwner, ...data[0] };
+      } else {
+        console.log("[App] Successfully inserted roommate to Supabase");
+        const savedRoommate = (data && data.length > 0) ? { ...roommateWithOwner, ...data[0] } : roommateWithOwner;
         setSupabaseRoommates((prev) => [savedRoommate, ...prev]);
         localStorage.setItem(
           "roomiematch_posted_roommates",
@@ -1268,8 +1266,6 @@ export default function App() {
         );
         return true;
       }
-      toast('Bài tìm bạn chưa được lưu thành công. Vui lòng thử lại.', 'error', 5000);
-      return false;
     }
     
     setRoommates((prev) => {
