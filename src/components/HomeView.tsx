@@ -694,143 +694,109 @@ export default function HomeView({
         </div>
       </section>
 
-      {/* 5. Vì sao nên lập thỏa thuận sống chung - Clean & Professional */}
-      <section className="mt-32 max-w-5xl mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-4">
-            Tại sao nên có Thỏa thuận sống chung?
-          </h2>
-          <p className="text-lg text-slate-500 font-medium max-w-2xl mx-auto">
-            Giải quyết triệt để những mâu thuẫn không đáng có. Đặt ra quy tắc rõ ràng ngay từ ngày đầu tiên để bảo vệ quyền lợi của mọi người.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
-            {
-              title: "Đồng thuận giờ giấc",
-              desc: "Tôn trọng giấc ngủ của nhau, duy trì không gian nghỉ ngơi thư thái để học tập và làm việc hiệu quả.",
-              icon: <Clock className="w-6 h-6 text-[#006590]" />
-            },
-            {
-              title: "Minh bạch chi phí",
-              desc: "Thống nhất phân bổ sòng phẳng phí mạng wifi, tiền điện nước và các chi phí sinh hoạt chung cuối tháng.",
-              icon: <Coins className="w-6 h-6 text-[#006590]" />
-            },
-            {
-              title: "Phân chia việc nhà",
-              desc: "Tránh tình trạng đùn đẩy đổ rác, dọn dẹp nhà bếp, vệ sinh phòng khách và giữ gìn không gian chung.",
-              icon: <Sparkles className="w-6 h-6 text-[#006590]" />
-            }
-          ].map((item, idx) => (
-            <div key={idx} className="flex flex-col items-center text-center p-6">
-              <div className="w-14 h-14 rounded-xl bg-sky-50 flex items-center justify-center mb-6">
-                {item.icon}
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">{item.title}</h3>
-              <p className="text-[15px] text-slate-600 leading-relaxed">
-                {item.desc}
-              </p>
+      {/* 5. Vì sao nên lập thỏa thuận sống chung - Modern SaaS Layout */}
+      <section className="mt-32 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-slate-50 rounded-[2.5rem] p-8 sm:p-12 lg:p-16 border border-slate-100 flex flex-col lg:flex-row gap-16 items-center">
+          
+          {/* Left Column: Sticky/Main Content */}
+          <div className="lg:w-1/2 space-y-8">
+            <div className="inline-flex items-center gap-2 bg-[#006590]/10 text-[#006590] px-4 py-2 rounded-full text-sm font-bold">
+              <ShieldCheck className="h-5 w-5" />
+              Bảo vệ quyền lợi
             </div>
-          ))}
-        </div>
-        
-        <div className="mt-12 flex justify-center">
-          <button 
-            onClick={() => onNavigateToTab("agreement")}
-            className="flex items-center gap-2 text-[#006590] font-bold hover:text-sky-600 transition-colors"
-          >
-            Tìm hiểu thêm về Thỏa thuận <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-      </section>
-
-      {/* 5.5. Testimonials - Clean Layout */}
-      <section className="mt-32 bg-slate-50 py-24 border-y border-slate-100">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-              Được tin dùng bởi cộng đồng
+            
+            <h2 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-[1.15]">
+              Tại sao nên có <br/>
+              <span className="text-[#006590]">Thỏa thuận sống chung?</span>
             </h2>
+            
+            <p className="text-lg text-slate-600 font-medium leading-relaxed max-w-md">
+              90% mâu thuẫn khi ở ghép đến từ sự thiếu minh bạch. Đặt ra quy tắc rõ ràng ngay từ ngày đầu tiên để bảo vệ quyền lợi và tình bạn của bạn.
+            </p>
+            
+            <button 
+              onClick={() => onNavigateToTab("agreement")}
+              className="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-2xl text-[16px] font-bold shadow-xl shadow-slate-900/20 transition-all hover:-translate-y-1"
+            >
+              Thiết lập thỏa thuận ngay <ArrowRight className="w-5 h-5" />
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Right Column: Elegant Cards */}
+          <div className="lg:w-1/2 flex flex-col gap-6 w-full">
             {[
               {
-                name: "Hoàng Oanh",
-                role: "Sinh viên Kinh Tế",
-                text: "Nhờ hồ sơ lối sống và phần đánh giá rõ ràng mà mình tìm được một bạn chung phòng khá hợp cạ. Tụi mình lập thỏa thuận sống chung trên web luôn, giờ sống rất thoải mái!"
+                title: "Đồng thuận giờ giấc",
+                desc: "Tôn trọng giấc ngủ của nhau, duy trì không gian nghỉ ngơi thư thái để học tập và làm việc hiệu quả.",
+                icon: <Clock className="w-6 h-6 text-sky-500" />
               },
               {
-                name: "Thành Đạt",
-                role: "Nhân viên IT",
-                text: "Mình làm đêm nên tìm bạn ghép cực khó. Lên RoomieMatch lọc tiêu chí 'Cú đêm' cái là ra ngay vài hồ sơ tiềm năng. Nền tảng quá xịn xò và trực quan."
+                title: "Minh bạch chi phí",
+                desc: "Thống nhất phân bổ sòng phẳng phí mạng wifi, tiền điện nước và các chi phí sinh hoạt chung.",
+                icon: <Coins className="w-6 h-6 text-emerald-500" />
               },
               {
-                name: "Minh Anh",
-                role: "Sinh viên FPT",
-                text: "Giao diện chat tiện lợi, mình vừa trò chuyện thương lượng vừa chốt luôn các điều khoản chia tiền điện nước. Trải nghiệm rất an toàn và chuyên nghiệp!"
+                title: "Phân chia việc nhà",
+                desc: "Tránh tình trạng đùn đẩy đổ rác, dọn dẹp nhà bếp, vệ sinh phòng khách và giữ gìn không gian chung.",
+                icon: <Sparkles className="w-6 h-6 text-amber-500" />
               }
             ].map((item, idx) => (
-              <div key={idx} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100/60">
-                <div className="flex gap-1 mb-6">
-                  {[...Array(5)].map((_, i) => (
-                    <Sparkles key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
-                  ))}
+              <div key={idx} className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] transition-all duration-300 hover:-translate-y-1 flex items-start gap-6">
+                <div className="w-14 h-14 shrink-0 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-sm">
+                  {item.icon}
                 </div>
-                <p className="text-[15px] text-slate-700 leading-relaxed mb-8">
-                  "{item.text}"
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">
-                    {item.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="text-[14px] font-bold text-slate-900">{item.name}</p>
-                    <p className="text-[13px] text-slate-500">{item.role}</p>
-                  </div>
+                <div>
+                  <h3 className="text-[18px] font-black text-slate-900 mb-2">{item.title}</h3>
+                  <p className="text-[14px] text-slate-500 font-medium leading-relaxed">
+                    {item.desc}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
+          
         </div>
       </section>
 
-      {/* 6. CTA Section - Minimalist */}
-      <section className="mt-24 mb-12 max-w-5xl mx-auto px-4">
-        <div className="bg-[#006590] rounded-3xl p-12 lg:p-20 text-center relative overflow-hidden">
-          {/* Subtle background pattern */}
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
+      {/* 6. CTA Section - Beautiful & Trustworthy */}
+      <section className="mt-24 mb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative overflow-hidden bg-gradient-to-br from-[#004e70] to-[#006590] rounded-[2.5rem] p-12 lg:p-20 shadow-2xl flex flex-col lg:flex-row items-center justify-between gap-12">
           
-          <div className="relative z-10">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-6">
-              Sẵn sàng bắt đầu hành trình mới?
+          {/* Subtle overlay texture */}
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
+          
+          {/* Left Content */}
+          <div className="relative z-10 lg:w-2/3 text-center lg:text-left">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.15] mb-6">
+              Sẵn sàng bắt đầu <br className="hidden lg:block"/> hành trình mới?
             </h2>
-            <p className="text-sky-100 text-lg max-w-2xl mx-auto mb-10">
-              Tạo hồ sơ trong 2 phút và khám phá hàng nghìn người ở ghép tiềm năng tại Đà Nẵng ngay hôm nay.
+            <p className="text-sky-100 text-lg font-medium max-w-xl mx-auto lg:mx-0">
+              Chỉ mất 2 phút để tạo hồ sơ và kết nối với hàng nghìn bạn ở ghép tiềm năng tại Đà Nẵng. Hệ thống thuật toán thông minh sẽ lo phần còn lại.
             </p>
-            
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button 
-                onClick={() => {
-                  if (!currentUserProfile) {
-                    onRequireAuth && onRequireAuth();
-                  } else {
-                    onOpenCreateProfile && onOpenCreateProfile();
-                  }
-                }}
-                className="bg-white text-[#006590] hover:bg-sky-50 px-8 py-4 w-full sm:w-auto rounded-xl text-[16px] font-bold shadow-md transition-colors"
-              >
-                Tạo hồ sơ miễn phí
-              </button>
-              <button 
-                onClick={() => onNavigateToTab("roommates")}
-                className="bg-transparent border border-white/30 text-white hover:bg-white/10 px-8 py-4 w-full sm:w-auto rounded-xl text-[16px] font-bold transition-colors"
-              >
-                Khám phá ngay
-              </button>
-            </div>
           </div>
+          
+          {/* Right Actions */}
+          <div className="relative z-10 lg:w-1/3 flex flex-col gap-4 w-full sm:w-auto">
+            <button 
+              onClick={() => {
+                if (!currentUserProfile) {
+                  onRequireAuth && onRequireAuth();
+                } else {
+                  onOpenCreateProfile && onOpenCreateProfile();
+                }
+              }}
+              className="bg-white text-[#006590] hover:bg-sky-50 px-8 py-4.5 rounded-2xl text-[16px] font-black shadow-xl hover:-translate-y-1 transition-all w-full text-center"
+            >
+              Tạo hồ sơ miễn phí
+            </button>
+            <button 
+              onClick={() => onNavigateToTab("roommates")}
+              className="bg-white/10 backdrop-blur-md border-2 border-white/30 text-white hover:bg-white/20 px-8 py-4 rounded-2xl text-[16px] font-bold transition-all hover:-translate-y-1 w-full text-center"
+            >
+              Khám phá người dùng
+            </button>
+          </div>
+          
         </div>
       </section>
 
