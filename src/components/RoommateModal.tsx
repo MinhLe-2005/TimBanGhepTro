@@ -482,8 +482,8 @@ export default function RoommateModal({
                 );
               })}
             </div>
-            <p className="border-t border-slate-100 bg-slate-50/60 px-5 py-2.5 text-[10px] text-slate-400">
-              Mức uy tín được quy đổi từ đánh giá sao và chỉ dùng để tham khảo.
+            <p className="border-t border-slate-100 bg-slate-50/60 px-5 py-2.5 text-[10px] text-red-500">
+              Điểm uy tín và đánh giá sao chỉ mang tính tham khảo. Người dùng nên tự trao đổi và xác minh thông tin trước khi quyết định ở ghép.
             </p>
           </section>
 
