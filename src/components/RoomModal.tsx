@@ -111,6 +111,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
   const [isDragging, setIsDragging] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showGallery, setShowGallery] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState<number | null>(null);
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
