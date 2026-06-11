@@ -108,7 +108,7 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
-    if (otpInput.length < 6) return setErrorMessage("Vui lòng nhập đủ mã OTP gồm 6 chữ số.");
+    if (otpInput.length < 8) return setErrorMessage("Vui lòng nhập đủ mã OTP gồm 8 chữ số.");
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.verifyOtp({
@@ -393,11 +393,11 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
             <form onSubmit={handleVerifyOtp} className="w-full space-y-4">
               <input
                 type="text"
-                maxLength={6}
+                maxLength={8}
                 value={otpInput}
                 onChange={(e) => setOtpInput(e.target.value.replace(/[^0-9]/g, ""))}
-                placeholder="Nhập mã 6 số"
-                className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-4 text-center text-2xl tracking-[0.5em] outline-none focus:bg-white focus:border-[#006590] focus:ring-4 focus:ring-[#006590]/10 transition-all text-slate-800 font-black placeholder:text-slate-300"
+                placeholder="Nhập mã 8 số"
+                className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-4 text-center text-2xl tracking-[0.4em] outline-none focus:bg-white focus:border-[#006590] focus:ring-4 focus:ring-[#006590]/10 transition-all text-slate-800 font-black placeholder:text-slate-300"
               />
               <button
                 type="submit"
