@@ -1071,7 +1071,15 @@ export default function ChatView({
     if (isActiveUserBlocked || isBlockedByPartner || isActiveUserBanned) return;
 
     const userMessageText = inputText.trim();
-    const sentImage = attachedImage;
+    let sentImage = attachedImage;
+    if (sentImage && sentImage.startsWith('data:image')) {
+      try {
+        sentImage = await uploadInlineImage('room-images', `chat_${Date.now()}_${myChatId}.png`, sentImage);
+      } catch (err) {
+        console.error("Failed to upload chat image", err);
+      }
+    }
+    
     setInputText("");
     setAttachedImage(null);
 

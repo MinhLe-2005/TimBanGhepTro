@@ -6,8 +6,10 @@ with io.open('src/App.tsx', 'r', encoding='utf-8') as f:
 
 effects = re.finditer(r'useEffect\(\s*\(\)\s*=>\s*\{.*?\}(?:\s*,\s*\[(.*?)\])?\s*\)', content, re.DOTALL)
 for match in effects:
+    start_pos = match.start()
+    line_num = content.count('\n', 0, start_pos) + 1
     deps = match.group(1)
-    if deps is None:
-        start_pos = match.start()
-        line_num = content.count('\n', 0, start_pos) + 1
-        print(f"Missing deps at line {line_num}")
+    if deps is not None:
+        print(f"Line {line_num}: deps = [{deps}]")
+    else:
+        print(f"Line {line_num}: NO DEPS")

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { X, Sparkles, Camera, CheckCircle2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { uploadInlineImage, isInlineImage } from "../lib/storage";
 import ImageCropperModal from "./ImageCropperModal";
 
 interface CreateProfileModalProps {
@@ -104,12 +105,21 @@ export default function CreateProfileModal({
     
     console.log('[Profile] Creating/updating profile with ID:', profileId, 'auth_id:', currentUser?.id);
     
+    let finalAvatar = selectedAvatar;
+    if (isInlineImage(finalAvatar)) {
+      try {
+        finalAvatar = await uploadInlineImage('room-images', `avatar_${Date.now()}_${profileId}.png`, finalAvatar);
+      } catch (err) {
+        console.error("Lỗi upload avatar", err);
+      }
+    }
+
     const updatedProfile = {
       id: profileId,
       name,
       age: Number(age),
       role,
-      avatar: selectedAvatar,
+      avatar: finalAvatar,
       location,
       district,
       type,

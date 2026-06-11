@@ -3,6 +3,7 @@ import { X, Upload, Home, MapPin, Search, Users, User, Banknote, Shield, Check, 
 import { Roommate, Room } from "../types";
 import { SCHOOLS_BY_DISTRICT } from "../data";
 import { supabase } from "../lib/supabase";
+import { uploadInlineImage, isInlineImage } from "../lib/storage";
 import ImageCropperModal from "./ImageCropperModal";
 import { useDialog } from "./ui/DialogProvider";
 

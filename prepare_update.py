@@ -1,4 +1,5 @@
 ﻿import io
+import re
 
 with io.open('src/components/PostListingModal.tsx', 'r', encoding='utf-8') as f:
     content = f.read()
@@ -7,13 +8,13 @@ with io.open('src/components/PostListingModal.tsx', 'r', encoding='utf-8') as f:
 if "uploadInlineImage" not in content:
     content = content.replace('import { supabase } from "../lib/supabase";', 'import { supabase } from "../lib/supabase";\nimport { uploadInlineImage, isInlineImage } from "../lib/storage";')
 
-# Update activeTab === "roommate"
+# Update activeTab === "roommate" submission
 target_rm = """        const dbRoommate = {
           id: editingListingData?.id || `rm-${Date.now()}`,
           is_listing: true,
           name: rmName,
-          age: Number(rmAge),
-          avatar: rmAvatar,"""
+          age: Number(rmAge),"""
+
 replacement_rm = """        let finalRmAvatar = rmAvatar;
         if (isInlineImage(finalRmAvatar)) {
           try {
@@ -27,23 +28,10 @@ replacement_rm = """        let finalRmAvatar = rmAvatar;
           name: rmName,
           age: Number(rmAge),
           avatar: finalRmAvatar,"""
-content = content.replace(target_rm, replacement_rm)
 
-# Update activeTab === "room"
-target_room = """        let finalImages = [...rImages.map(r => r.preview)];
-        
-        const dbRoom = {"""
-replacement_room = """        let finalImages = [...rImages.map(r => r.preview)];
-        for (let i = 0; i < finalImages.length; i++) {
-          if (isInlineImage(finalImages[i])) {
-            try {
-              finalImages[i] = await uploadInlineImage('room-images', `room_${Date.now()}_${i}.png`, finalImages[i]);
-            } catch(e) { console.error(e); }
-          }
-        }
-        
-        const dbRoom = {"""
-content = content.replace(target_room, replacement_room)
+# Remove the original `avatar: rmAvatar,` which was below `age: Number(rmAge),`
+# Let's use regex to replace it safely
+pattern_rm = r'const dbRoommate = \{\s*id: editingListingData\?\.id \|\| `rm-\$\{Date\.now\(\)\}`,\s*is_listing: true,\s*name: rmName,\s*age: Number\(rmAge\),\s*avatar: rmAvatar,'
+content = re.sub(pattern_rm, replacement_rm.replace('avatar: finalRmAvatar,', ''), content)
 
-with io.open('src/components/PostListingModal.tsx', 'w', encoding='utf-8') as f:
-    f.write(content)
+# Wait, regex is tricky. Let's just do it directly.
