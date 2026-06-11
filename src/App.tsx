@@ -164,6 +164,7 @@ export default function App() {
           email: session.user.email,
           name: session.user.user_metadata?.full_name || "Thành viên Roomie",
           avatar: session.user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop",
+          provider: session.user.app_metadata?.provider || "email",
         });
       }
       clearTimeout(authTimeout);
@@ -182,6 +183,7 @@ export default function App() {
             email: session.user.email,
             name: session.user.user_metadata?.full_name || "Thành viên Roomie",
             avatar: session.user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop",
+            provider: session.user.app_metadata?.provider || "email",
           });
         }
       });
@@ -218,6 +220,7 @@ export default function App() {
           email: user.email,
           name: user.user_metadata?.full_name || "Thành viên Roomie",
           avatar: user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop",
+          provider: user.app_metadata?.provider || "email",
         });
         
         // 1. Dùng cache tạm thời để UI không bị giật
