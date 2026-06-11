@@ -747,7 +747,7 @@ export default function PostListingModal({
                       </div>
                       
                       {/* Thumbnails list */}
-                      {rImages.length > 1 && (
+                      {rImages.length > 0 && (
                         <div className="grid grid-cols-4 gap-2">
                           {rImages.slice(1).map((img, idx) => (
                             <div key={idx + 1} className="h-20 rounded-xl border border-slate-200 overflow-hidden bg-white relative group">
