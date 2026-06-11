@@ -20,6 +20,7 @@ import RoomModal from "./components/RoomModal";
 import CreateProfileModal from "./components/CreateProfileModal";
 import LoginModal from "./components/LoginModal";
 import PostListingModal from "./components/PostListingModal";
+import ChangePasswordModal from "./components/ChangePasswordModal";
 
 type ListingKind = "room" | "roommate";
 type ListingAction = "create" | "update";
@@ -1584,6 +1585,7 @@ export default function App() {
   // Modal display states
   const [selectedRoommate, setSelectedRoommate] = useState<Roommate | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [roomUserHasSignedAgreement, setRoomUserHasSignedAgreement] = useState(false);
   const [hasChattedWithRoomHost, setHasChattedWithRoomHost] = useState(false);
   const [hasTwoWayMessagesWithSelected, setHasTwoWayMessagesWithSelected] = useState(false);
@@ -1772,14 +1774,14 @@ export default function App() {
 
   // Push state when ANY modal opens
   useEffect(() => {
-    const isAnyModalOpen = !!(selectedRoommate || selectedRoom || isPostModalOpen || isProfileModalOpen || isLoginModalOpen || isRequireProfileAlertOpen);
+    const isAnyModalOpen = !!(selectedRoommate || selectedRoom || isPostModalOpen || isProfileModalOpen || isLoginModalOpen || isRequireProfileAlertOpen || isChangePasswordOpen);
     if (isAnyModalOpen && !wasModalOpen.current) {
       window.history.pushState({ modal: true, tab: activeTab }, "", window.location.pathname);
       wasModalOpen.current = true;
     } else if (!isAnyModalOpen && wasModalOpen.current) {
       wasModalOpen.current = false;
     }
-  }, [selectedRoommate, selectedRoom, isPostModalOpen, isProfileModalOpen, isLoginModalOpen, isRequireProfileAlertOpen, activeTab]);
+  }, [selectedRoommate, selectedRoom, isPostModalOpen, isProfileModalOpen, isLoginModalOpen, isRequireProfileAlertOpen, isChangePasswordOpen, activeTab]);
 
   const handleCloseModal = () => {
     // If multiple modals are open, close the top-most one and return
@@ -1793,6 +1795,10 @@ export default function App() {
     }
     if (isProfileModalOpen) {
       setIsProfileModalOpen(false);
+      return;
+    }
+    if (isChangePasswordOpen) {
+      setIsChangePasswordOpen(false);
       return;
     }
     
@@ -2483,6 +2489,7 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenCreateProfile={() => setIsProfileModalOpen(true)}
+        onOpenChangePassword={() => setIsChangePasswordOpen(true)}
         currentUserProfile={currentUserProfile}
         currentUser={currentUser}
         isAdmin={isAdmin}
@@ -2762,6 +2769,11 @@ export default function App() {
         />
       )}
 
+      {isChangePasswordOpen && (
+        <ChangePasswordModal
+          onClose={() => setIsChangePasswordOpen(false)}
+        />
+      )}
 
     </div>
   );

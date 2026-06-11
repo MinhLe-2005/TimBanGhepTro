@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Sparkles, Mail, Facebook, CheckCircle2, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { X, Mail, CheckCircle2, ArrowRight, Eye, EyeOff, KeyRound, ShieldAlert } from "lucide-react";
 
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="w-5 h-5">
@@ -18,27 +18,28 @@ interface LoginModalProps {
 
 export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps) {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
-  const [authStep, setAuthStep] = useState<"form" | "success" | "check_email" | "mock_oauth">("form");
-  const [mockProvider, setMockProvider] = useState<"google" | "facebook" | null>(null);
+  const [authStep, setAuthStep] = useState<"form" | "success" | "verify_otp" | "forgot_password" | "reset_password">("form");
   
   const [emailInput, setEmailInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [confirmPasswordInput, setConfirmPasswordInput] = useState("");
   const [nameInput, setNameInput] = useState("");
+  
+  const [otpInput, setOtpInput] = useState("");
+  const [newPasswordInput, setNewPasswordInput] = useState("");
+  const [otpType, setOtpType] = useState<"signup" | "recovery">("signup");
+  
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleProviderSelect = async (provider: "google" | "facebook") => {
+  const handleGoogleLogin = async () => {
     try {
-      // Use root URL for OAuth callback to avoid Supabase redirect config issues
       const callbackUrl = window.location.origin;
       const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: callbackUrl,
-        }
+        provider: "google",
+        options: { redirectTo: callbackUrl }
       });
       if (error) throw error;
     } catch (err: any) {
@@ -51,56 +52,36 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
     setErrorMessage("");
 
     if (!emailInput.trim() || !passwordInput.trim()) {
-      setErrorMessage("Vui lòng nhập đầy đủ Email và Mật khẩu.");
-      return;
+      return setErrorMessage("Vui lòng nhập đầy đủ Email và Mật khẩu.");
     }
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(emailInput.trim())) {
-      setErrorMessage("Định dạng email không hợp lệ (ví dụ đúng: ten@gmail.com).");
-      return;
+      return setErrorMessage("Định dạng email không hợp lệ (ví dụ đúng: ten@gmail.com).");
     }
 
     setIsLoading(true);
 
     try {
       if (activeTab === "register") {
-        if (!nameInput.trim()) {
-          setErrorMessage("Vui lòng nhập Họ và Tên của bạn.");
-          setIsLoading(false);
-          return;
-        }
-        if (passwordInput !== confirmPasswordInput) {
-          setErrorMessage("Mật khẩu xác nhận không khớp.");
-          setIsLoading(false);
-          return;
-        }
-        if (passwordInput.length < 6) {
-          setErrorMessage("Mật khẩu phải có ít nhất 6 ký tự.");
-          setIsLoading(false);
-          return;
-        }
+        if (!nameInput.trim()) { setIsLoading(false); return setErrorMessage("Vui lòng nhập Họ và Tên của bạn."); }
+        if (passwordInput !== confirmPasswordInput) { setIsLoading(false); return setErrorMessage("Mật khẩu xác nhận không khớp."); }
+        if (passwordInput.length < 6) { setIsLoading(false); return setErrorMessage("Mật khẩu phải có ít nhất 6 ký tự."); }
 
         const { data, error } = await supabase.auth.signUp({
           email: emailInput,
           password: passwordInput,
-          options: {
-            data: {
-              full_name: nameInput,
-            }
-          }
+          options: { data: { full_name: nameInput } }
         });
         
         if (error) throw error;
         
-        // Supabase trả về user nhưng không có session nếu yêu cầu xác nhận email
         if (data.user && !data.session) {
-          setAuthStep("check_email");
+          setOtpType("signup");
+          setAuthStep("verify_otp");
         } else if (data.session) {
           setAuthStep("success");
         }
       } else {
-        // Xử lý đăng nhập
         const { data, error } = await supabase.auth.signInWithPassword({
           email: emailInput,
           password: passwordInput,
@@ -119,6 +100,63 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
       } else {
          setErrorMessage(err.message);
       }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage("");
+    if (otpInput.length < 6) return setErrorMessage("Vui lòng nhập đủ mã OTP gồm 6 chữ số.");
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: emailInput,
+        token: otpInput,
+        type: otpType,
+      });
+      if (error) throw error;
+      if (otpType === "signup") {
+        setAuthStep("success");
+      } else if (otpType === "recovery") {
+        setAuthStep("reset_password");
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message.includes("Token has expired or is invalid") ? "Mã OTP không hợp lệ hoặc đã hết hạn." : err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage("");
+    if (!emailInput.trim()) return setErrorMessage("Vui lòng nhập Email đã đăng ký.");
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(emailInput);
+      if (error) throw error;
+      setOtpType("recovery");
+      setAuthStep("verify_otp");
+    } catch (err: any) {
+      setErrorMessage(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage("");
+    if (newPasswordInput.length < 6) return setErrorMessage("Mật khẩu phải có ít nhất 6 ký tự.");
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPasswordInput });
+      if (error) throw error;
+      setAuthStep("success");
+    } catch (err: any) {
+      setErrorMessage(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -213,7 +251,18 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
                 </div>
                 
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-2">Mật khẩu</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Mật khẩu</label>
+                    {activeTab === "login" && (
+                      <button 
+                        type="button" 
+                        onClick={() => { setAuthStep("forgot_password"); setErrorMessage(""); }}
+                        className="text-[11px] font-bold text-[#006590] hover:underline cursor-pointer"
+                      >
+                        Quên mật khẩu?
+                      </button>
+                    )}
+                  </div>
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
@@ -272,99 +321,141 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
                 <hr className="flex-grow border-slate-200" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div>
                 <button
                   type="button"
-                  onClick={() => handleProviderSelect("google")}
-                  className="flex items-center justify-center gap-2 bg-white border-2 border-slate-100 text-slate-700 hover:border-slate-200 hover:bg-slate-50 py-3 rounded-xl text-sm font-bold shadow-[0_2px_10px_rgba(0,0,0,0.02)] active:scale-95 transition-all cursor-pointer"
+                  onClick={handleGoogleLogin}
+                  className="w-full flex items-center justify-center gap-2 bg-white border-2 border-slate-100 text-slate-700 hover:border-slate-200 hover:bg-slate-50 py-3.5 rounded-xl text-sm font-bold shadow-[0_2px_10px_rgba(0,0,0,0.02)] active:scale-95 transition-all cursor-pointer"
                 >
                   <GoogleIcon />
-                  Google
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleProviderSelect("facebook")}
-                  className="flex items-center justify-center gap-2 bg-[#1877F2] text-white hover:bg-[#166FE5] border-2 border-[#1877F2] hover:border-[#166FE5] py-3 rounded-xl text-sm font-bold shadow-[0_2px_10px_rgba(24,119,242,0.2)] active:scale-95 transition-all cursor-pointer"
-                >
-                  <Facebook className="h-5 w-5 fill-white" />
-                  Facebook
+                  Đăng nhập bằng Google
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {authStep === "check_email" && (
+        {authStep === "forgot_password" && (
           <div className="p-8 text-center flex flex-col items-center justify-center min-h-[350px]">
-            <div className="w-16 h-16 rounded-full bg-blue-50 text-[#006590] flex items-center justify-center mb-6">
-              <Mail className="h-8 w-8" />
+            <div className="w-16 h-16 rounded-full bg-slate-50 text-slate-600 flex items-center justify-center mb-6">
+              <KeyRound className="h-8 w-8" />
             </div>
-            <h3 className="text-xl font-black text-slate-800 tracking-tight mb-3">Kiểm tra Email của bạn</h3>
-            <p className="text-sm text-slate-500 font-medium leading-relaxed mb-6">
-              Chúng tôi vừa gửi một liên kết xác nhận đến <strong>{emailInput}</strong>. <br/><br/>
-              Vui lòng kiểm tra hộp thư đến (hoặc thư mục Spam) và nhấp vào liên kết để kích hoạt tài khoản của bạn.
+            <h3 className="text-xl font-black text-slate-800 tracking-tight mb-2">Quên Mật Khẩu</h3>
+            <p className="text-sm text-slate-500 font-medium mb-6 leading-relaxed">
+              Nhập email bạn đã đăng ký để nhận mã OTP khôi phục mật khẩu.
             </p>
-            <button
-              onClick={onClose}
-              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3.5 rounded-xl text-sm font-bold duration-200 cursor-pointer"
-            >
-              Đóng cửa sổ này
+            
+            {errorMessage && (
+              <div className="w-full bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center mb-4">
+                {errorMessage}
+              </div>
+            )}
+
+            <form onSubmit={handleForgotPassword} className="w-full space-y-4">
+              <input
+                type="email"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder="Nhập địa chỉ email..."
+                className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3.5 text-sm outline-none focus:bg-white focus:border-[#006590] focus:ring-4 focus:ring-[#006590]/10 transition-all text-slate-800 font-bold placeholder:text-slate-400"
+              />
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-[#006590] hover:bg-[#005176] disabled:opacity-70 text-white py-3.5 rounded-xl text-sm font-extrabold shadow-md duration-200 cursor-pointer"
+              >
+                {isLoading ? "Đang gửi..." : "Gửi mã OTP"}
+              </button>
+            </form>
+            
+            <button onClick={() => setAuthStep("form")} className="mt-6 text-[13px] font-bold text-slate-400 hover:text-slate-600 cursor-pointer">
+              ← Quay lại Đăng nhập
             </button>
           </div>
         )}
 
-        {authStep === "mock_oauth" && (
-          <div className="p-8 flex flex-col h-full min-h-[400px] animate-fade-in relative">
-             {isLoading && (
-               <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-[28px]">
-                  <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-               </div>
-             )}
-             <div className="text-center mb-6">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-white border-2 border-slate-100 shadow-sm mb-4">
-                  {mockProvider === "google" ? <GoogleIcon /> : <Facebook className="w-7 h-7 text-[#1877F2] fill-[#1877F2]" />}
-                </div>
-                <h3 className="text-xl font-black text-slate-800 tracking-tight">Đăng nhập bằng {mockProvider === "google" ? "Google" : "Facebook"}</h3>
-                <p className="text-sm text-slate-500 mt-2 font-medium">Chọn tài khoản mẫu để tiếp tục</p>
-             </div>
-             
-             <div className="space-y-3 mt-2">
-               {[
-                 { email: "minhle.work@gmail.com", name: "Lê Quang Minh", avatar: "https://i.pravatar.cc/150?u=minh" },
-                 { email: "hoangnam.dev99@gmail.com", name: "Hoàng Nam", avatar: "https://i.pravatar.cc/150?u=nam" }
-               ].map((acc, idx) => (
-                 <button 
-                   key={idx}
-                   onClick={() => {
-                     setIsLoading(true);
-                     setTimeout(() => {
-                        onLoginSuccess({
-                          id: "mock-" + idx,
-                          email: acc.email,
-                          name: acc.name,
-                          avatar: acc.avatar
-                        });
-                        setAuthStep("success");
-                        setIsLoading(false);
-                     }, 1000);
-                   }}
-                   className="w-full flex items-center gap-4 p-4 border-2 border-slate-100 rounded-2xl hover:bg-slate-50 hover:border-blue-200 transition-all text-left group cursor-pointer"
-                 >
-                   <img src={acc.avatar} alt={acc.name} className="w-10 h-10 rounded-full bg-slate-200 border border-slate-200" />
-                   <div>
-                     <p className="font-bold text-slate-800 text-[14px] group-hover:text-blue-700 transition-colors">{acc.name}</p>
-                     <p className="text-slate-500 text-[12px]">{acc.email}</p>
-                   </div>
-                 </button>
-               ))}
-             </div>
-             
-             <button 
-               onClick={() => setAuthStep("form")}
-               className="mt-auto pt-6 text-[13px] text-slate-500 font-bold hover:text-slate-800 cursor-pointer"
-             >
-               ← Quay lại phương thức khác
-             </button>
+        {authStep === "verify_otp" && (
+          <div className="p-8 text-center flex flex-col items-center justify-center min-h-[350px]">
+            <div className="w-16 h-16 rounded-full bg-blue-50 text-[#006590] flex items-center justify-center mb-6">
+              <ShieldAlert className="h-8 w-8" />
+            </div>
+            <h3 className="text-xl font-black text-slate-800 tracking-tight mb-2">Nhập Mã Xác Thực</h3>
+            <p className="text-sm text-slate-500 font-medium mb-6 leading-relaxed">
+              Mã OTP 6 chữ số đã được gửi tới email <br/><strong>{emailInput}</strong>
+            </p>
+
+            {errorMessage && (
+              <div className="w-full bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center mb-4">
+                {errorMessage}
+              </div>
+            )}
+
+            <form onSubmit={handleVerifyOtp} className="w-full space-y-4">
+              <input
+                type="text"
+                maxLength={6}
+                value={otpInput}
+                onChange={(e) => setOtpInput(e.target.value.replace(/[^0-9]/g, ""))}
+                placeholder="Nhập mã 6 số"
+                className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-4 text-center text-2xl tracking-[0.5em] outline-none focus:bg-white focus:border-[#006590] focus:ring-4 focus:ring-[#006590]/10 transition-all text-slate-800 font-black placeholder:text-slate-300"
+              />
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-[#006590] hover:bg-[#005176] disabled:opacity-70 text-white py-3.5 rounded-xl text-sm font-extrabold shadow-md duration-200 cursor-pointer"
+              >
+                {isLoading ? "Đang kiểm tra..." : "Xác nhận mã OTP"}
+              </button>
+            </form>
+
+            <button onClick={() => setAuthStep(otpType === "signup" ? "form" : "forgot_password")} className="mt-6 text-[13px] font-bold text-slate-400 hover:text-slate-600 cursor-pointer">
+              ← Trở về bước trước
+            </button>
+          </div>
+        )}
+
+        {authStep === "reset_password" && (
+          <div className="p-8 text-center flex flex-col items-center justify-center min-h-[350px]">
+            <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-6">
+              <KeyRound className="h-8 w-8" />
+            </div>
+            <h3 className="text-xl font-black text-slate-800 tracking-tight mb-2">Tạo Mật Khẩu Mới</h3>
+            <p className="text-sm text-slate-500 font-medium mb-6 leading-relaxed">
+              Mã xác thực hợp lệ. Vui lòng tạo mật khẩu mới cho tài khoản của bạn.
+            </p>
+
+            {errorMessage && (
+              <div className="w-full bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center mb-4">
+                {errorMessage}
+              </div>
+            )}
+
+            <form onSubmit={handleResetPassword} className="w-full space-y-4">
+              <div className="relative text-left">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={newPasswordInput}
+                  onChange={(e) => setNewPasswordInput(e.target.value)}
+                  placeholder="Mật khẩu mới (ít nhất 6 ký tự)"
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 pr-12 text-sm outline-none focus:bg-white focus:border-[#006590] focus:ring-4 focus:ring-[#006590]/10 transition-all text-slate-800 font-bold tracking-widest placeholder:text-slate-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer p-1"
+                >
+                  {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                </button>
+              </div>
+              
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-[#006590] hover:bg-[#005176] disabled:opacity-70 text-white py-3.5 rounded-xl text-sm font-extrabold shadow-md duration-200 cursor-pointer"
+              >
+                {isLoading ? "Đang lưu..." : "Lưu mật khẩu & Đăng nhập"}
+              </button>
+            </form>
           </div>
         )}
 

@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Menu, X, Sparkles, MessageSquare, FileText, Users, Home, Building, LogIn, LogOut, ChevronDown, Chrome, Facebook, User, Mail, Info, Shield } from "lucide-react";
+import { Menu, X, Sparkles, MessageSquare, FileText, Users, Home, Building, LogIn, LogOut, ChevronDown, Chrome, User, Mail, Info, Shield, KeyRound, Settings } from "lucide-react";
 
 interface HeaderProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onOpenCreateProfile?: () => void;
+  onOpenChangePassword?: () => void;
   currentUserProfile?: any;
   isAdmin?: boolean;
   currentUser: {
@@ -24,6 +25,7 @@ export default function Header({
   activeTab,
   setActiveTab,
   onOpenCreateProfile,
+  onOpenChangePassword,
   currentUserProfile,
   currentUser,
   onOpenLogin,
@@ -90,10 +92,8 @@ export default function Header({
       }`}
     >
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-        {/* relative container: logo left, nav absolutely centered, buttons right */}
         <div className={`relative flex items-center justify-between transition-all duration-500 ${isScrolled ? "h-16" : "h-20"}`}>
 
-          {/* Logo */}
           <div className="flex items-center h-full cursor-pointer group" onClick={() => handleNavClick("home")}>
             <div className="relative flex items-center justify-center w-8 h-8 mr-2 transition-transform duration-300 group-hover:scale-105 group-active:scale-95">
               <div className="absolute left-0 w-5 h-5 rounded-full bg-rose-500 mix-blend-multiply opacity-90 shadow-sm" />
@@ -105,7 +105,6 @@ export default function Header({
             </span>
           </div>
 
-          {/* Desktop Navigation - Absolutely centered on the full header */}
           <nav className="hidden lg:absolute lg:left-1/2 lg:-translate-x-1/2 lg:flex items-center gap-6 h-full">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;
@@ -173,7 +172,6 @@ export default function Header({
             })}
           </nav>
 
-          {/* Action Buttons & Profile */}
           <div className="hidden lg:flex items-center gap-3 relative">
             {!currentUser ? (
               <>
@@ -241,7 +239,6 @@ export default function Header({
                           <span>Đăng nhập qua:</span>
                           <span className="flex items-center gap-1 text-[#006590]">
                             {currentUser.provider === "google" && (<><Chrome className="h-3 w-3 text-red-500" /> Google</>)}
-                            {currentUser.provider === "facebook" && (<><Facebook className="h-3 w-3 text-[#1877F2]" /> Facebook</>)}
                             {currentUser.provider === "email" && (<><Mail className="h-3 w-3 text-emerald-500" /> Email</>)}
                           </span>
                         </div>
@@ -250,13 +247,27 @@ export default function Header({
                       <div className="mt-3.5 space-y-1.5">
                         {!isAdmin && (
                         <button
-                          onClick={() => { onOpenCreateProfile(); setIsDropdownOpen(false); }}
+                          onClick={() => { onOpenCreateProfile && onOpenCreateProfile(); setIsDropdownOpen(false); }}
                           className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-slate-600 hover:text-[#006590] hover:bg-slate-50 duration-200 flex items-center gap-2 cursor-pointer"
                         >
-                          <User className="h-4 w-4" />
-                          Cập nhật hồ sơ ghép đôi
+                          <Settings className="h-4 w-4" />
+                          Hồ sơ & Lối sống
                         </button>
                       )}
+                      
+                      {currentUser?.provider === 'email' && (
+                        <button
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            if (onOpenChangePassword) onOpenChangePassword();
+                          }}
+                          className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-slate-600 hover:text-[#006590] hover:bg-slate-50 duration-200 flex items-center gap-2 cursor-pointer"
+                        >
+                          <KeyRound className="h-4 w-4" />
+                          Đổi mật khẩu
+                        </button>
+                      )}
+
                         <button
                           onClick={() => { onLogout(); setIsDropdownOpen(false); }}
                           className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold text-red-600 hover:bg-red-50 duration-200 flex items-center gap-2 cursor-pointer border-t border-slate-100 mt-1"
