@@ -2605,7 +2605,7 @@ export default function App() {
             <AdminDashboard 
               currentUser={currentUser}
               roommates={allRoommates}
-              rooms={rooms}
+              rooms={allRooms}
               onDeleteRoommate={handleDeleteRoommate}
               onDeleteRoom={handleDeleteRoom}
               onReviewDeleted={handleAdminReviewDeleted}
