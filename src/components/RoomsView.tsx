@@ -127,9 +127,9 @@ export default function RoomsView({
       const amenity = AMENITIES_LIST.find((a) => a.id === amenityId);
       if (!amenity) return true;
       return amenity.keywords.some((keyword) => {
-        const inFeatures = room.features.some((f) => f.toLowerCase().includes(keyword));
-        const inDescription = room.description.toLowerCase().includes(keyword);
-        const inTitle = room.title.toLowerCase().includes(keyword);
+        const inFeatures = (room.features || []).some((f: string) => f.toLowerCase().includes(keyword));
+        const inDescription = (room.description || "").toLowerCase().includes(keyword);
+        const inTitle = (room.title || "").toLowerCase().includes(keyword);
         const inKitchen = room.kitchen && room.kitchen.toLowerCase().includes(keyword);
         return inFeatures || inDescription || inTitle || inKitchen;
       });
