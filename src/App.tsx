@@ -1388,17 +1388,17 @@ export default function App() {
     // 1. Remove from local fallback
     const saved = localStorage.getItem("roomiematch_posted_rooms");
     if (saved) {
-      const parsed = JSON.parse(saved).filter((r: any) => r.id !== id);
+      const parsed = JSON.parse(saved).filter((r: any) => String(r.id) !== String(id));
       localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(parsed));
     }
     // Update local state to immediately remove from UI
-    setRooms((prev) => prev.filter((r) => r.id !== id));
+    setRooms((prev) => prev.filter((r) => String(r.id) !== String(id)));
 
     // Lấy thông tin phòng để xóa ảnh trên Supabase Storage
-    const roomToDelete = supabaseRooms.find(r => r.id === id) || JSON.parse(saved || "[]").find((r: any) => r.id === id);
+    const roomToDelete = supabaseRooms.find(r => String(r.id) === String(id)) || JSON.parse(saved || "[]").find((r: any) => String(r.id) === String(id));
 
     // 2. Remove from Supabase state optimistically
-    setSupabaseRooms((prev) => prev.filter((r) => r.id !== id));
+    setSupabaseRooms((prev) => prev.filter((r) => String(r.id) !== String(id)));
     
     // 3. Supabase Delete
     if (import.meta.env.VITE_SUPABASE_URL) {
@@ -1439,14 +1439,14 @@ export default function App() {
     // 3. Remove from local fallback
     const saved = localStorage.getItem("roomiematch_posted_roommates");
     if (saved) {
-      const parsed = JSON.parse(saved).filter((r: any) => r.id !== id);
+      const parsed = JSON.parse(saved).filter((r: any) => String(r.id) !== String(id));
       localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(parsed));
     }
     // Update local state to immediately remove from UI
-    setRoommates((prev) => prev.filter((r) => r.id !== id));
+    setRoommates((prev) => prev.filter((r) => String(r.id) !== String(id)));
 
     // 4. Remove from Supabase state optimistically
-    setSupabaseRoommates((prev) => prev.filter((r) => r.id !== id));
+    setSupabaseRoommates((prev) => prev.filter((r) => String(r.id) !== String(id)));
 
     // 5. Supabase Delete - delete the record
     if (import.meta.env.VITE_SUPABASE_URL) {
