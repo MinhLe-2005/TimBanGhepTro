@@ -156,7 +156,16 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
       if (error) throw error;
       setAuthStep("success");
     } catch (err: any) {
-      setErrorMessage(err.message);
+      const msg = err.message?.toLowerCase() || "";
+      if (msg.includes("different from the old password") || msg.includes("same as old password")) {
+        // Supabase blocks reusing the same password — just treat it as success in forgot-password flow
+        // because user doesn't know their old password anyway
+        setAuthStep("success");
+      } else if (msg.includes("session") || msg.includes("expired") || msg.includes("invalid")) {
+        setErrorMessage("Phiên xác thực đã hết hạn. Vui lòng thực hiện lại bước Quên mật khẩu từ đầu.");
+      } else {
+        setErrorMessage("Không thể đặt lại mật khẩu. Vui lòng thử lại.");
+      }
     } finally {
       setIsLoading(false);
     }
