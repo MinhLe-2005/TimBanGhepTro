@@ -4,6 +4,8 @@ import { Roommate, Room } from "../types";
 import RoommateCard from "./RoommateCard";
 import RoomCard from "./RoomCard";
 import PopularRoommatesModal from "./PopularRoommatesModal";
+import LikedRoommatesModal from "./LikedRoommatesModal";
+import LikedRoomsModal from "./LikedRoomsModal";
 
 interface HomeViewProps {
   roommates: Roommate[];
@@ -47,8 +49,8 @@ export default function HomeView({
   const [isRoommateCarouselPaused, setIsRoommateCarouselPaused] = useState(false);
   const [isRoomCarouselPaused, setIsRoomCarouselPaused] = useState(false);
   const [isPopularModalOpen, setIsPopularModalOpen] = useState(false);
-  const [showAllLikedRoommates, setShowAllLikedRoommates] = useState(false);
-  const [showAllLikedRooms, setShowAllLikedRooms] = useState(false);
+  const [isLikedRoommatesModalOpen, setIsLikedRoommatesModalOpen] = useState(false);
+  const [isLikedRoomsModalOpen, setIsLikedRoomsModalOpen] = useState(false);
 
   // Carousel Logic
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -432,11 +434,22 @@ export default function HomeView({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Người đã yêu thích */}
           <div className="space-y-5">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 pb-3 border-b border-slate-100">
-              <UserCheck className="w-5 h-5 text-rose-500" />
-              Bạn Ở Ghép Tiềm Năng 
-              <span className="ml-2 bg-rose-100 text-rose-600 text-xs py-0.5 px-2.5 rounded-full font-black">{likedRoommateIds.length}</span>
-            </h3>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-rose-500" />
+                Bạn Ở Ghép Tiềm Năng 
+                <span className="ml-2 bg-rose-100 text-rose-600 text-xs py-0.5 px-2.5 rounded-full font-black">{likedRoommateIds.length}</span>
+              </h3>
+              {likedRoommateIds.length > 4 && (
+                <button
+                  onClick={() => setIsLikedRoommatesModalOpen(true)}
+                  className="flex shrink-0 items-center gap-1.5 text-sm font-bold text-[#006590] transition-colors hover:text-rose-600 cursor-pointer"
+                >
+                  Xem thêm
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              )}
+            </div>
 
             {likedRoommateIds.length === 0 ? (
               <div className="bg-slate-50/50 border-2 border-dashed border-slate-200 p-8 rounded-[24px] text-center h-[280px] flex flex-col items-center justify-center group hover:bg-slate-50 transition-colors">
@@ -449,8 +462,8 @@ export default function HomeView({
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${showAllLikedRoommates ? '' : 'max-h-[500px] overflow-hidden'}`}>
-                  {(showAllLikedRoommates ? likedRoommates : likedRoommates.slice(0, 2)).map((roommate) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[500px] overflow-hidden">
+                  {likedRoommates.slice(0, 4).map((roommate) => (
                       <RoommateCard
                         key={roommate.id}
                         roommate={roommate}
@@ -461,29 +474,28 @@ export default function HomeView({
                       />
                     ))}
                 </div>
-                {likedRoommates.length > 2 && (
-                  <button
-                    onClick={() => setShowAllLikedRoommates(!showAllLikedRoommates)}
-                    className="w-full text-center py-2 text-[13px] font-bold text-[#006590] hover:bg-sky-50 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 border border-sky-100"
-                  >
-                    {showAllLikedRoommates ? (
-                      <>Thu gọn <ChevronUp className="w-4 h-4" /></>
-                    ) : (
-                      <>Xem thêm {likedRoommates.length - 2} bạn <ChevronDown className="w-4 h-4" /></>
-                    )}
-                  </button>
-                )}
               </div>
             )}
           </div>
 
           {/* Trọ đã yêu thích */}
           <div className="space-y-5">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 pb-3 border-b border-slate-100">
-              <Building className="w-5 h-5 text-sky-500" />
-              Phòng Trọ Yêu Thích 
-              <span className="ml-2 bg-sky-100 text-sky-600 text-xs py-0.5 px-2.5 rounded-full font-black">{likedRoomIds.length}</span>
-            </h3>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Building className="w-5 h-5 text-sky-500" />
+                Phòng Trọ Yêu Thích 
+                <span className="ml-2 bg-sky-100 text-sky-600 text-xs py-0.5 px-2.5 rounded-full font-black">{likedRoomIds.length}</span>
+              </h3>
+              {likedRoomIds.length > 4 && (
+                <button
+                  onClick={() => setIsLikedRoomsModalOpen(true)}
+                  className="flex shrink-0 items-center gap-1.5 text-sm font-bold text-[#006590] transition-colors hover:text-sky-600 cursor-pointer"
+                >
+                  Xem thêm
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              )}
+            </div>
 
             {likedRoomIds.length === 0 ? (
               <div className="bg-slate-50/50 border-2 border-dashed border-slate-200 p-8 rounded-[24px] text-center h-[280px] flex flex-col items-center justify-center group hover:bg-slate-50 transition-colors">
@@ -496,10 +508,10 @@ export default function HomeView({
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                <div className={`grid grid-cols-1 gap-4 ${showAllLikedRooms ? '' : 'max-h-[500px] overflow-hidden'}`}>
+                <div className="grid grid-cols-1 gap-4 max-h-[500px] overflow-hidden">
                   {(() => {
                     const likedRooms = rooms.filter((r) => likedRoomIds.includes(r.id));
-                    const visibleRooms = showAllLikedRooms ? likedRooms : likedRooms.slice(0, 2);
+                    const visibleRooms = likedRooms.slice(0, 4);
                     
                     return (
                       <>
@@ -512,18 +524,6 @@ export default function HomeView({
                             isInitiallyLiked={true}
                           />
                         ))}
-                        {likedRooms.length > 2 && (
-                          <button
-                            onClick={() => setShowAllLikedRooms(!showAllLikedRooms)}
-                            className="w-full text-center py-2 text-[13px] font-bold text-[#006590] hover:bg-sky-50 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 border border-sky-100"
-                          >
-                            {showAllLikedRooms ? (
-                              <>Thu gọn <ChevronUp className="w-4 h-4" /></>
-                            ) : (
-                              <>Xem thêm {likedRooms.length - 2} phòng <ChevronDown className="w-4 h-4" /></>
-                            )}
-                          </button>
-                        )}
                       </>
                     );
                   })()}
@@ -862,6 +862,26 @@ export default function HomeView({
         onStartChat={onStartChat}
       />
 
+      {/* Liked Modals */}
+      <LikedRoommatesModal
+        isOpen={isLikedRoommatesModalOpen}
+        onClose={() => setIsLikedRoommatesModalOpen(false)}
+        likedRoommates={likedRoommates}
+        likedRoommateIds={likedRoommateIds}
+        onLikeRoommate={isAdmin ? undefined : onLikeRoommate}
+        onViewRoommate={onViewRoommate}
+        onStartChat={isAdmin ? undefined : onStartChat}
+      />
+
+      <LikedRoomsModal
+        isOpen={isLikedRoomsModalOpen}
+        onClose={() => setIsLikedRoomsModalOpen(false)}
+        likedRooms={rooms.filter((r) => likedRoomIds.includes(r.id))}
+        likedRoomIds={likedRoomIds}
+        onLikeRoom={isAdmin ? undefined : onLikeRoom}
+        onViewRoom={onViewRoom}
+        isAdmin={isAdmin}
+      />
     </div>
   );
 }
