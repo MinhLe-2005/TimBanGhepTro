@@ -274,6 +274,7 @@ export default function App() {
           const parsed = JSON.parse(cachedRoommates);
           if (Array.isArray(parsed) && parsed.length > 0) {
             setSupabaseRoommates(parsed);
+            setIsRoommatesLoading(false); // Have cache, no need for skeleton
           }
         }
         if (cachedRooms) {

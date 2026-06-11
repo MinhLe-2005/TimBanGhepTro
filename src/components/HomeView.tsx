@@ -156,8 +156,7 @@ export default function HomeView({
     )
     .slice(0, 5);
   
-  console.log("[DEBUG HomeView] roommateLikeCounts:", roommateLikeCounts);
-  console.log("[DEBUG HomeView] popularRoommates:", popularRoommates.map(r => ({ id: r.id, name: r.name, likes: roommateLikeCounts[r.id] })));
+
 
   return (
     <div className="space-y-20 animate-fade-in relative pt-20 lg:pt-28 px-4 lg:px-8 max-w-[1350px] mx-auto">
