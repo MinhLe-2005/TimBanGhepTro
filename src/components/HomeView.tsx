@@ -177,17 +177,19 @@ export default function HomeView({
   return (
     <div className="space-y-20 animate-fade-in relative pt-20 lg:pt-28 px-4 lg:px-8 max-w-[1350px] mx-auto">
       {/* 1. Hero Section */}
-      <section className="relative rounded-[32px] sm:rounded-[40px] overflow-hidden min-h-[560px] lg:min-h-[620px] flex flex-col justify-end border-[6px] border-white shadow-2xl shadow-slate-300/40">
-        {/* Background image */}
-        <img
-          src="https://images.unsplash.com/photo-1555854877-bab0e564b8d5?q=80&w=1600&auto=format&fit=crop"
-          alt="Căn hộ Đà Nẵng"
-          className="absolute inset-0 w-full h-full object-cover scale-105"
-        />
-        {/* Lighter gradient — let the photo breathe */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/50 to-transparent" />
-        {/* Subtle left-side vignette to make text readable */}
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-transparent" />
+      <section className="relative z-20 isolate rounded-[32px] sm:rounded-[40px] min-h-[560px] lg:min-h-[620px] flex flex-col justify-end border-[6px] border-white shadow-2xl shadow-slate-300/40">
+        {/* Keep only the visual background clipped; dropdowns may extend past the hero. */}
+        <div className="absolute inset-0 overflow-hidden rounded-[26px] sm:rounded-[34px]">
+          <img
+            src="https://images.unsplash.com/photo-1555854877-bab0e564b8d5?q=80&w=1600&auto=format&fit=crop"
+            alt="Căn hộ Đà Nẵng"
+            className="absolute inset-0 w-full h-full object-cover scale-105"
+          />
+          {/* Lighter gradient — let the photo breathe */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/50 to-transparent" />
+          {/* Subtle left-side vignette to make text readable */}
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-transparent" />
+        </div>
 
         {/* Floating animated badges - Grouped on Top Left */}
         <div className="absolute top-8 left-8 lg:left-16 hidden lg:flex flex-wrap items-center gap-4 z-20">
