@@ -8,6 +8,7 @@ import {
   REVIEW_REPORT_PREFIX,
   isModerationChannel,
 } from "../lib/moderation";
+import { removePublicStorageUrls } from "../lib/storage";
 
 interface AdminDashboardProps {
   currentUser: any;
@@ -224,18 +225,11 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     const reportMessageId = report.report_message_id || report.id;
     if (!reportMessageId) return false;
     
-    // Xóa ảnh minh chứng khỏi storage (nếu có) để tiết kiệm dung lượng
-    if (report.image && import.meta.env.VITE_SUPABASE_URL) {
-      try {
-        const { deleteImagesFromSupabase } = await import('../lib/supabase');
-        await deleteImagesFromSupabase([report.image], 'reports');
-      } catch (err) {
-        console.error('[Admin] Lỗi khi xóa ảnh report:', err);
-      }
-    }
-
     const { error } = await supabase.from('messages').delete().eq('id', reportMessageId);
     if (error) return false;
+    await removePublicStorageUrls([report.image], "reports").catch((storageError) => {
+      console.warn("[Admin] Could not remove report evidence:", storageError);
+    });
     setReports(previous =>
       previous.filter(item => (item.report_message_id || item.id) !== reportMessageId)
     );
@@ -293,10 +287,10 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     await resolveChatReport(report);
   };
 
-  const resolveReviewReport = async (report: any, status: 'dismissed' | 'review_deleted' | 'user_banned') => {
+  const resolveReviewReport = async (report: any, _status: 'dismissed' | 'review_deleted' | 'user_banned') => {
     let error = null;
     if (report.source === 'table') {
-      ({ error } = await supabase.from('review_reports').update({ status }).eq('id', report.id));
+      ({ error } = await supabase.from('review_reports').delete().eq('id', report.id));
     } else {
       ({ error } = await supabase.from('messages').delete().eq('id', report.id));
     }

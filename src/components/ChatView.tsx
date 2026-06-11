@@ -7,6 +7,7 @@ import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useDialog } from "./ui/DialogProvider";
 import MessageReactions from "./MessageReactions";
 import { CHAT_REPORT_PREFIX, getModerationChannel, isSystemChannel } from "../lib/moderation";
+import { removePublicStorageUrls } from "../lib/storage";
 
 interface ChatViewProps {
   roommates: Roommate[];
@@ -178,7 +179,7 @@ export default function ChatView({
        if (reportImageFile) {
          try {
            const fileExt = reportImageFile.name.split('.').pop();
-           const fileName = `${myId}_report_${Date.now()}.${fileExt}`;
+           const fileName = `${myId}/${crypto.randomUUID()}.${fileExt}`;
 
            const { error: uploadError } = await supabase.storage
              .from('reports')
@@ -228,6 +229,7 @@ export default function ChatView({
        });
        if (reportError) {
          console.error("[Chat] Cannot send report:", reportError);
+         await removePublicStorageUrls([finalImageUrl], "reports").catch(() => {});
          toast("Không thể gửi báo cáo lúc này. Vui lòng thử lại.", "error", 4500);
          setIsUploadingReport(false);
          return;

@@ -35,9 +35,12 @@ export async function uploadImageToSupabase(file: File, bucketName: string = 'ro
     return null;
   }
   try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const ownerId = sessionData.session?.user?.id;
+    if (!ownerId) return null;
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-    const filePath = `${fileName}`;
+    const filePath = `${ownerId}/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from(bucketName)

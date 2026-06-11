@@ -13,6 +13,7 @@ import HistoryView from "./components/HistoryView";
 import InfoView from "./components/InfoView";
 import AdminDashboard from "./components/AdminDashboard";
 import { getModerationChannel, isSystemChannel, REVIEW_REPORT_PREFIX } from "./lib/moderation";
+import { isInlineImage, removePublicStorageUrls, uploadInlineImage } from "./lib/storage";
 import { useDialog } from "./components/ui/DialogProvider";
 
 import RoommateModal from "./components/RoommateModal";
@@ -1182,22 +1183,51 @@ export default function App() {
   };
 
   const handleAddRoom = async (newRoom: Room): Promise<boolean> => {
-    const roomWithOwner = { ...newRoom, postedBy: currentUser?.id || "", user_id: currentUser?.id || "" };
+    const roomId = editingListingData?.id || newRoom.id;
+    const uploadedRoomImageUrls: string[] = [];
+    let finalImages = newRoom.images;
+
+    if (import.meta.env.VITE_SUPABASE_URL && currentUser?.id) {
+      try {
+        finalImages = [];
+        for (const image of newRoom.images) {
+          if (!isInlineImage(image)) {
+            finalImages.push(image);
+            continue;
+          }
+          const mimeType = image.slice(5, image.indexOf(";"));
+          const extension = mimeType === "image/png"
+            ? "png"
+            : mimeType === "image/webp"
+              ? "webp"
+              : "jpg";
+          const uploadedUrl = await uploadInlineImage(
+            "room-images",
+            `${currentUser.id}/${roomId}/${crypto.randomUUID()}.${extension}`,
+            image
+          );
+          uploadedRoomImageUrls.push(uploadedUrl);
+          finalImages.push(uploadedUrl);
+        }
+      } catch (error) {
+        console.error("[Room images] Upload failed:", error);
+        await removePublicStorageUrls(uploadedRoomImageUrls, "room-images").catch(() => {});
+        toast("Không thể tải ảnh phòng lên kho lưu trữ. Vui lòng thử lại.", "error", 5000);
+        return false;
+      }
+    }
+
+    const roomWithOwner = {
+      ...newRoom,
+      id: roomId,
+      images: finalImages,
+      postedBy: currentUser?.id || "",
+      user_id: currentUser?.id || "",
+    };
     
     if (editingListingData) {
       // Optimistic UI Update for Edit
       const updatedRoom = { ...roomWithOwner, id: editingListingData.id };
-      setRooms((prev) => prev.map(r => r.id === editingListingData.id ? updatedRoom : r));
-      
-      // Local cache update
-      const saved = localStorage.getItem("roomiematch_posted_rooms");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(parsed.map((r: any) => r.id === editingListingData.id ? updatedRoom : r)));
-      }
-
-      // Supabase State Update (optimistic for Supabase override)
-      setSupabaseRooms((prev) => prev.map(r => r.id === editingListingData.id ? updatedRoom : r));
 
       // Supabase Update
       if (import.meta.env.VITE_SUPABASE_URL) {
@@ -1218,10 +1248,31 @@ export default function App() {
         }
         if (error) {
           console.error("Error updating room to Supabase:", error);
+          await removePublicStorageUrls(uploadedRoomImageUrls, "room-images").catch(() => {});
           toast(getListingErrorMessage(error, "room", "update"), 'error', 5000);
           return false;
         }
       }
+      setRooms((prev) => prev.map(r => r.id === editingListingData.id ? updatedRoom : r));
+      setSupabaseRooms((prev) => prev.map(r => r.id === editingListingData.id ? updatedRoom : r));
+      const saved = JSON.parse(localStorage.getItem("roomiematch_posted_rooms") || "[]");
+      localStorage.setItem(
+        "roomiematch_posted_rooms",
+        JSON.stringify(saved.map((r: any) => r.id === editingListingData.id ? updatedRoom : r))
+      );
+      localStorage.setItem(
+        "roomiematch_cached_rooms",
+        JSON.stringify(
+          supabaseRooms.map((r) => r.id === editingListingData.id ? updatedRoom : r)
+        )
+      );
+      const currentImageSet = new Set(finalImages);
+      const oldUrls = (editingListingData.images || []).filter(
+        (image: string) => !currentImageSet.has(image)
+      );
+      await removePublicStorageUrls(oldUrls, "room-images").catch((error) =>
+        console.warn("[Room images] Could not remove replaced image:", error)
+      );
       setEditingListingData(null);
       return true;
     }
@@ -1243,6 +1294,7 @@ export default function App() {
       }
       if (error) {
         console.error("Error inserting room to Supabase:", error);
+        await removePublicStorageUrls(uploadedRoomImageUrls, "room-images").catch(() => {});
         toast(getListingErrorMessage(error, "room", "create"), 'error', 5500);
         return false;
       } else if (data && data.length > 0) {
@@ -1385,31 +1437,43 @@ export default function App() {
   };
 
   const handleDeleteRoom = async (id: string) => {
-    // 1. Remove from local fallback
-    const saved = localStorage.getItem("roomiematch_posted_rooms");
-    if (saved) {
-      const parsed = JSON.parse(saved).filter((r: any) => String(r.id) !== String(id));
-      localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(parsed));
-    }
-    // Update local state to immediately remove from UI
-    setRooms((prev) => prev.filter((r) => String(r.id) !== String(id)));
+    const roomToDelete =
+      allRooms.find((room) => room.id === id) ||
+      supabaseRooms.find((room) => room.id === id) ||
+      rooms.find((room) => room.id === id);
 
-    // Lấy thông tin phòng để xóa ảnh trên Supabase Storage
-    const roomToDelete = supabaseRooms.find(r => String(r.id) === String(id)) || JSON.parse(saved || "[]").find((r: any) => String(r.id) === String(id));
-
-    // 2. Remove from Supabase state optimistically
-    setSupabaseRooms((prev) => prev.filter((r) => String(r.id) !== String(id)));
-    
-    // 3. Supabase Delete
     if (import.meta.env.VITE_SUPABASE_URL) {
-      // Xóa ảnh trước
-      if (roomToDelete && roomToDelete.images && roomToDelete.images.length > 0) {
-        await deleteImagesFromSupabase(roomToDelete.images, 'room-images');
+      const { data: deletedRooms, error } = await supabase
+        .from('rooms')
+        .delete()
+        .eq('id', id)
+        .select('id');
+      if (error || !deletedRooms?.length) {
+        console.error("Error deleting room from Supabase:", error);
+        toast(
+          error
+            ? "Không thể xóa bài đăng. Vui lòng thử lại."
+            : "Bài đăng chưa được xóa trên hệ thống. Vui lòng kiểm tra quyền xóa trong Supabase.",
+          "error"
+        );
+        return false;
       }
-
-      const { error } = await supabase.from('rooms').delete().eq('id', id);
-      if (error) console.error("Error deleting room from Supabase:", error);
     }
+
+    setSelectedRoom((current) => current?.id === id ? null : current);
+    setRooms((previous) => previous.filter((room) => String(room.id) !== String(id)));
+    setSupabaseRooms((previous) => previous.filter((room) => String(room.id) !== String(id)));
+    const localRooms = JSON.parse(localStorage.getItem("roomiematch_posted_rooms") || "[]")
+      .filter((room: any) => String(room.id) !== String(id));
+    const cachedRooms = JSON.parse(localStorage.getItem("roomiematch_cached_rooms") || "[]")
+      .filter((room: any) => String(room.id) !== String(id));
+    localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(localRooms));
+    localStorage.setItem("roomiematch_cached_rooms", JSON.stringify(cachedRooms));
+
+    await removePublicStorageUrls(roomToDelete?.images || [], "room-images").catch((error) =>
+      console.warn("[Room images] Could not remove deleted room images:", error)
+    );
+    return true;
   };
 
   const handleDeleteRoommate = async (id: string) => {
@@ -1461,14 +1525,16 @@ export default function App() {
         "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop",
       ];
       
-      const currentProfile = user ? profiles.find(p => p.id === user.id) : null;
+      const currentProfile = currentUserProfile;
       
       if (rmToDelete && rmToDelete.avatar) {
         const isProfileAvatar = currentProfile?.avatar === rmToDelete.avatar;
         const isPreset = AVATAR_PRESETS.includes(rmToDelete.avatar);
         
         if (!isProfileAvatar && !isPreset) {
-          await deleteImagesFromSupabase([rmToDelete.avatar], 'room-images');
+          await removePublicStorageUrls([rmToDelete.avatar], 'room-images').catch((error) =>
+            console.warn("[Roommate image] Could not remove listing image:", error)
+          );
         }
       }
 
@@ -2763,10 +2829,12 @@ export default function App() {
           currentUserProfile={currentUserProfile}
           isOwnProfile={!!currentUser && (selectedRoom.postedBy === currentUser.id || (selectedRoom as any).user_id === currentUser.id)}
           hasSignedAgreement={roomUserHasSignedAgreement}
-          onDeleteRoom={(id) => {
-            handleDeleteRoom(id);
+          onDeleteRoom={async (id) => {
+            const deleted = await handleDeleteRoom(id);
+            if (!deleted) return false;
             setSelectedRoom(null);
-            toast('✅ Đã xóa tin đăng thành công!', 'success');
+            toast('Đã xóa tin đăng thành công!', 'success');
+            return true;
           }}
           onEditRoom={handleEditRoom}
           isAdmin={isAdmin}

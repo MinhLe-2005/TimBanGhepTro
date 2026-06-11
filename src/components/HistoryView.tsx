@@ -9,8 +9,6 @@ import {
   buildAgreementHistory,
   findRoommateByIdentity,
 } from "../utils/agreements";
-import EmptyAccess from "./EmptyAccess";
-import AgreementDetailModal from "./AgreementDetailModal";
 
 interface HistoryViewProps {
   currentUserProfile: any;

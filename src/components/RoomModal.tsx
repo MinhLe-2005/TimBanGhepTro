@@ -10,7 +10,7 @@ interface RoomModalProps {
   onAddReview?: (roomId: string, review: { reviewerName: string; rating: number; comment: string; images: string[] }) => void | boolean | Promise<boolean>;
   roommates?: Roommate[];
   isOwnProfile?: boolean;
-  onDeleteRoom?: (id: string) => void;
+  onDeleteRoom?: (id: string) => boolean | Promise<boolean>;
   onEditRoom?: (room: Room) => void;
   onInquire: (hostName: string) => void;
   isAdmin?: boolean;
@@ -869,7 +869,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                   });
                   
                   if (confirmed && onDeleteRoom) {
-                    onDeleteRoom(room.id);
+                    await onDeleteRoom(room.id);
                   }
                 }}
                 className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-3.5 px-6 rounded-[16px] font-black active:scale-95 duration-200 cursor-pointer border border-red-100 text-[15px]"
@@ -908,7 +908,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowGallery(false); }}
               className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors cursor-pointer"
             >
-              <XIcon className="w-6 h-6" />
+              <X className="w-6 h-6" />
             </button>
           </div>
 
@@ -923,7 +923,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                 }}
                 className="absolute left-4 md:left-8 p-4 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors cursor-pointer"
               >
-                <ChevronLeftIcon className="w-8 h-8" />
+                <ChevronLeft className="w-8 h-8" />
               </button>
             )}
 
@@ -944,7 +944,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                 }}
                 className="absolute right-4 md:right-8 p-4 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors cursor-pointer"
               >
-                <ChevronRightIcon className="w-8 h-8" />
+                <ChevronRight className="w-8 h-8" />
               </button>
             )}
           </div>

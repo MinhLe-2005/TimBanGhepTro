@@ -308,7 +308,7 @@ export default function PostListingModal({
       name: rmName,
       age: Number(rmAge),
       role: rmRole,
-      avatar: uploadedAvatarUrl,
+      avatar: rmAvatar,
       location: `${rmAddress ? rmAddress + ", " : ""}Quận ${rmDistrict}, Đà Nẵng`,
       district: rmDistrict,
       type: rmType,
@@ -343,6 +343,7 @@ export default function PostListingModal({
     if (!submitted) return;
     setSuccessMessage(editingData ? `Đã cập nhật bài Tìm bạn ở ghép cho ${rmName} thành công!` : `Đã đăng bài Tìm bạn ở ghép cho ${rmName} thành công lên cộng đồng RoomieMatch!`);
     setIsSuccess(true);
+    onClose();
   };
 
   const handleRoomSubmit = async (e: React.FormEvent) => {
@@ -377,6 +378,7 @@ export default function PostListingModal({
     selectedFeatures.push(`CURRENT_TENANTS:${currentTenants}`);
 
     let uploadedImageUrls: string[] = [];
+    const newlyUploadedImageUrls: string[] = [];
     
     // Tải ảnh lên Supabase
     if (import.meta.env.VITE_SUPABASE_URL) {
@@ -388,6 +390,7 @@ export default function PostListingModal({
           const url = await uploadImageToSupabase(img.file);
           if (url) {
             uploadedImageUrls.push(url);
+            newlyUploadedImageUrls.push(url);
           } else {
             console.warn("Supabase upload failed, falling back to base64 string");
             uploadedImageUrls.push(img.preview);
@@ -443,9 +446,16 @@ export default function PostListingModal({
     } finally {
       setIsSubmitting(false);
     }
-    if (!submitted) return;
+    if (!submitted) {
+      if (newlyUploadedImageUrls.length > 0) {
+        const { deleteImagesFromSupabase } = await import('../lib/supabase');
+        await deleteImagesFromSupabase(newlyUploadedImageUrls, 'room-images');
+      }
+      return;
+    }
     setSuccessMessage(editingData ? `Đã cập nhật bài cho thuê / ghép phòng "${rTitle}" thành công!` : `Đã đăng bài cho thuê / ghép phòng "${rTitle}" thành công!`);
     setIsSuccess(true);
+    onClose();
   };
 
   return (
