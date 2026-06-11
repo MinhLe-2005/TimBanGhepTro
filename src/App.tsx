@@ -1385,11 +1385,19 @@ export default function App() {
       localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(parsed));
     }
 
+    // Lấy thông tin phòng để xóa ảnh trên Supabase Storage
+    const roomToDelete = supabaseRooms.find(r => r.id === id) || JSON.parse(saved || "[]").find((r: any) => r.id === id);
+
     // 2. Remove from Supabase state optimistically
     setSupabaseRooms((prev) => prev.filter((r) => r.id !== id));
     
     // 3. Supabase Delete
     if (import.meta.env.VITE_SUPABASE_URL) {
+      // Xóa ảnh trước
+      if (roomToDelete && roomToDelete.images && roomToDelete.images.length > 0) {
+        await deleteImagesFromSupabase(roomToDelete.images, 'room-images');
+      }
+
       const { error } = await supabase.from('rooms').delete().eq('id', id);
       if (error) console.error("Error deleting room from Supabase:", error);
     }
@@ -1431,6 +1439,13 @@ export default function App() {
 
     // 5. Supabase Delete - delete the record
     if (import.meta.env.VITE_SUPABASE_URL) {
+      // Lấy thông tin roommate để xóa ảnh avatar trên Supabase Storage
+      const rmToDelete = supabaseRoommates.find(r => r.id === id) || JSON.parse(saved || "[]").find((r: any) => r.id === id);
+      if (rmToDelete && rmToDelete.avatar) {
+        // Assume avatar might be in 'room-images' bucket or 'avatars' bucket, usually we upload to room-images if from the same modal
+        await deleteImagesFromSupabase([rmToDelete.avatar], 'room-images');
+      }
+
       const { error } = await supabase.from('roommates').delete().eq('id', id);
       if (error) {
         console.error("[App] Error deleting roommate listing from Supabase:", error);
