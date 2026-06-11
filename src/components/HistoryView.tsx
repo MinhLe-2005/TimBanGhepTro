@@ -102,7 +102,7 @@ export default function HistoryView({
     return (
       <EmptyAccess
         icon={<AlertCircle className="h-10 w-10 text-slate-300" />}
-        message="Vui lòng đăng nhập để xem lịch sử hợp đồng."
+        message="Vui lòng đăng nhập để xem lịch sử thỏa thuận."
         buttonLabel="Đăng nhập ngay"
         onClick={onRequireAuth}
       />
@@ -113,7 +113,7 @@ export default function HistoryView({
     return (
       <EmptyAccess
         icon={<BadgeCheck className="h-10 w-10 text-sky-500" />}
-        message="Bạn cần thiết lập hồ sơ cá nhân để xem lịch sử hợp đồng."
+        message="Bạn cần thiết lập hồ sơ cá nhân để xem lịch sử thỏa thuận."
         buttonLabel="Tạo hồ sơ ngay"
         onClick={onRequireProfile}
       />
@@ -139,7 +139,7 @@ export default function HistoryView({
           {agreements.length === 0 ? (
             <div className="text-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
               <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500 font-bold">Chưa có hợp đồng nào</p>
+              <p className="text-slate-500 font-bold">Chưa có thỏa thuận nào</p>
               <p className="text-xs text-slate-400 mt-1">
                 Các thỏa thuận bạn gửi hoặc nhận sẽ xuất hiện tại đây.
               </p>
@@ -320,10 +320,10 @@ function AgreementDetailModal({
             </div>
             <div>
               <h2 id="agreement-detail-title" className="text-xl font-black text-slate-800 sm:text-2xl">
-                Chi Tiết Hợp Đồng
+                Chi Tiết Thỏa Thuận
               </h2>
               <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Mã hợp đồng: {agreement.id.slice(0, 8).toUpperCase()}
+                Mã thỏa thuận: {agreement.id.slice(0, 8).toUpperCase()}
               </p>
             </div>
           </div>
