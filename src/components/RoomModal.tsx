@@ -920,7 +920,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
                       <ImageIcon className="w-7 h-7 text-sky-500 relative z-10" />
                     </div>
                     <div>
-                      <h2 className="text-2xl sm:text-3xl font-black text-[#07132d] tracking-tight">Thư viện ảnh</h2>
+                      <h2 className="text-2xl sm:text-3xl font-black text-[#07132d] tracking-tight">Xem thêm ảnh phòng</h2>
                       <p className="text-slate-500 text-sm mt-1 font-medium">Toàn bộ hình ảnh chi tiết về phòng</p>
                     </div>
                   </div>
