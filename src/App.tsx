@@ -1391,6 +1391,8 @@ export default function App() {
       const parsed = JSON.parse(saved).filter((r: any) => r.id !== id);
       localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(parsed));
     }
+    // Update local state to immediately remove from UI
+    setRooms((prev) => prev.filter((r) => r.id !== id));
 
     // Lấy thông tin phòng để xóa ảnh trên Supabase Storage
     const roomToDelete = supabaseRooms.find(r => r.id === id) || JSON.parse(saved || "[]").find((r: any) => r.id === id);
@@ -1440,6 +1442,8 @@ export default function App() {
       const parsed = JSON.parse(saved).filter((r: any) => r.id !== id);
       localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(parsed));
     }
+    // Update local state to immediately remove from UI
+    setRoommates((prev) => prev.filter((r) => r.id !== id));
 
     // 4. Remove from Supabase state optimistically
     setSupabaseRoommates((prev) => prev.filter((r) => r.id !== id));
