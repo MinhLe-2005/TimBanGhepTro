@@ -44,11 +44,24 @@ const withoutExtendedRoomFields = (room: Record<string, any>) => {
     electricity, water, parking, proximity, hostRole, roommateInfo, habits,
     ...legacyRoom
   } = room;
+  const extendedFeatures = [...(legacyRoom.features || [])];
+  if (electricity) extendedFeatures.push(`ELECTRICITY:${electricity}`);
+  if (water) extendedFeatures.push(`WATER:${water}`);
+  if (parking) extendedFeatures.push(`PARKING:${parking}`);
+  if (proximity) extendedFeatures.push(`PROXIMITY:${proximity}`);
+  if (hostRole) extendedFeatures.push(`HOSTROLE:${hostRole}`);
+  if (roommateInfo) extendedFeatures.push(`ROOMMATE_INFO:${JSON.stringify(roommateInfo)}`);
+  if (habits) extendedFeatures.push(`HABITS:${JSON.stringify(habits)}`);
+  
+  legacyRoom.features = extendedFeatures;
   return legacyRoom;
 };
 
 const withoutExtendedRoommateFields = (roommate: Record<string, any>) => {
   const { school, ...legacyRoommate } = roommate;
+  const extendedTags = [...(legacyRoommate.tags || [])];
+  if (school) extendedTags.push(`SCHOOL:${school}`);
+  legacyRoommate.tags = extendedTags;
   return legacyRoommate;
 };
 
@@ -260,9 +273,43 @@ export default function App() {
   useEffect(() => {
     const fetchSupabaseData = async () => {
       if (!import.meta.env.VITE_SUPABASE_URL) {
+        setIsRoomsLoading(false);
         setIsRoommatesLoading(false); // No Supabase, use local data only
         return;
       }
+
+      // --- Helper functions for unpacking extended fields ---
+      const unpackRoommate = (rm: any) => {
+        if (rm.tags && Array.isArray(rm.tags)) {
+          rm.tags.forEach((t: string) => {
+            if (typeof t !== 'string') return;
+            if (t.startsWith('SCHOOL:')) rm.school = t.substring(7);
+          });
+          rm.tags = rm.tags.filter((t: string) => typeof t === 'string' && !t.startsWith('SCHOOL:'));
+        }
+        return rm;
+      };
+
+      const unpackRoom = (room: any) => {
+        if (room.features && Array.isArray(room.features)) {
+          room.features.forEach((f: string) => {
+            if (typeof f !== 'string') return;
+            if (f.startsWith('ELECTRICITY:')) room.electricity = f.substring(12);
+            if (f.startsWith('WATER:')) room.water = f.substring(6);
+            if (f.startsWith('PARKING:')) room.parking = f.substring(8);
+            if (f.startsWith('PROXIMITY:')) room.proximity = f.substring(10);
+            if (f.startsWith('HOSTROLE:')) room.hostRole = f.substring(9);
+            if (f.startsWith('ROOMMATE_INFO:')) {
+              try { room.roommateInfo = JSON.parse(f.substring(14)); } catch (e) {}
+            }
+            if (f.startsWith('HABITS:')) {
+              try { room.habits = JSON.parse(f.substring(7)); } catch (e) {}
+            }
+          });
+          room.features = room.features.filter((f: string) => typeof f === 'string' && !f.match(/^(ELECTRICITY|WATER|PARKING|PROXIMITY|HOSTROLE|ROOMMATE_INFO|HABITS):/));
+        }
+        return room;
+      };
 
       // --- 1. Optimistic UI / Cache loading ---
       try {
@@ -286,7 +333,7 @@ export default function App() {
         }
         if (cachedReviews) {
           const parsed = JSON.parse(cachedReviews);
-          if (Array.isArray(parsed)) {
+          if (Array.isArray(parsed) && parsed.length > 0) {
             setSupabaseReviews(parsed);
           }
         }
@@ -298,16 +345,16 @@ export default function App() {
       // --- 2. Fetch fresh data from server ---
       try {
         const [roommatesResult, roomsResult] = await Promise.all([
-          supabase.from('roommates').select('*'),
-          supabase.from('rooms').select('*'),
+          supabase.from('roommates').select('*').order('createdAt', { ascending: false }),
+          supabase.from('rooms').select('*').order('createdAt', { ascending: false }),
         ]);
 
         if (roommatesResult.error) {
-          console.error("[Listings] Failed to fetch roommates:", roommatesResult.error);
+          console.error("[Profiles] Failed to fetch roommates:", roommatesResult.error);
         }
         const roommatesData = roommatesResult.data;
         if (roommatesData) {
-          let freshRoommates = roommatesData;
+          let freshRoommates = roommatesData.map(unpackRoommate);
           const localRoommates = JSON.parse(localStorage.getItem("roomiematch_posted_roommates") || "[]");
           const remoteRoommateIds = new Set(freshRoommates.map((roommate: any) => String(roommate.id)));
           const syncableRoommates = localRoommates.filter(
@@ -319,10 +366,8 @@ export default function App() {
               const currentName = String(cachedProfile?.name || currentUser?.name || "").trim().toLowerCase();
               const isOwner = !ownerId || ownerId === currentUser?.id || (!!currentName && ownerName === currentName);
               const remote = freshRoommates.find((item: any) => String(item.id) === String(roommate.id));
-              return isOwner && (
-                !remoteRoommateIds.has(String(roommate.id)) ||
-                (!!roommate.school && !remote?.school)
-              );
+              const hasRicherDetails = (!!roommate.school && !remote?.school);
+              return isOwner && (!remoteRoommateIds.has(String(roommate.id)) || hasRicherDetails);
             }
           );
 
@@ -334,7 +379,9 @@ export default function App() {
               });
               cleanRoommate.postedBy = currentUser.id;
               cleanRoommate.user_id = currentUser.id;
-              cleanRoommate.is_listing = true;
+              if (cleanRoommate.is_listing === undefined) {
+                cleanRoommate.is_listing = true;
+              }
               return cleanRoommate;
             });
 
@@ -345,6 +392,8 @@ export default function App() {
                   .upsert(roommate, { onConflict: "id" })
                   .select()
                   .single();
+                
+                // Fallback for missing extended columns
                 if (result.error && (result.error.code === "PGRST204" || result.error.code === "42703")) {
                   result = await supabase
                     .from("roommates")
@@ -355,26 +404,27 @@ export default function App() {
                 return result;
               })
             );
+            
             const syncedRoommates = syncResults.flatMap((result) => result.data ? [result.data] : []);
             const failedRoommates = syncResults.filter((result) => result.error);
             failedRoommates.forEach((result) => {
-              console.error("[Listings] Failed to sync a local roommate:", result.error);
+              console.error("[Profiles] Failed to sync a local roommate profile:", result.error);
             });
             if (syncedRoommates.length) {
               const mergedRoommates = new Map(
-                freshRoommates.map((roommate: any) => [String(roommate.id), roommate])
+                freshRoommates.map((rm: any) => [String(rm.id), rm])
               );
-              syncedRoommates.forEach((roommate: any) => mergedRoommates.set(String(roommate.id), roommate));
+              syncedRoommates.forEach((rm: any) => mergedRoommates.set(String(rm.id), rm));
               freshRoommates = Array.from(mergedRoommates.values());
               localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(
-                localRoommates.map((roommate: any) => {
-                  const synced = syncedRoommates.find((item: any) => item.id === roommate.id);
-                  return synced || roommate;
+                localRoommates.map((rm: any) => {
+                  const synced = syncedRoommates.find((s: any) => String(s.id) === String(rm.id));
+                  return synced ? { ...rm, ...synced } : rm;
                 })
               ));
             }
           }
-
+          
           const enhancedRoommates = freshRoommates.map((rm: any) => ({
             ...rm,
             reviews: []
@@ -388,7 +438,7 @@ export default function App() {
           setIsRoomsLoading(false); // Stop skeleton even on error
         }
         if (roomsResult.data) {
-          let freshRooms = roomsResult.data;
+          let freshRooms = roomsResult.data.map(unpackRoom);
           const localRooms = JSON.parse(localStorage.getItem("roomiematch_posted_rooms") || "[]");
           const remoteRoomIds = new Set(freshRooms.map((room: any) => String(room.id)));
           const syncableRooms = localRooms.filter((room: any) => {
@@ -448,8 +498,8 @@ export default function App() {
               freshRooms = Array.from(mergedRooms.values());
               localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(
                 localRooms.map((room: any) => {
-                  const synced = syncedRooms.find((item: any) => item.id === room.id);
-                  return synced || room;
+                  const synced = syncedRooms.find((s: any) => String(s.id) === String(room.id));
+                  return synced ? { ...room, ...synced } : room;
                 })
               ));
             }
@@ -457,12 +507,12 @@ export default function App() {
 
           setSupabaseRooms(freshRooms);
           localStorage.setItem('roomiematch_cached_rooms', JSON.stringify(freshRooms));
-          setIsRoomsLoading(false);
         }
       } catch (err) {
         console.error("Error fetching listings from Supabase:", err);
         setIsRoomsLoading(false); // Stop skeleton on exception too
       } finally {
+        setIsRoomsLoading(false);
         setIsRoommatesLoading(false);
       }
 
@@ -520,9 +570,9 @@ export default function App() {
           
           // Optimize: Only update the changed record instead of refetching all
           if (payload.eventType === 'INSERT' && payload.new) {
-            setSupabaseRoommates(prev => [payload.new as any, ...prev]);
+            setSupabaseRoommates(prev => [unpackRoommate(payload.new), ...prev]);
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            setSupabaseRoommates(prev => prev.map(rm => rm.id === payload.new.id ? payload.new as any : rm));
+            setSupabaseRoommates(prev => prev.map(rm => rm.id === payload.new.id ? unpackRoommate(payload.new) : rm));
           } else if (payload.eventType === 'DELETE' && payload.old) {
             setSupabaseRoommates(prev => prev.filter(rm => rm.id !== payload.old.id));
           }
@@ -537,15 +587,15 @@ export default function App() {
           
           // Optimize: Only update the changed record instead of refetching all
           if (payload.eventType === 'INSERT' && payload.new) {
-            setSupabaseRooms(prev => [payload.new as any, ...prev]);
+            setSupabaseRooms(prev => [unpackRoom(payload.new), ...prev]);
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            setSupabaseRooms(prev => prev.map(r => r.id === payload.new.id ? payload.new as any : r));
+            setSupabaseRooms(prev => prev.map(r => r.id === payload.new.id ? unpackRoom(payload.new) : r));
           } else if (payload.eventType === 'DELETE' && payload.old) {
             setSupabaseRooms(prev => prev.filter(r => r.id !== payload.old.id));
           } else {
             // Fallback: refetch if needed
             const { data } = await supabase.from('rooms').select('*').order('createdAt', { ascending: false });
-            if (data) setSupabaseRooms(data);
+            if (data) setSupabaseRooms(data.map(unpackRoom));
           }
         }
       )
@@ -850,6 +900,8 @@ export default function App() {
     const currentName = String(currentUserProfile?.name || currentUser?.name || "").trim().toLowerCase();
     const visibleLocalRooms = import.meta.env.VITE_SUPABASE_URL
       ? rooms.filter((room) => {
+          if (supabaseRooms.some(sr => String(sr.id) === String(room.id))) return true;
+          if (INITIAL_ROOMS.some(ir => String(ir.id) === String(room.id))) return true;
           const ownerId = String(room.user_id || room.postedBy || "");
           const ownerName = String(room.hostName || "").trim().toLowerCase();
           return !!currentUser?.id && (
