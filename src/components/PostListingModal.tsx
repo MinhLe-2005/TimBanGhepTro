@@ -27,6 +27,7 @@ export default function PostListingModal({
   const [isSuccess, setIsSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   
   // Cropper State
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
@@ -346,8 +347,9 @@ export default function PostListingModal({
 
   const handleRoomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     if (!rTitle.trim() || !rPrice || !rAddress.trim()) {
-      alert("Vui lòng nhập tiêu đề, giá và địa chỉ phòng!");
+      setFormError("Vui lòng cuộn lên và nhập đầy đủ: Tiêu đề, Giá thuê và Địa chỉ phòng.");
       return;
     }
 
@@ -711,6 +713,11 @@ export default function PostListingModal({
                   </div>
                 </div>
 
+                {formError && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 text-rose-600 text-[13px] font-medium rounded-xl text-center">
+                    {formError}
+                  </div>
+                )}
                 <div className="flex justify-end gap-3 pt-2">
                   <button type="button" onClick={onClose}
                     className="px-6 py-3 border border-slate-200 hover:bg-slate-50 font-semibold rounded-full text-sm text-slate-500 duration-150 cursor-pointer">
@@ -992,6 +999,11 @@ export default function PostListingModal({
                   </div>
                 </div>
 
+                {formError && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 text-rose-600 text-[13px] font-medium rounded-xl text-center">
+                    {formError}
+                  </div>
+                )}
                 <div className="flex justify-end gap-3 pt-2">
                   <button type="button" onClick={onClose}
                     className="px-6 py-3 border border-slate-200 hover:bg-slate-50 font-semibold rounded-full text-sm text-slate-500 duration-150 cursor-pointer">
