@@ -211,7 +211,7 @@ export default function HomeView({
           {/* Top/Left Text Content */}
           <div className="max-w-xl w-full flex flex-col justify-end mt-12 lg:mt-0">
             {/* Tag */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-500/20 border border-rose-400/30 backdrop-blur-md mb-8">
+            <div className="inline-flex w-fit items-center gap-2 px-3 py-1.5 rounded-full bg-rose-500/20 border border-rose-400/30 backdrop-blur-md mb-8">
               <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
               <span className="text-[10px] font-bold text-rose-200 uppercase tracking-widest">
                 NỀN TẢNG TÌM BẠN Ở GHÉP UY TÍN
