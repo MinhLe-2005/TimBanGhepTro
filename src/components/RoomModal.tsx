@@ -307,6 +307,28 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
 
         {/* Key Features Icons Cards */}
         <div className="py-6 space-y-6">
+          {/* Basic Costs */}
+          <div>
+            <h4 className="text-[13px] font-black text-[#006590] uppercase tracking-wider mb-3">Thông tin & Chi phí cơ bản</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-slate-50 border border-slate-200 px-4 py-3 rounded-2xl flex flex-col items-center justify-center gap-1 text-center shadow-sm hover:border-[#006590]/30 transition-colors">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Loại phòng</span>
+                <span className="text-[14px] font-black text-[#006590]">{room.type}</span>
+              </div>
+              <div className="bg-slate-50 border border-slate-200 px-4 py-3 rounded-2xl flex flex-col items-center justify-center gap-1 text-center shadow-sm hover:border-[#006590]/30 transition-colors">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Phòng ngủ</span>
+                <span className="text-[14px] font-black text-[#006590]">{room.bedrooms} PN</span>
+              </div>
+              <div className="bg-slate-50 border border-slate-200 px-4 py-3 rounded-2xl flex flex-col items-center justify-center gap-1 text-center shadow-sm hover:border-[#006590]/30 transition-colors">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Giá điện</span>
+                <span className="text-[14px] font-black text-[#006590] truncate max-w-full px-1" title={room.electricity || 'Chưa cập nhật'}>{room.electricity || 'Chưa cập nhật'}</span>
+              </div>
+              <div className="bg-slate-50 border border-slate-200 px-4 py-3 rounded-2xl flex flex-col items-center justify-center gap-1 text-center shadow-sm hover:border-[#006590]/30 transition-colors">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Giá nước</span>
+                <span className="text-[14px] font-black text-[#006590] truncate max-w-full px-1" title={room.water || 'Chưa cập nhật'}>{room.water || 'Chưa cập nhật'}</span>
+              </div>
+            </div>
+          </div>
           <div>
             <h4 className="text-[13px] font-black text-[#006590] uppercase tracking-wider mb-3">Đặc trưng nổi bật</h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
