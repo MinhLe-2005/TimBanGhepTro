@@ -160,95 +160,115 @@ export default function HomeView({
 
   return (
     <div className="space-y-20 animate-fade-in relative pt-20 lg:pt-28 px-4 lg:px-8 max-w-[1350px] mx-auto">
-      {/* 1. Hero / Banner Section */}
-      <section className="bg-[#f8fafc] rounded-[32px] sm:rounded-[40px] px-6 sm:px-10 lg:px-16 pt-12 lg:pt-16 pb-28 lg:pb-36 relative border-[8px] border-white shadow-2xl shadow-slate-200/50 overflow-hidden">
-        {/* Subtle Dotted Pattern Background */}
-        <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] opacity-60" />
-        
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center relative z-10">
-          {/* Left Text content */}
-          <div className="lg:col-span-6 space-y-7 lg:pr-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-50 border border-rose-100 text-rose-600 text-[13px] font-bold uppercase tracking-widest shadow-sm">
-              <Sparkles className="w-4 h-4" />
-              Trải nghiệm ghép phòng hoàn hảo
+      {/* 1. Hero Section */}
+      <section className="relative rounded-[32px] sm:rounded-[40px] overflow-hidden min-h-[540px] lg:min-h-[600px] flex flex-col justify-end border-[6px] border-white shadow-2xl shadow-slate-300/40">
+        {/* Background image */}
+        <img
+          src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1600&auto=format&fit=crop"
+          alt="Căn hộ Đà Nẵng"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        {/* Dark gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/75 to-slate-700/30" />
+        {/* Noise texture overlay for depth */}
+        <div className="absolute inset-0 opacity-[0.04] [background-image:url('https://www.transparenttextures.com/patterns/noise.png')]" />
+
+        {/* Floating animated badges */}
+        {/* Badge: Verified */}
+        <div className="absolute top-8 left-8 hidden sm:flex items-center gap-2.5 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2.5 rounded-2xl text-white shadow-lg animate-[float_4s_ease-in-out_infinite]">
+          <span className="w-7 h-7 rounded-full bg-emerald-400/20 flex items-center justify-center">
+            <ShieldCheck className="w-4 h-4 text-emerald-300" />
+          </span>
+          <div>
+            <p className="text-[10px] text-white/60 font-bold uppercase tracking-widest leading-none mb-0.5">Xác minh</p>
+            <p className="text-[13px] font-black leading-none">100% An Toàn</p>
+          </div>
+        </div>
+
+        {/* Badge: Active users */}
+        <div className="absolute top-8 right-8 hidden sm:flex items-center gap-2.5 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2.5 rounded-2xl text-white shadow-lg animate-[float_4s_ease-in-out_infinite_1.5s]">
+          <span className="w-7 h-7 rounded-full bg-sky-400/20 flex items-center justify-center">
+            <Users className="w-4 h-4 text-sky-300" />
+          </span>
+          <div>
+            <p className="text-[10px] text-white/60 font-bold uppercase tracking-widest leading-none mb-0.5">Đang hoạt động</p>
+            <p className="text-[13px] font-black leading-none">{roommates.filter(r => r.is_listing).length}+ Người</p>
+          </div>
+        </div>
+
+        {/* Badge: Rooms listed */}
+        <div className="absolute top-1/2 -translate-y-1/2 right-8 hidden lg:flex items-center gap-2.5 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2.5 rounded-2xl text-white shadow-lg animate-[float_5s_ease-in-out_infinite_0.5s]">
+          <span className="w-7 h-7 rounded-full bg-rose-400/20 flex items-center justify-center">
+            <Home className="w-4 h-4 text-rose-300" />
+          </span>
+          <div>
+            <p className="text-[10px] text-white/60 font-bold uppercase tracking-widest leading-none mb-0.5">Phòng cho thuê</p>
+            <p className="text-[13px] font-black leading-none">{rooms.length}+ Tin đăng</p>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 px-7 sm:px-12 lg:px-16 pb-14 pt-32 lg:pt-40">
+          <div className="max-w-2xl">
+            {/* Tag */}
+            <div className="inline-flex items-center gap-2 mb-5 px-3.5 py-1.5 rounded-full bg-rose-500/20 border border-rose-400/30 text-rose-300 text-[12px] font-bold uppercase tracking-[0.12em]">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+              Nền tảng ghép phòng số 1 Đà Nẵng
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-[64px] font-black text-slate-900 tracking-tight leading-[1.15]">
-              Nền Tảng Tìm<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-orange-400">
-                Roommate
-              </span> Đà Nẵng
+            <h1 className="text-4xl sm:text-5xl lg:text-[62px] font-black text-white tracking-tight leading-[1.1] mb-5">
+              Tìm Roommate<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-orange-300 to-amber-300">
+                Đúng Người,
+              </span>{" "}
+              <span className="text-white/90">Đúng Vibe.</span>
             </h1>
 
-            <p className="text-slate-500 text-base lg:text-lg leading-relaxed max-w-lg font-medium">
-              Tìm đúng roommate phù hợp với bạn — từ giờ giấc sinh hoạt, sở thích đến ngân sách sống chung. <span className="font-bold text-slate-700">Match Đúng Người - Sống Đúng Vibe!</span>
+            <p className="text-white/60 text-[15px] sm:text-base leading-relaxed max-w-xl mb-8 font-medium">
+              Kết nối với người ở ghép phù hợp tại Đà Nẵng — từ giờ giấc sinh hoạt, ngân sách đến phong cách sống.
             </p>
 
-            <div className="flex flex-wrap gap-4 pt-4">
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => onNavigateToTab("roommates")}
-                className="bg-[#004e70] hover:bg-[#003852] text-white px-9 py-4.5 rounded-full text-[15px] font-bold shadow-xl shadow-[#004e70]/20 active:scale-95 transition-all duration-200 flex items-center gap-2.5 cursor-pointer"
+                className="inline-flex items-center gap-2.5 bg-white text-slate-900 hover:bg-slate-100 px-8 py-3.5 rounded-full text-[15px] font-black shadow-xl shadow-black/20 active:scale-95 transition-all duration-200 cursor-pointer"
               >
-                Khám Phá Ngay
-                <ArrowRight className="h-5 w-5" />
+                Tìm Bạn Ghép
+                <ArrowRight className="h-4 w-4" />
               </button>
 
               <button
                 onClick={() => onNavigateToTab("rooms")}
-                className="bg-white hover:bg-slate-50 text-slate-700 px-9 py-4.5 rounded-full text-[15px] font-bold shadow-sm border border-slate-200 active:scale-95 transition-all duration-200 cursor-pointer"
+                className="inline-flex items-center gap-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white px-8 py-3.5 rounded-full text-[15px] font-bold active:scale-95 transition-all duration-200 cursor-pointer"
               >
-                Đăng Tin Cho Thuê
+                Xem Phòng Cho Thuê
               </button>
             </div>
           </div>
 
-          {/* Right Image content */}
-          <div className="lg:col-span-6 relative mt-10 lg:mt-0">
-            
-            {/* Decorative Glowing Backdrop */}
-            <div className="absolute inset-0 translate-x-3 translate-y-3 bg-gradient-to-br from-rose-200/80 to-sky-200/80 rounded-[2.5rem] -z-10 blur-xl" />
-
-            {/* Main Image with Tight Frame */}
-            <div className="relative z-10 w-full aspect-[4/3] rounded-[2rem] overflow-hidden bg-white border-[6px] lg:border-[8px] border-white shadow-2xl shadow-slate-200/60">
-              <img 
-                src="https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=800&auto=format&fit=crop" 
-                alt="Roommates having fun" 
-                className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-
-              {/* Float Glassmorphic Badge 1 - Main */}
-              <div className="absolute bottom-6 -left-6 lg:-left-12 bg-white/95 backdrop-blur-md px-5 py-4 rounded-[20px] border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.08)] flex items-center gap-3.5 animate-bounce [animation-duration:3s] z-20">
-                <div className="w-11 h-11 rounded-full bg-blue-50/50 flex items-center justify-center text-[#004e70]">
-                  <HeartHandshake className="h-5 w-5" />
-                </div>
+          {/* Bottom stats strip */}
+          <div className="flex gap-8 mt-10 flex-wrap">
+            {[
+              { icon: <MapPin className="w-4 h-4" />, value: "7 Quận", label: "Toàn Đà Nẵng" },
+              { icon: <UserCheck className="w-4 h-4" />, value: "Miễn phí", label: "100% Không phí" },
+              { icon: <ShieldCheck className="w-4 h-4" />, value: "Bảo mật", label: "Thông tin riêng tư" },
+            ].map(({ icon, value, label }, i) => (
+              <div key={i} className="flex items-center gap-2.5 text-white">
+                <span className="text-white/50">{icon}</span>
                 <div>
-                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Ghép Phòng</p>
-                  <p className="text-xl font-black text-slate-800 leading-none tracking-tight">Nhanh Chóng</p>
+                  <p className="text-[13px] font-black leading-none">{value}</p>
+                  <p className="text-[11px] text-white/50 mt-0.5 font-medium">{label}</p>
                 </div>
               </div>
-
-              {/* Decorative Elements */}
-              <div className="absolute top-10 -left-8 lg:-left-16 bg-white px-4 py-3 rounded-2xl shadow-xl border border-slate-100 flex items-center gap-3 animate-bounce [animation-duration:4s] [animation-delay:1s] z-20">
-                <span className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                  <ShieldCheck className="w-4 h-4" />
-                </span>
-                <span className="text-sm font-bold text-slate-700">An Toàn 100%</span>
-              </div>
-
-              <div className="absolute -bottom-8 right-6 lg:right-10 bg-white px-4 py-3 rounded-2xl shadow-xl border border-slate-100 flex items-center gap-3 animate-bounce [animation-duration:3.5s] [animation-delay:0.5s] z-20">
-                <span className="w-8 h-8 rounded-full bg-sky-50 flex items-center justify-center text-sky-600">
-                  <Sparkles className="w-4 h-4" />
-                </span>
-                <span className="text-sm font-bold text-slate-700">Tiết Kiệm Chi Phí</span>
-              </div>
-            </div>
+            ))}
           </div>
+        </div>
       </section>
 
-      {/* Floating Search Bar */}
-      <div className="relative z-20 max-w-5xl mx-auto -mt-24 lg:-mt-32 px-4 mb-16 lg:mb-20">
+
+      {/* Search Bar */}
+      <div className="relative z-20 max-w-5xl mx-auto px-4 -mt-6 mb-8">
         <div className="bg-white rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.06)] p-2 border border-slate-100 flex flex-col sm:flex-row items-center">
           {/* Item 1: Khu Vực */}
           <div className="relative flex-1 w-full">
