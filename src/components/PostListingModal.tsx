@@ -73,15 +73,26 @@ export default function PostListingModal({
           resolve();
           return;
         }
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === "string") {
-             // Lọc bỏ placeholder mặc định nếu có khi up ảnh mới
-             newImages.push({ file, preview: reader.result });
-          }
-          resolve();
-        };
-        reader.readAsDataURL(file);
+        compressImageFile(file, 1200, 0.8).then(compressedFile => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (typeof reader.result === "string") {
+               newImages.push({ file: compressedFile, preview: reader.result });
+            }
+            resolve();
+          };
+          reader.readAsDataURL(compressedFile);
+        }).catch(err => {
+          console.error("Compression failed", err);
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (typeof reader.result === "string") {
+               newImages.push({ file, preview: reader.result });
+            }
+            resolve();
+          };
+          reader.readAsDataURL(file);
+        });
       });
     });
 

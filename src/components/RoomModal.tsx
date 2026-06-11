@@ -174,13 +174,24 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
   const processFiles = (files: File[]) => {
     const validImageFiles = files.filter(f => f.type.startsWith("image/"));
     validImageFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (reader.result) {
-          setNewImages(prev => [...prev, reader.result as string].slice(0, 4));
-        }
-      };
-      reader.readAsDataURL(file);
+      compressImageFile(file, 1200, 0.8).then(compressedFile => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (reader.result) {
+            setNewImages(prev => [...prev, reader.result as string].slice(0, 4));
+          }
+        };
+        reader.readAsDataURL(compressedFile);
+      }).catch(err => {
+        console.error("Compression error:", err);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (reader.result) {
+            setNewImages(prev => [...prev, reader.result as string].slice(0, 4));
+          }
+        };
+        reader.readAsDataURL(file);
+      });
     });
   };
 
