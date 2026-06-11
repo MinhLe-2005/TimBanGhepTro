@@ -214,7 +214,7 @@ export default function HomeView({
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-500/20 border border-rose-400/30 backdrop-blur-md mb-8">
               <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
               <span className="text-[10px] font-bold text-rose-200 uppercase tracking-widest">
-                Trải nghiệm dịch vụ cùng chúng tôi
+                NỀN TẢNG TÌM BẠN Ở GHÉP UY TÍN
               </span>
             </div>
             

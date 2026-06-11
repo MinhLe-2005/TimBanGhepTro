@@ -85,12 +85,20 @@ export default function Header({
 
   return (
     <header 
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+      className={`fixed left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled 
-          ? "bg-white/70 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.05)] border-b border-slate-200/50" 
-          : "bg-white border-b border-transparent"
+          ? "top-0 bg-white/90 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.08)] border-b border-slate-200/50" 
+          : "top-0 bg-white border-b border-transparent"
       }`}
     >
+      {/* Top Announcement Bar */}
+      <div 
+        className={`bg-[#111111] text-white text-[9px] sm:text-[11px] font-bold uppercase tracking-[0.25em] text-center transition-all duration-500 overflow-hidden flex items-center justify-center ${
+          isScrolled ? "h-0 opacity-0" : "h-9 sm:h-11 opacity-100"
+        }`}
+      >
+        TRẢI NGHIỆM DỊCH VỤ TỐT NHẤT CÙNG CHÚNG TÔI
+      </div>
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className={`relative flex items-center justify-between transition-all duration-500 ${isScrolled ? "h-16" : "h-20"}`}>
 
