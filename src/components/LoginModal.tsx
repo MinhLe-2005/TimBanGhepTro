@@ -42,6 +42,9 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
         options: { redirectTo: callbackUrl }
       });
       if (error) throw error;
+      sessionStorage.removeItem("isRecovering");
+      // Dispatch event so App.tsx re-checks session
+      window.dispatchEvent(new Event("auth_refresh"));
     } catch (err: any) {
       setErrorMessage("Lỗi kết nối: " + err.message);
     }
@@ -74,6 +77,9 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
         });
         
         if (error) throw error;
+      sessionStorage.removeItem("isRecovering");
+      // Dispatch event so App.tsx re-checks session
+      window.dispatchEvent(new Event("auth_refresh"));
         
         if (data.user && !data.session) {
           setOtpType("signup");
@@ -88,6 +94,9 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
         });
         
         if (error) throw error;
+      sessionStorage.removeItem("isRecovering");
+      // Dispatch event so App.tsx re-checks session
+      window.dispatchEvent(new Event("auth_refresh"));
         if (data.session) {
           setAuthStep("success");
         }
@@ -117,6 +126,9 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
         type: otpType,
       });
       if (error) throw error;
+      sessionStorage.removeItem("isRecovering");
+      // Dispatch event so App.tsx re-checks session
+      window.dispatchEvent(new Event("auth_refresh"));
       if (otpType === "signup") {
         setAuthStep("success");
       } else if (otpType === "recovery") {
@@ -137,7 +149,11 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(emailInput);
       if (error) throw error;
+      sessionStorage.removeItem("isRecovering");
+      // Dispatch event so App.tsx re-checks session
+      window.dispatchEvent(new Event("auth_refresh"));
       setOtpType("recovery");
+      sessionStorage.setItem("isRecovering", "true");
       setAuthStep("verify_otp");
     } catch (err: any) {
       setErrorMessage(err.message);
@@ -154,6 +170,9 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
     try {
       const { error } = await supabase.auth.updateUser({ password: newPasswordInput });
       if (error) throw error;
+      sessionStorage.removeItem("isRecovering");
+      // Dispatch event so App.tsx re-checks session
+      window.dispatchEvent(new Event("auth_refresh"));
       setAuthStep("success");
     } catch (err: any) {
       const msg = err.message?.toLowerCase() || "";
