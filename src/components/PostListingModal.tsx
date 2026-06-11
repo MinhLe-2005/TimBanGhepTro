@@ -328,7 +328,6 @@ export default function PostListingModal({
       reviews: []
     };
 
-    setIsSubmitting(true);
     let submitted = false;
     try {
       submitted = onSubmitRoommate ? await onSubmitRoommate(newRoommate) : false;
@@ -346,6 +345,8 @@ export default function PostListingModal({
       alert("Vui lòng nhập tiêu đề, giá và địa chỉ phòng!");
       return;
     }
+
+    setIsSubmitting(true);
 
     // Convert amenities state to array of features string
     const selectedFeatures: string[] = [];
@@ -424,7 +425,6 @@ export default function PostListingModal({
       reviews: []
     };
 
-    setIsSubmitting(true);
     let submitted = false;
     try {
       submitted = onSubmitRoom ? await onSubmitRoom(newRoom) : false;
