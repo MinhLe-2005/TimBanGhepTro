@@ -268,8 +268,8 @@ export default function HomeView({
             className="w-full lg:w-[380px] shrink-0 bg-white/10 backdrop-blur-3xl border border-white/30 rounded-[2.5rem] p-6 sm:p-8 shadow-[0_30px_60px_rgba(0,0,0,0.3)] relative z-30 lg:-mt-6"
             style={{animation: 'float 6s ease-in-out infinite 0.5s'}}
           >
-            <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-rose-300 to-amber-300 font-black text-[24px] mb-6 flex items-center gap-2.5 drop-shadow-lg">
-              <Search className="w-6 h-6 text-rose-300" />
+            <h3 className="text-white font-black text-[24px] mb-6 flex items-center gap-2.5 drop-shadow-lg">
+              <Search className="w-6 h-6 text-sky-400" />
               Tìm Bạn Ở Ghép
             </h3>
             
@@ -372,7 +372,7 @@ export default function HomeView({
 
               <button 
                 onClick={() => onNavigateToTab("roommates", { location: selectedLocation, budget: selectedBudget, lifestyle: selectedLifestyle })}
-                className="mt-2 w-full bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 text-white px-8 py-4.5 rounded-2xl text-[16px] font-black flex items-center justify-center gap-2.5 transition-all shadow-xl shadow-orange-500/30 active:scale-95 cursor-pointer"
+                className="mt-2 w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white px-8 py-4.5 rounded-2xl text-[16px] font-black flex items-center justify-center gap-2.5 transition-all shadow-xl shadow-blue-500/30 active:scale-95 cursor-pointer"
               >
                 <Search className="h-5 w-5" />
                 Tìm Kiếm Ngay
