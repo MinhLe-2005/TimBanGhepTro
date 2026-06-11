@@ -386,7 +386,12 @@ export default function PostListingModal({
         if (img.file) {
           // It's a new file, upload it
           const url = await uploadImageToSupabase(img.file);
-          if (url) uploadedImageUrls.push(url);
+          if (url) {
+            uploadedImageUrls.push(url);
+          } else {
+            console.warn("Supabase upload failed, falling back to base64 string");
+            uploadedImageUrls.push(img.preview);
+          }
         } else {
           // It's an existing URL
           uploadedImageUrls.push(img.preview);
