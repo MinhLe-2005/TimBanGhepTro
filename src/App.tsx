@@ -1746,7 +1746,7 @@ export default function App() {
       }
       // Sync active tab with pathname
       const path = window.location.pathname.replace(/^\/+/, "");
-      if (path && ["home", "roommates", "rooms", "chat", "agreement", "history", "info"].includes(path)) {
+      if (path && ["home", "roommates", "rooms", "chat", "agreement", "history", "info", "admin"].includes(path)) {
         setActiveTab(path);
       } else {
         setActiveTab("home");
