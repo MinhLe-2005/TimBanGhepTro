@@ -180,6 +180,13 @@ export default function App() {
       if (session?.user) {
         checkBanStatus(session.user.id);
 
+        // Khi quên mật khẩu, Supabase tạo session nhưng chưa được đặt lại mk
+        // → KHÔNG đăng nhập tự động, để LoginModal hoàn tất bước reset_password trước
+        if (event === 'PASSWORD_RECOVERY') {
+          console.log('[Auth] PASSWORD_RECOVERY event — skipping auto-login, waiting for user to set new password');
+          return;
+        }
+
         const user = session.user;
         console.log('[Auth] User logged in:', user.email, user.id);
         
