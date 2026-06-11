@@ -1031,6 +1031,14 @@ export default function App() {
   };
 
   const handleAddRoom = async (newRoom: Room): Promise<boolean> => {
+    if (!editingListingData) {
+      const hasPostedRoom = supabaseRooms.some(r => r.postedBy === currentUser?.id || r.user_id === currentUser?.id);
+      if (hasPostedRoom) {
+        toast('Bạn đã đăng 1 bài phòng trọ. Mỗi người chỉ được phép đăng tối đa 1 bài. Vui lòng xóa bài cũ nếu muốn tạo bài mới!', 'warning', 6000);
+        return false;
+      }
+    }
+
     const roomId = editingListingData?.id || newRoom.id;
     const uploadedRoomImageUrls: string[] = [];
     let finalImages = newRoom.images;
@@ -1164,6 +1172,17 @@ export default function App() {
   };
 
   const handleAddRoommate = async (newRoommate: Roommate): Promise<boolean> => {
+    if (!editingListingData) {
+      const hasPostedRoommate = supabaseRoommates.some(r => 
+        (r.postedBy === currentUser?.id || r.user_id === currentUser?.id) && 
+        r.is_listing !== false
+      );
+      if (hasPostedRoommate) {
+        toast('Bạn đã đăng 1 bài tìm bạn ghép phòng. Mỗi người chỉ được phép đăng tối đa 1 bài. Vui lòng xóa bài cũ nếu muốn tạo bài mới!', 'warning', 6000);
+        return false;
+      }
+    }
+
     const roommateWithOwner = { 
       ...newRoommate, 
       postedBy: currentUser?.id || "", 

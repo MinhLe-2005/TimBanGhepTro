@@ -227,7 +227,10 @@ export default function RoommatesView({
             <button
               onClick={() => {
                 if (currentUserId) {
-                  const hasPostedRoommate = roommates.some(r => r.postedBy === currentUserId || r.user_id === currentUserId);
+                  const hasPostedRoommate = roommates.some(r => 
+                    (r.postedBy === currentUserId || r.user_id === currentUserId) && 
+                    r.is_listing !== false
+                  );
                   if (hasPostedRoommate) {
                     toast('Bạn đã đăng 1 bài tìm bạn ghép phòng. Mỗi người chỉ được phép đăng tối đa 1 bài. Vui lòng xóa bài cũ nếu muốn tạo bài mới!', 'warning', 6000);
                     return;
