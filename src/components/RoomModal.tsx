@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Flame, Shield, MapPin, Bed, Bath, User, MessageSquare, Handshake, Check, Info, Star, Upload, Trash2, Moon, Dog, ChefHat, Compass, Sparkles, Heart, Smile, FileText, Phone, Ban, Users } from "lucide-react";
+import { X, Flame, Shield, Zap, Droplet, Building, MapPin, Bed, Bath, User, MessageSquare, Handshake, Check, Info, Star, Upload, Trash2, Moon, Dog, ChefHat, Compass, Sparkles, Heart, Smile, FileText, Phone, Ban, Users } from "lucide-react";
 import { Room, Roommate } from "../types";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { calculateReputationScore, getReputationLabel } from "../utils/scoring";
@@ -309,23 +309,44 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
         <div className="py-6 space-y-6">
           {/* Basic Costs */}
           <div>
-            <h4 className="text-[13px] font-black text-[#006590] uppercase tracking-wider mb-3">Thông tin & Chi phí cơ bản</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-slate-50 border border-slate-200 px-4 py-3 rounded-2xl flex flex-col items-center justify-center gap-1 text-center shadow-sm hover:border-[#006590]/30 transition-colors">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Loại phòng</span>
-                <span className="text-[14px] font-black text-[#006590]">{room.type}</span>
+            <h4 className="text-[13px] font-black text-[#006590] uppercase tracking-wider mb-3 flex items-center gap-2">
+              <Zap className="h-4 w-4" /> Thông tin & Chi phí cơ bản
+            </h4>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+              {/* Type */}
+              <div className="bg-gradient-to-br from-indigo-50 to-white border-2 border-indigo-100/60 px-4 py-3.5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+                <div className="bg-indigo-100 p-2 rounded-xl text-indigo-600 mb-1">
+                  <Building className="h-5 w-5" />
+                </div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider leading-none">Loại phòng</span>
+                <span className="text-[14px] font-black text-indigo-900">{room.type}</span>
               </div>
-              <div className="bg-slate-50 border border-slate-200 px-4 py-3 rounded-2xl flex flex-col items-center justify-center gap-1 text-center shadow-sm hover:border-[#006590]/30 transition-colors">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Phòng ngủ</span>
-                <span className="text-[14px] font-black text-[#006590]">{room.bedrooms} PN</span>
+              
+              {/* Bedroom */}
+              <div className="bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-100/60 px-4 py-3.5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+                <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600 mb-1">
+                  <Bed className="h-5 w-5" />
+                </div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider leading-none">Phòng ngủ</span>
+                <span className="text-[14px] font-black text-emerald-900">{room.bedrooms} PN</span>
               </div>
-              <div className="bg-slate-50 border border-slate-200 px-4 py-3 rounded-2xl flex flex-col items-center justify-center gap-1 text-center shadow-sm hover:border-[#006590]/30 transition-colors">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Giá điện</span>
-                <span className="text-[14px] font-black text-[#006590] truncate max-w-full px-1" title={room.electricity || 'Chưa cập nhật'}>{room.electricity || 'Chưa cập nhật'}</span>
+              
+              {/* Electricity */}
+              <div className="bg-gradient-to-br from-amber-50 to-white border-2 border-amber-100/60 px-4 py-3.5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+                <div className="bg-amber-100 p-2 rounded-xl text-amber-600 mb-1">
+                  <Zap className="h-5 w-5" />
+                </div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider leading-none">Giá điện</span>
+                <span className="text-[14px] font-black text-amber-900 truncate max-w-full px-1" title={room.electricity || 'Chưa cập nhật'}>{room.electricity || 'Chưa cập nhật'}</span>
               </div>
-              <div className="bg-slate-50 border border-slate-200 px-4 py-3 rounded-2xl flex flex-col items-center justify-center gap-1 text-center shadow-sm hover:border-[#006590]/30 transition-colors">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Giá nước</span>
-                <span className="text-[14px] font-black text-[#006590] truncate max-w-full px-1" title={room.water || 'Chưa cập nhật'}>{room.water || 'Chưa cập nhật'}</span>
+              
+              {/* Water */}
+              <div className="bg-gradient-to-br from-cyan-50 to-white border-2 border-cyan-100/60 px-4 py-3.5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+                <div className="bg-cyan-100 p-2 rounded-xl text-cyan-600 mb-1">
+                  <Droplet className="h-5 w-5" />
+                </div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider leading-none">Giá nước</span>
+                <span className="text-[14px] font-black text-cyan-900 truncate max-w-full px-1" title={room.water || 'Chưa cập nhật'}>{room.water || 'Chưa cập nhật'}</span>
               </div>
             </div>
           </div>
