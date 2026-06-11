@@ -23,6 +23,7 @@ interface DialogContextValue {
   confirm: (opts: DialogOptions) => Promise<boolean>;
   alert: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void;
   toast: (message: string, type?: ToastItem['type'], duration?: number) => void;
+  previewImage: (url: string) => void;
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -241,6 +242,7 @@ function Dialog({ state, onClose }: { state: DialogState; onClose: (val: boolean
 export function DialogProvider({ children }: { children: React.ReactNode }) {
   const [dialogState, setDialogState] = useState<DialogState | null>(null);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   const removeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
@@ -274,8 +276,12 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
     setToasts(prev => [...prev, { id, message, type, duration }]);
   }, []);
 
+  const previewImageFn = useCallback((url: string) => {
+    setPreviewImageUrl(url);
+  }, []);
+
   return (
-    <DialogContext.Provider value={{ confirm: confirmFn, alert: alertFn, toast: toastFn }}>
+    <DialogContext.Provider value={{ confirm: confirmFn, alert: alertFn, toast: toastFn, previewImage: previewImageFn }}>
       {children}
 
       {/* Toast container - bottom right */}
@@ -290,6 +296,32 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
       {/* Dialog overlay */}
       {dialogState && (
         <Dialog state={dialogState} onClose={handleClose} />
+      )}
+
+      {/* Fullscreen Image Preview */}
+      {previewImageUrl && (
+        <div 
+          className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setPreviewImageUrl(null)}
+        >
+          <button 
+            className="absolute top-6 right-6 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              setPreviewImageUrl(null);
+            }}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <img 
+            src={previewImageUrl} 
+            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-scale-in select-none" 
+            alt="Preview" 
+            onClick={(e) => e.stopPropagation()} 
+          />
+        </div>
       )}
     </DialogContext.Provider>
   );

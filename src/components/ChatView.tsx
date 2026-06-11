@@ -41,7 +41,7 @@ export default function ChatView({
 }: ChatViewProps) {
   // Confirm Dialog Hook
   const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
-  const { toast } = useDialog();
+  const { toast, previewImage } = useDialog();
   
   // Blocked users tab
   const [showBlockedUsers, setShowBlockedUsers] = useState(false);
@@ -1295,7 +1295,7 @@ export default function ChatView({
                     key={r.id}
                     className="flex gap-3 p-3.5 rounded-2xl border border-red-100 bg-red-50/50 items-center group"
                   >
-                    <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-red-200 shadow-inner shrink-0 relative opacity-60">
+                    <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-red-200 shadow-inner shrink-0 relative opacity-60 cursor-zoom-in" onClick={(e) => { e.stopPropagation(); previewImage(r.avatar); }}>
                       <img src={r.avatar} alt={r.name} className="w-full h-full object-cover grayscale" />
                       <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                         <Ban className="h-5 w-5 text-white" />
@@ -1371,7 +1371,7 @@ export default function ChatView({
                     onClick={() => setActiveRoommateId(r.id)}
                     className="flex gap-3 items-center flex-1 min-w-0"
                   >
-                    <div className="w-12 h-12 rounded-full overflow-hidden border border-slate-200 shadow-inner shrink-0 relative">
+                    <div className="w-12 h-12 rounded-full overflow-hidden border border-slate-200 shadow-inner shrink-0 relative cursor-zoom-in" onClick={(e) => { e.stopPropagation(); previewImage(r.avatar); }}>
                       <img src={r.avatar} alt={r.name} className="w-full h-full object-cover" />
                       <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-green-400 ring-2 ring-white" />
                     </div>
@@ -1414,7 +1414,7 @@ export default function ChatView({
             <div className="px-6 py-4 border-b border-slate-100 bg-white flex items-center justify-between shadow-sm shrink-0">
               <div className="flex items-center gap-3">
                 {/* Mobile back trigger to list, currently can keep simple. */}
-                <div className="w-11 h-11 rounded-full overflow-hidden border border-slate-200 shrink-0">
+                <div className="w-11 h-11 rounded-full overflow-hidden border border-slate-200 shrink-0 cursor-zoom-in" onClick={(e) => { e.stopPropagation(); previewImage(activeRoommate.avatar); }}>
                   <img src={activeRoommate.avatar} alt={activeRoommate.name} className="w-full h-full object-cover" />
                 </div>
                 <div>

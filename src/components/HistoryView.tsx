@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AlertCircle, BadgeCheck, Check, Clock, Eye, FileText, UserRound, X } from "lucide-react";
+import { useDialog } from "./ui/DialogProvider";
 import { supabase } from "../lib/supabase";
 import { Roommate } from "../types";
 import {
@@ -8,6 +9,8 @@ import {
   buildAgreementHistory,
   findRoommateByIdentity,
 } from "../utils/agreements";
+import EmptyAccess from "./EmptyAccess";
+import AgreementDetailModal from "./AgreementDetailModal";
 
 interface HistoryViewProps {
   currentUserProfile: any;
@@ -50,6 +53,7 @@ export default function HistoryView({
 }: HistoryViewProps) {
   const [agreements, setAgreements] = useState<AgreementRecord[]>([]);
   const [selectedAgreement, setSelectedAgreement] = useState<AgreementRecord | null>(null);
+  const { previewImage } = useDialog();
   const myAuthId = currentUser?.id || "";
 
   useEffect(() => {
@@ -172,7 +176,8 @@ export default function HistoryView({
                       <img
                         src={partnerAvatar}
                         alt=""
-                        className="w-12 h-12 rounded-full object-cover border border-slate-200 shrink-0"
+                        className="w-12 h-12 rounded-full object-cover border border-slate-200 shrink-0 cursor-zoom-in"
+                        onClick={(e) => { e.stopPropagation(); previewImage(partnerAvatar); }}
                       />
                       <div className="min-w-0">
                         <h2 className="text-base font-bold text-slate-800 truncate">

@@ -70,7 +70,7 @@ export default function RoommateModal({
   isAdmin = false,
 }: RoommateModalProps) {
   if (!roommate) return null;
-  const { confirm, toast } = useDialog();
+  const { confirm, toast, previewImage } = useDialog();
   
   // Debug: Log received roommate data
   console.log('[RoommateModal] Received roommate data:', {
@@ -342,8 +342,12 @@ export default function RoommateModal({
                   <img
                     src={roommate.avatar}
                     alt={roommate.name}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover cursor-zoom-in"
                     referrerPolicy="no-referrer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      previewImage(roommate.avatar);
+                    }}
                   />
                 </div>
                 <span className={`absolute bottom-1 right-1 flex h-7 w-7 items-center justify-center rounded-full border-4 border-white shadow-sm ${

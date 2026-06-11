@@ -21,7 +21,7 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ currentUser, roommates, rooms, onDeleteRoommate, onDeleteRoom, onReviewDeleted, onViewRoommate, onViewRoom }: AdminDashboardProps) {
-  const { confirm, toast } = useDialog();
+  const { confirm, toast, previewImage } = useDialog();
   const [activeTab, setActiveTab] = useState<"reports" | "reviewReports" | "users" | "listings" | "rooms" | "agreements">("reviewReports");
   const [reports, setReports] = useState<any[]>([]);
   const [reviewReports, setReviewReports] = useState<any[]>([]);
@@ -408,7 +408,15 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
       onClick={() => onViewRoommate?.(rm)}
     >
       {isBanned && <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-[1px] z-10 flex items-center justify-center pointer-events-none"><span className="bg-rose-600 text-white px-3 py-1 rounded-full text-xs font-black shadow-lg">BANNED</span></div>}
-      <img src={rm.avatar} className="w-12 h-12 rounded-full object-cover shrink-0" alt={rm.name} />
+      <img 
+        src={rm.avatar} 
+        className="w-12 h-12 rounded-full object-cover shrink-0 cursor-zoom-in hover:opacity-80 transition-opacity" 
+        alt={rm.name} 
+        onClick={(e) => {
+          e.stopPropagation();
+          previewImage(rm.avatar);
+        }}
+      />
       <div className="flex-1 min-w-0">
         <p className="font-bold text-slate-800 truncate group-hover:text-sky-700 transition-colors">{rm.name}</p>
         <p className="text-xs text-slate-500 truncate">{rm.role} · {rm.district}</p>
@@ -487,7 +495,11 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                                 <img
                                   src={review.reviewer_avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop"}
                                   alt=""
-                                  className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                                  className="w-10 h-10 rounded-full object-cover border border-slate-200 cursor-zoom-in hover:opacity-80"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    previewImage(review.reviewer_avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop");
+                                  }}
                                 />
                                 <div>
                                   <p className="font-bold text-slate-800">{review.reviewer_name || 'Người dùng cũ'}</p>
@@ -595,7 +607,11 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                                         <img
                                           src={message.image_url}
                                           alt={`Tin nhắn bị báo cáo ${index + 1}`}
-                                          className="mt-2 max-h-40 rounded-lg border border-slate-200 object-contain"
+                                          className="mt-2 max-h-40 rounded-lg border border-slate-200 object-contain cursor-zoom-in hover:opacity-90"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            previewImage(message.image_url);
+                                          }}
                                         />
                                       )}
                                       {message.timestamp && (
@@ -611,7 +627,15 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                             {report.image && (
                               <div className="mt-3">
                                 <span className="font-bold text-slate-700 text-sm block mb-2">Ảnh minh chứng:</span>
-                                <img src={report.image} alt="Proof" className="w-48 h-auto rounded-lg border border-slate-200" />
+                                <img 
+                                  src={report.image} 
+                                  alt="Proof" 
+                                  className="w-48 h-auto rounded-lg border border-slate-200 cursor-zoom-in hover:opacity-90" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    previewImage(report.image);
+                                  }}
+                                />
                               </div>
                             )}
                           </div>
@@ -686,7 +710,15 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                         className="border border-slate-200 p-4 rounded-2xl flex gap-4 cursor-pointer hover:border-sky-300 hover:shadow-md transition-all group"
                         onClick={() => onViewRoom?.(room)}
                       >
-                        <img src={room.images?.[0] || (room as any).hostAvatar} className="w-16 h-16 rounded-xl object-cover shrink-0" alt={room.title} />
+                        <img 
+                          src={room.images?.[0] || (room as any).hostAvatar} 
+                          className="w-16 h-16 rounded-xl object-cover shrink-0 cursor-zoom-in hover:opacity-80" 
+                          alt={room.title} 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            previewImage(room.images?.[0] || (room as any).hostAvatar);
+                          }}
+                        />
                         <div className="flex-1 min-w-0 flex flex-col justify-between">
                           <div>
                             <p className="font-bold text-slate-800 text-sm line-clamp-2 group-hover:text-sky-700 transition-colors">{room.title}</p>
