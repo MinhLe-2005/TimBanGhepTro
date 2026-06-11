@@ -223,6 +223,17 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   const resolveChatReport = async (report: any) => {
     const reportMessageId = report.report_message_id || report.id;
     if (!reportMessageId) return false;
+    
+    // Xóa ảnh minh chứng khỏi storage (nếu có) để tiết kiệm dung lượng
+    if (report.image && import.meta.env.VITE_SUPABASE_URL) {
+      try {
+        const { deleteImagesFromSupabase } = await import('../lib/supabase');
+        await deleteImagesFromSupabase([report.image], 'reports');
+      } catch (err) {
+        console.error('[Admin] Lỗi khi xóa ảnh report:', err);
+      }
+    }
+
     const { error } = await supabase.from('messages').delete().eq('id', reportMessageId);
     if (error) return false;
     setReports(previous =>
