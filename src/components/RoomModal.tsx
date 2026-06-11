@@ -351,7 +351,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
             </div>
           </div>
           <div>
-            <h4 className="text-[13px] font-black text-[#006590] uppercase tracking-wider mb-3">Đặc trưng nổi bật</h4>
+            <h4 className="text-[13px] font-black text-[#006590] uppercase tracking-wider mb-3">Nội thất & Tiện ích</h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {displayFeatures.map((feat, idx) => (
                 <div key={idx} className="bg-white border-2 border-slate-100 shadow-sm px-4 py-3.5 rounded-2xl flex items-center gap-2">
