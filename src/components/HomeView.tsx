@@ -173,24 +173,36 @@ export default function HomeView({
         {/* Subtle left-side vignette to make text readable */}
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-transparent" />
 
-        {/* Floating animated badges - right side only */}
-        <div className="absolute top-7 right-7 hidden sm:flex items-center gap-2.5 bg-white/15 backdrop-blur-xl border border-white/30 px-4 py-3 rounded-2xl text-white shadow-2xl" style={{animation: 'float 4s ease-in-out infinite 1.5s'}}>
-          <span className="w-8 h-8 rounded-full bg-sky-400/30 flex items-center justify-center">
-            <Users className="w-4 h-4 text-sky-200" />
-          </span>
-          <div>
-            <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest leading-none mb-0.5">Đang hoạt động</p>
-            <p className="text-[14px] font-black leading-none">{roommates.filter(r => r.is_listing).length}+ Người</p>
+        {/* Floating animated badges - Grouped on Top Left */}
+        <div className="absolute top-8 left-8 lg:left-16 hidden lg:flex flex-wrap items-center gap-4 z-20">
+          <div className="flex items-center gap-2.5 bg-white/15 backdrop-blur-xl border border-white/30 px-4 py-3 rounded-2xl text-white shadow-2xl" style={{animation: 'float 4s ease-in-out infinite'}}>
+            <span className="w-8 h-8 rounded-full bg-emerald-400/30 flex items-center justify-center">
+              <ShieldCheck className="w-4 h-4 text-emerald-300" />
+            </span>
+            <div>
+              <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest leading-none mb-0.5">Uy tín</p>
+              <p className="text-[14px] font-black leading-none">100% An Toàn</p>
+            </div>
           </div>
-        </div>
 
-        <div className="absolute top-1/2 -translate-y-1/2 right-7 hidden lg:flex items-center gap-2.5 bg-white/15 backdrop-blur-xl border border-white/30 px-4 py-3 rounded-2xl text-white shadow-2xl" style={{animation: 'float 5s ease-in-out infinite 0.5s'}}>
-          <span className="w-8 h-8 rounded-full bg-rose-400/30 flex items-center justify-center">
-            <Home className="w-4 h-4 text-rose-300" />
-          </span>
-          <div>
-            <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest leading-none mb-0.5">Phòng cho thuê</p>
-            <p className="text-[14px] font-black leading-none">{rooms.length}+ Tin đăng</p>
+          <div className="flex items-center gap-2.5 bg-white/15 backdrop-blur-xl border border-white/30 px-4 py-3 rounded-2xl text-white shadow-2xl" style={{animation: 'float 4s ease-in-out infinite 0.5s'}}>
+            <span className="w-8 h-8 rounded-full bg-sky-400/30 flex items-center justify-center">
+              <Users className="w-4 h-4 text-sky-200" />
+            </span>
+            <div>
+              <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest leading-none mb-0.5">Đang hoạt động</p>
+              <p className="text-[14px] font-black leading-none">{roommates.filter(r => r.is_listing).length}+ Người</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 bg-white/15 backdrop-blur-xl border border-white/30 px-4 py-3 rounded-2xl text-white shadow-2xl" style={{animation: 'float 4s ease-in-out infinite 1s'}}>
+            <span className="w-8 h-8 rounded-full bg-rose-400/30 flex items-center justify-center">
+              <Home className="w-4 h-4 text-rose-300" />
+            </span>
+            <div>
+              <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest leading-none mb-0.5">Phòng cho thuê</p>
+              <p className="text-[14px] font-black leading-none">{rooms.length}+ Tin đăng</p>
+            </div>
           </div>
         </div>
 
