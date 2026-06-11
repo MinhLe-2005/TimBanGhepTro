@@ -173,22 +173,19 @@ export default function App() {
       setAuthLoading(false);
     });
 
-    useEffect(() => {
-      const handleAuthRefresh = () => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session?.user) {
-            setCurrentUser({
-              id: session.user.id,
-              email: session.user.email,
-              name: session.user.user_metadata?.full_name || "Thành viên Roomie",
-              avatar: session.user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop",
-            });
-          }
-        });
-      };
-      window.addEventListener("auth_refresh", handleAuthRefresh);
-      return () => window.removeEventListener("auth_refresh", handleAuthRefresh);
-    }, []);
+    const handleAuthRefresh = () => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          setCurrentUser({
+            id: session.user.id,
+            email: session.user.email,
+            name: session.user.user_metadata?.full_name || "Thành viên Roomie",
+            avatar: session.user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop",
+          });
+        }
+      });
+    };
+    window.addEventListener("auth_refresh", handleAuthRefresh);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[Auth] State changed:', event, session?.user?.email);
@@ -299,7 +296,10 @@ export default function App() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener("auth_refresh", handleAuthRefresh);
+    };
   }, []);
 
   // Fetch data from Supabase
