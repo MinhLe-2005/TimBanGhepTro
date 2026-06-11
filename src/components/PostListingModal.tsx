@@ -102,6 +102,10 @@ export default function PostListingModal({
       const base64data = reader.result as string;
       if (cropType === "avatar") {
         setRmAvatar(base64data);
+        // Note: For now, since we crop and get base64, we don't have a File object anymore unless we convert Blob to File
+        // We will convert the blob to File so we can upload it
+        const file = new File([croppedBlob], `avatar_${Date.now()}.png`, { type: 'image/png' });
+        setRmAvatarFile(file);
       } else if (cropType === "room") {
         setRImages(prev => { const filtered = prev.filter(p => !ROOM_IMAGE_PRESETS.includes(p.preview)); return [...filtered, { preview: base64data }].slice(0, 5); });
       }
@@ -144,6 +148,7 @@ export default function PostListingModal({
   const [rmBio, setRmBio] = useState("");
   const [rmStatus, setRmStatus] = useState<"Đang tìm" | "Đang trao đổi" | "Đã tìm được">("Đang tìm");
   const [rmAvatar, setRmAvatar] = useState(AVATAR_PRESETS[0]);
+  const [rmAvatarFile, setRmAvatarFile] = useState<File | null>(null);
   const [rmType, setRmType] = useState("Phòng trọ");
 
   // Lifestyle selections
@@ -302,7 +307,7 @@ export default function PostListingModal({
       name: rmName,
       age: Number(rmAge),
       role: rmRole,
-      avatar: rmAvatar,
+      avatar: uploadedAvatarUrl,
       location: `${rmAddress ? rmAddress + ", " : ""}Quận ${rmDistrict}, Đà Nẵng`,
       district: rmDistrict,
       type: rmType,
