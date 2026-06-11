@@ -170,8 +170,15 @@ export default function RoomsView({
           {!isAdmin && (
             <button
               onClick={() => {
-                if (currentUserId) {
-                  const hasPostedRoom = rooms.some(r => r.postedBy === currentUserId || r.user_id === currentUserId);
+                if (currentUserId || currentUserProfile) {
+                  const currentName = String(currentUserProfile?.name || "").trim().toLowerCase();
+                  const hasPostedRoom = rooms.some(r => {
+                    if (currentUserId && (r.postedBy === currentUserId || r.user_id === currentUserId)) return true;
+                    if (!currentUserId && currentUserProfile?.id && (r.postedBy === currentUserProfile.id || r.user_id === currentUserProfile.id)) return true;
+                    const ownerName = String(r.hostName || "").trim().toLowerCase();
+                    if (!currentUserId && currentName && ownerName === currentName) return true;
+                    return false;
+                  });
                   if (hasPostedRoom) {
                     toast('Bạn đã đăng 1 bài phòng trọ. Mỗi người chỉ được phép đăng tối đa 1 bài. Vui lòng xóa bài cũ nếu muốn tạo bài mới!', 'warning', 6000);
                     return;

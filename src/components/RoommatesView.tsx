@@ -226,11 +226,16 @@ export default function RoommatesView({
           {!isAdmin && (
             <button
               onClick={() => {
-                if (currentUserId) {
-                  const hasPostedRoommate = roommates.some(r => 
-                    (r.postedBy === currentUserId || r.user_id === currentUserId) && 
-                    r.is_listing !== false
-                  );
+                if (currentUserId || currentUserProfile) {
+                  const currentName = String(currentUserProfile?.name || "").trim().toLowerCase();
+                  const hasPostedRoommate = roommates.some(r => {
+                    if (r.is_listing === false) return false;
+                    if (currentUserId && (r.postedBy === currentUserId || r.user_id === currentUserId)) return true;
+                    if (!currentUserId && currentUserProfile?.id && (r.postedBy === currentUserProfile.id || r.user_id === currentUserProfile.id)) return true;
+                    const ownerName = String(r.name || "").trim().toLowerCase();
+                    if (!currentUserId && currentName && ownerName === currentName) return true;
+                    return false;
+                  });
                   if (hasPostedRoommate) {
                     toast('Bạn đã đăng 1 bài tìm bạn ghép phòng. Mỗi người chỉ được phép đăng tối đa 1 bài. Vui lòng xóa bài cũ nếu muốn tạo bài mới!', 'warning', 6000);
                     return;
