@@ -186,12 +186,14 @@ export default function HomeView({
           </div>
 
           <div className="flex items-center gap-3 bg-white/25 backdrop-blur-2xl border border-white/50 px-4 py-3 rounded-2xl text-white shadow-[0_8px_30px_rgb(0,0,0,0.12)]" style={{animation: 'float 4s ease-in-out infinite 0.5s'}}>
-            <span className="w-9 h-9 rounded-full bg-sky-400/50 flex items-center justify-center shadow-inner border border-white/20">
+            <span className="relative w-9 h-9 rounded-full bg-sky-400/50 flex items-center justify-center shadow-inner border border-white/20">
               <Users className="w-4.5 h-4.5 text-sky-50 drop-shadow-md" />
+              {/* Realtime indicator dot */}
+              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
             </span>
             <div>
-              <p className="text-[10px] text-white/90 font-bold uppercase tracking-widest leading-none mb-0.5 drop-shadow-md">Đang sử dụng</p>
-              <p className="text-[15px] font-black leading-none drop-shadow-md">{roommates.length + 150}+ Người</p>
+              <p className="text-[10px] text-white/90 font-bold uppercase tracking-widest leading-none mb-0.5 drop-shadow-md">Trực tuyến</p>
+              <p className="text-[15px] font-black leading-none drop-shadow-md">{roommates.length} Người</p>
             </div>
           </div>
 
@@ -201,7 +203,7 @@ export default function HomeView({
             </span>
             <div>
               <p className="text-[10px] text-white/90 font-bold uppercase tracking-widest leading-none mb-0.5 drop-shadow-md">Phòng cho thuê</p>
-              <p className="text-[15px] font-black leading-none drop-shadow-md">{rooms.length}+ Tin đăng</p>
+              <p className="text-[15px] font-black leading-none drop-shadow-md">{rooms.length} Tin đăng</p>
             </div>
           </div>
         </div>
