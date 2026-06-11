@@ -2609,6 +2609,8 @@ export default function App() {
               onDeleteRoommate={handleDeleteRoommate}
               onDeleteRoom={handleDeleteRoom}
               onReviewDeleted={handleAdminReviewDeleted}
+              onViewRoommate={setSelectedRoommate}
+              onViewRoom={setSelectedRoom}
             />
           ) : (
             <div className="flex flex-col items-center justify-center py-20 px-4 min-h-[60vh] animate-fade-in">

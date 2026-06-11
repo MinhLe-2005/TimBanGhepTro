@@ -16,9 +16,11 @@ interface AdminDashboardProps {
   onDeleteRoommate?: (id: string) => void;
   onDeleteRoom?: (id: string) => void;
   onReviewDeleted?: (id: string) => void;
+  onViewRoommate?: (roommate: Roommate) => void;
+  onViewRoom?: (room: Room) => void;
 }
 
-export default function AdminDashboard({ currentUser, roommates, rooms, onDeleteRoommate, onDeleteRoom, onReviewDeleted }: AdminDashboardProps) {
+export default function AdminDashboard({ currentUser, roommates, rooms, onDeleteRoommate, onDeleteRoom, onReviewDeleted, onViewRoommate, onViewRoom }: AdminDashboardProps) {
   const { confirm, toast } = useDialog();
   const [activeTab, setActiveTab] = useState<"reports" | "reviewReports" | "users" | "listings" | "rooms" | "agreements">("reviewReports");
   const [reports, setReports] = useState<any[]>([]);
@@ -401,17 +403,20 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   );
 
   const UserCard = ({ rm, isBanned }: { rm: any; isBanned: boolean }) => (
-    <div className="border border-slate-200 p-4 rounded-2xl flex items-start gap-4 relative overflow-hidden">
+    <div 
+      className="border border-slate-200 p-4 rounded-2xl flex items-start gap-4 relative overflow-hidden cursor-pointer hover:border-sky-300 hover:shadow-md transition-all group"
+      onClick={() => onViewRoommate?.(rm)}
+    >
       {isBanned && <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-[1px] z-10 flex items-center justify-center pointer-events-none"><span className="bg-rose-600 text-white px-3 py-1 rounded-full text-xs font-black shadow-lg">BANNED</span></div>}
       <img src={rm.avatar} className="w-12 h-12 rounded-full object-cover shrink-0" alt={rm.name} />
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-slate-800 truncate">{rm.name}</p>
+        <p className="font-bold text-slate-800 truncate group-hover:text-sky-700 transition-colors">{rm.name}</p>
         <p className="text-xs text-slate-500 truncate">{rm.role} · {rm.district}</p>
         {rm.budget ? <p className="text-xs text-[#006590] font-semibold mt-0.5">{(rm.budget/1000000).toFixed(1)} tr/tháng</p> : null}
         <p className="text-[10px] text-slate-400 mt-1 truncate font-mono">UID: {rm.user_id || rm.postedBy || '—'}</p>
         {rm.createdAt && <p className="text-[10px] text-slate-400">Đăng: {new Date(rm.createdAt).toLocaleString('vi-VN')}</p>}
       </div>
-      <div className="flex flex-col gap-1.5 z-20 shrink-0">
+      <div className="flex flex-col gap-1.5 z-20 shrink-0" onClick={e => e.stopPropagation()}>
         {!isBanned && (rm.user_id || rm.id) && (
           <button onClick={() => handleBanUser(rm.user_id || rm.id)} className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl transition-colors" title="Khóa user">
             <Ban className="w-4 h-4" />
@@ -676,17 +681,23 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {rooms.map(room => (
-                      <div key={room.id} className="border border-slate-200 p-4 rounded-2xl flex gap-4">
-                        <img src={room.images?.[0] || (room as any).hostAvatar} className="w-16 h-16 rounded-xl object-cover" alt={room.title} />
+                      <div 
+                        key={room.id} 
+                        className="border border-slate-200 p-4 rounded-2xl flex gap-4 cursor-pointer hover:border-sky-300 hover:shadow-md transition-all group"
+                        onClick={() => onViewRoom?.(room)}
+                      >
+                        <img src={room.images?.[0] || (room as any).hostAvatar} className="w-16 h-16 rounded-xl object-cover shrink-0" alt={room.title} />
                         <div className="flex-1 min-w-0 flex flex-col justify-between">
                           <div>
-                            <p className="font-bold text-slate-800 text-sm line-clamp-2">{room.title}</p>
+                            <p className="font-bold text-slate-800 text-sm line-clamp-2 group-hover:text-sky-700 transition-colors">{room.title}</p>
                             <p className="text-xs text-slate-500 truncate">{room.district}</p>
                             <p className="text-[10px] text-slate-400 mt-1 font-mono truncate">UID: {(room as any).user_id || (room as any).postedBy || 'Mẫu hệ thống'}</p>
                           </div>
                           <div className="flex justify-between items-center mt-2">
                              <span className="text-xs font-bold text-emerald-600">{(room.price/1000000).toFixed(1)} tr/tháng</span>
-                             <button onClick={() => handleDeleteListing('rooms', room.id)} className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg transition-colors"><Trash2 className="w-3 h-3" /></button>
+                             <div onClick={e => e.stopPropagation()}>
+                               <button onClick={() => handleDeleteListing('rooms', room.id)} className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg transition-colors"><Trash2 className="w-3 h-3" /></button>
+                             </div>
                           </div>
                         </div>
                       </div>
