@@ -892,6 +892,81 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
       
       {/* Confirm Dialog */}
       <ConfirmDialogComponent />
+
+      {/* Lightbox Gallery Overlay */}
+      {showGallery && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex flex-col"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowGallery(false); }}
+        >
+          {/* Header */}
+          <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-center bg-gradient-to-b from-black/70 to-transparent z-10">
+            <span className="text-white/80 font-medium px-4">
+              {currentImageIndex + 1} / {room.images.length}
+            </span>
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowGallery(false); }}
+              className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors cursor-pointer"
+            >
+              <XIcon className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Main Image */}
+          <div className="flex-1 flex items-center justify-center p-4 md:p-12 relative">
+            {room.images.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setCurrentImageIndex((prev) => (prev === 0 ? room.images.length - 1 : prev - 1));
+                }}
+                className="absolute left-4 md:left-8 p-4 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors cursor-pointer"
+              >
+                <ChevronLeftIcon className="w-8 h-8" />
+              </button>
+            )}
+
+            <img
+              src={room.images[currentImageIndex]}
+              alt={`Hình ảnh ${currentImageIndex + 1}`}
+              className="max-w-full max-h-full object-contain select-none"
+              referrerPolicy="no-referrer"
+              onClick={(e) => e.stopPropagation()}
+            />
+
+            {room.images.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setCurrentImageIndex((prev) => (prev === room.images.length - 1 ? 0 : prev + 1));
+                }}
+                className="absolute right-4 md:right-8 p-4 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors cursor-pointer"
+              >
+                <ChevronRightIcon className="w-8 h-8" />
+              </button>
+            )}
+          </div>
+          
+          {/* Thumbnails */}
+          {room.images.length > 1 && (
+            <div className="p-4 bg-black/50 overflow-x-auto flex gap-2 justify-center pb-8" onClick={(e) => e.stopPropagation()}>
+              {room.images.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentImageIndex(idx); }}
+                  className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden transition-all duration-300 ${
+                    idx === currentImageIndex ? 'ring-2 ring-white scale-105 opacity-100' : 'opacity-50 hover:opacity-100'
+                  }`}
+                >
+                  <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
