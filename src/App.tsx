@@ -831,6 +831,13 @@ export default function App() {
   const [isRoommatesLoading, setIsRoommatesLoading] = useState(true);
   const [isRoomsLoading, setIsRoomsLoading] = useState(true);
   
+  // Fallback safety timeout: force stop loading after 10s if Supabase hangs
+  useEffect(() => {
+    const t1 = setTimeout(() => setIsRoommatesLoading(false), 10000);
+    const t2 = setTimeout(() => setIsRoomsLoading(false), 10000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
   const [supabaseRooms, setSupabaseRooms] = useState<any[]>(() => {
     try {
       return JSON.parse(localStorage.getItem("roomiematch_cached_rooms") || "[]");
