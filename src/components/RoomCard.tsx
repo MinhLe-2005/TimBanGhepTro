@@ -1,4 +1,4 @@
-import { Heart, Flame, Bed, Bath, Shield, ChefHat, MapPin, Cpu, Car, Eye, Star, Trash2, Ban, Users, AlertCircle } from "lucide-react";
+import { Heart, Flame, Bed, Bath, Shield, ChefHat, MapPin, Cpu, Car, Eye, Star, Trash2, Ban, Users, AlertCircle, Building, User } from "lucide-react";
 import { Room } from "../types";
 import { useState } from "react";
 
@@ -213,33 +213,31 @@ export default function RoomCard({
           )}
         </div>
 
-        {/* Detailed Info Grid */}
-        <div className="grid grid-cols-2 gap-2 text-[12px] mb-4">
-          <div className="flex flex-col bg-slate-50 p-2 rounded-lg border border-slate-100/50">
-            <span className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-wider">Loại phòng</span>
-            <span className="font-semibold text-slate-700 truncate">{room.type}</span>
+        {/* Compact Info Row */}
+        <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-slate-600 mb-3">
+          <div className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
+            <Building className="w-3.5 h-3.5 text-[#006590]" />
+            <span className="truncate max-w-[80px]">{room.type}</span>
           </div>
-          <div className="flex flex-col bg-slate-50 p-2 rounded-lg border border-slate-100/50">
-            <span className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-wider">Phòng ngủ</span>
-            <span className="font-semibold text-slate-700 truncate">{room.bedrooms} PN</span>
+          <div className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
+            <Bed className="w-3.5 h-3.5 text-[#006590]" />
+            <span>{room.bedrooms} PN</span>
           </div>
-          <div className="flex flex-col bg-slate-50 p-2 rounded-lg border border-slate-100/50">
-            <span className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-wider">Tiền điện</span>
-            <span className="font-semibold text-slate-700 truncate">{room.electricity || 'Chưa cập nhật'}</span>
-          </div>
-          <div className="flex flex-col bg-slate-50 p-2 rounded-lg border border-slate-100/50">
-            <span className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-wider">Tiền nước</span>
-            <span className="font-semibold text-slate-700 truncate">{room.water || 'Chưa cập nhật'}</span>
-          </div>
+          {room.gender && (
+            <div className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
+              <User className="w-3.5 h-3.5 text-[#006590]" />
+              <span className="truncate max-w-[60px]">{room.gender}</span>
+            </div>
+          )}
         </div>
 
-        {/* Feature Tags - Compact */}
-        <div className="flex items-center flex-wrap gap-1.5 mb-4 text-[11px] font-medium text-slate-600">
-          {room.gender && <span className="px-2 py-1 bg-slate-100 rounded-md">{room.gender}</span>}
-          {filteredFeatures.slice(0, 2).map((f, i) => (
-             <span key={i} className="px-2 py-1 bg-slate-100 rounded-md">{f}</span>
+        {/* Feature Tags - Very Compact */}
+        <div className="flex items-center flex-wrap gap-1 mb-3 text-[10px] font-medium text-slate-500 h-[22px] overflow-hidden">
+          {filteredFeatures.slice(0, 3).map((f, i) => (
+             <span key={i} className="px-1.5 py-0.5 bg-slate-50 rounded text-slate-500 border border-slate-100 truncate max-w-[80px]">{f}</span>
           ))}
-          {room.pets && <span className="px-2 py-1 bg-slate-100 rounded-md">{room.pets === "thoải mái" ? "Pet OK" : "No Pet"}</span>}
+          {filteredFeatures.length > 3 && <span className="px-1.5 py-0.5 text-slate-400">+{filteredFeatures.length - 3}</span>}
+          {room.pets && <span className="px-1.5 py-0.5 bg-slate-50 rounded text-slate-500 border border-slate-100">{room.pets === "thoải mái" ? "Pet OK" : "No Pet"}</span>}
         </div>
 
         {/* Host Info */}
