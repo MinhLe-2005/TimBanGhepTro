@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Flame, ChevronLeft, ChevronRight, Shield, Zap, Droplet, Building, MapPin, Bed, Bath, User, MessageSquare, Handshake, Check, Info, Star, Upload, Trash2, Moon, Dog, ChefHat, Compass, Sparkles, Heart, Smile, FileText, Phone, Ban, Users, Image as ImageIcon } from "lucide-react";
+import { X, Flame, ChevronLeft, ChevronRight, Shield, Zap, Droplet, Building, MapPin, Bed, Bath, User, MessageSquare, Handshake, Check, Info, Star, Upload, Trash2, Moon, Dog, ChefHat, Compass, Sparkles, Heart, Smile, FileText, Phone, Ban, Users, LayoutGrid, Image as ImageIcon } from "lucide-react";
 import { Room, Roommate } from "../types";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { calculateReputationScore, getReputationLabel } from "../utils/scoring";
