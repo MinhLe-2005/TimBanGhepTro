@@ -362,12 +362,12 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     toast('✅ Đã mở khóa tài khoản.', 'success');
   };
 
-  const handleDeleteListing = async (table: 'roommates' | 'rooms', id: string) => {
-    const ok = await confirm({ title: 'Xóa bài đăng', message: 'Xóa vĩnh viễn bài đăng này? Hành động không thể hoàn tác.', confirmText: 'Xóa ngay', type: 'error' });
+  const handleDeleteListing = async (table: 'roommates' | 'rooms', id: string, typeName: string = 'bài đăng') => {
+    const ok = await confirm({ title: `Xóa ${typeName}`, message: `Xóa vĩnh viễn ${typeName} này? Hành động không thể hoàn tác.`, confirmText: 'Xóa ngay', type: 'error' });
     if (!ok) return;
     const { error } = await supabase.from(table).delete().eq('id', id);
     if (error) {
-      toast('Không thể xóa tin đăng.', 'error');
+      toast(`Không thể xóa ${typeName}.`, 'error');
       return;
     }
     if (table === 'roommates' && onDeleteRoommate) onDeleteRoommate(id);
@@ -375,7 +375,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     if (table === 'roommates') {
       setAllSupabaseRoommates(previous => previous.filter(item => item.id !== id));
     }
-    toast('🗑️ Đã xóa tin đăng.', 'info');
+    toast(`🗑️ Đã xóa ${typeName}.`, 'info');
   };
 
   const handleDeleteAgreement = async (id: string) => {
@@ -402,7 +402,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     </button>
   );
 
-  const UserCard = ({ rm, isBanned }: { rm: any; isBanned: boolean }) => (
+  const UserCard = ({ rm, isBanned, itemType = 'bài đăng' }: { rm: any; isBanned: boolean; itemType?: string }) => (
     <div 
       className="border border-slate-200 p-4 rounded-2xl flex items-start gap-4 relative overflow-hidden cursor-pointer hover:border-sky-300 hover:shadow-md transition-all group"
       onClick={() => onViewRoommate?.(rm)}
@@ -427,7 +427,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
             <ShieldCheck className="w-4 h-4" />
           </button>
         )}
-        <button onClick={() => handleDeleteListing('roommates', rm.id)} className="p-2 bg-slate-50 text-slate-400 hover:bg-slate-200 hover:text-slate-700 rounded-xl transition-colors" title="Xóa">
+        <button onClick={() => handleDeleteListing('roommates', rm.id, itemType)} className="p-2 bg-slate-50 text-slate-400 hover:bg-slate-200 hover:text-slate-700 rounded-xl transition-colors" title="Xóa">
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
@@ -652,7 +652,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                   <div className="text-center py-10 bg-slate-50 rounded-2xl"><p className="text-slate-500 font-bold">Chưa có bài đăng nào.</p></div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {listings.map(rm => <UserCard key={rm.id} rm={rm} isBanned={rm.user_id ? bannedUsers.includes(rm.user_id) : bannedUsers.includes(rm.id)} />)}
+                    {listings.map(rm => <UserCard key={rm.id} rm={rm} isBanned={rm.user_id ? bannedUsers.includes(rm.user_id) : bannedUsers.includes(rm.id)} itemType="bài đăng tìm bạn" />)}
                   </div>
                 )}
               </div>
@@ -666,7 +666,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                   <div className="text-center py-10 bg-slate-50 rounded-2xl"><p className="text-slate-500 font-bold">Chưa có hồ sơ nào.</p></div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {profiles.map(rm => <UserCard key={rm.id} rm={rm} isBanned={rm.user_id ? bannedUsers.includes(rm.user_id) : bannedUsers.includes(rm.id)} />)}
+                    {profiles.map(rm => <UserCard key={rm.id} rm={rm} isBanned={rm.user_id ? bannedUsers.includes(rm.user_id) : bannedUsers.includes(rm.id)} itemType="hồ sơ" />)}
                   </div>
                 )}
               </div>
@@ -696,7 +696,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                           <div className="flex justify-between items-center mt-2">
                              <span className="text-xs font-bold text-emerald-600">{(room.price/1000000).toFixed(1)} tr/tháng</span>
                              <div onClick={e => e.stopPropagation()}>
-                               <button onClick={() => handleDeleteListing('rooms', room.id)} className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg transition-colors"><Trash2 className="w-3 h-3" /></button>
+                               <button onClick={() => handleDeleteListing('rooms', room.id, 'tin đăng phòng')} className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg transition-colors"><Trash2 className="w-3 h-3" /></button>
                              </div>
                           </div>
                         </div>
