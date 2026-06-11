@@ -1439,12 +1439,8 @@ export default function App() {
 
     // 5. Supabase Delete - delete the record
     if (import.meta.env.VITE_SUPABASE_URL) {
-      // Lấy thông tin roommate để xóa ảnh avatar trên Supabase Storage
-      const rmToDelete = supabaseRoommates.find(r => r.id === id) || JSON.parse(saved || "[]").find((r: any) => r.id === id);
-      if (rmToDelete && rmToDelete.avatar) {
-        // Assume avatar might be in 'room-images' bucket or 'avatars' bucket, usually we upload to room-images if from the same modal
-        await deleteImagesFromSupabase([rmToDelete.avatar], 'room-images');
-      }
+      // Không xóa avatar của roommate listing vì avatar này thường là avatar profile (dùng chung)
+      // hoặc là chuỗi base64. Nếu xóa sẽ ảnh hưởng đến profile chính.
 
       const { error } = await supabase.from('roommates').delete().eq('id', id);
       if (error) {
