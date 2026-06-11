@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Sparkles, Users, Building, ShieldCheck, HeartHandshake, Eye, ArrowRight, ArrowUpRight, Clock, Trash2, Coins, FileText, Search, MapPin, DollarSign, UserCheck, ChevronDown, Heart, Home, ChevronLeft, ChevronRight } from "lucide-react";
+import { Sparkles, Users, Building, ShieldCheck, HeartHandshake, Eye, ArrowRight, ArrowUpRight, Clock, Trash2, Coins, FileText, Search, MapPin, DollarSign, UserCheck, ChevronDown, ChevronUp, Heart, Home, ChevronLeft, ChevronRight } from "lucide-react";
 import { Roommate, Room } from "../types";
 import RoommateCard from "./RoommateCard";
 import RoomCard from "./RoomCard";
@@ -47,6 +47,8 @@ export default function HomeView({
   const [isRoommateCarouselPaused, setIsRoommateCarouselPaused] = useState(false);
   const [isRoomCarouselPaused, setIsRoomCarouselPaused] = useState(false);
   const [isPopularModalOpen, setIsPopularModalOpen] = useState(false);
+  const [showAllLikedRoommates, setShowAllLikedRoommates] = useState(false);
+  const [showAllLikedRooms, setShowAllLikedRooms] = useState(false);
 
   // Carousel Logic
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -446,17 +448,31 @@ export default function HomeView({
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin">
-                {likedRoommates.map((roommate) => (
-                    <RoommateCard
-                      key={roommate.id}
-                      roommate={roommate}
-                      onViewDetails={onViewRoommate}
-                      onLikeChange={onLikeRoommate}
-                      isInitiallyLiked={true}
-                      onStartChat={onStartChat}
-                    />
-                  ))}
+              <div className="flex flex-col gap-3">
+                <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${showAllLikedRoommates ? '' : 'max-h-[500px] overflow-hidden'}`}>
+                  {(showAllLikedRoommates ? likedRoommates : likedRoommates.slice(0, 2)).map((roommate) => (
+                      <RoommateCard
+                        key={roommate.id}
+                        roommate={roommate}
+                        onViewDetails={onViewRoommate}
+                        onLikeChange={onLikeRoommate}
+                        isInitiallyLiked={true}
+                        onStartChat={onStartChat}
+                      />
+                    ))}
+                </div>
+                {likedRoommates.length > 2 && (
+                  <button
+                    onClick={() => setShowAllLikedRoommates(!showAllLikedRoommates)}
+                    className="w-full text-center py-2 text-[13px] font-bold text-[#006590] hover:bg-sky-50 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 border border-sky-100"
+                  >
+                    {showAllLikedRoommates ? (
+                      <>Thu gọn <ChevronUp className="w-4 h-4" /></>
+                    ) : (
+                      <>Xem thêm {likedRoommates.length - 2} bạn <ChevronDown className="w-4 h-4" /></>
+                    )}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -479,18 +495,39 @@ export default function HomeView({
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin">
-                {rooms
-                  .filter((r) => likedRoomIds.includes(r.id))
-                  .map((room) => (
-                    <RoomCard
-                      key={room.id}
-                      room={room}
-                      onViewDetails={onViewRoom}
-                      onLikeChange={isAdmin ? undefined : onLikeRoom}
-                      isInitiallyLiked={true}
-                    />
-                  ))}
+              <div className="flex flex-col gap-3">
+                <div className={`grid grid-cols-1 gap-4 ${showAllLikedRooms ? '' : 'max-h-[500px] overflow-hidden'}`}>
+                  {(() => {
+                    const likedRooms = rooms.filter((r) => likedRoomIds.includes(r.id));
+                    const visibleRooms = showAllLikedRooms ? likedRooms : likedRooms.slice(0, 2);
+                    
+                    return (
+                      <>
+                        {visibleRooms.map((room) => (
+                          <RoomCard
+                            key={room.id}
+                            room={room}
+                            onViewDetails={onViewRoom}
+                            onLikeChange={isAdmin ? undefined : onLikeRoom}
+                            isInitiallyLiked={true}
+                          />
+                        ))}
+                        {likedRooms.length > 2 && (
+                          <button
+                            onClick={() => setShowAllLikedRooms(!showAllLikedRooms)}
+                            className="w-full text-center py-2 text-[13px] font-bold text-[#006590] hover:bg-sky-50 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 border border-sky-100"
+                          >
+                            {showAllLikedRooms ? (
+                              <>Thu gọn <ChevronUp className="w-4 h-4" /></>
+                            ) : (
+                              <>Xem thêm {likedRooms.length - 2} phòng <ChevronDown className="w-4 h-4" /></>
+                            )}
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
             )}
           </div>
