@@ -31,10 +31,19 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleProviderSelect = async (provider: "google" | "facebook") => {
-    // Ứng dụng Facebook/Google đang trong chế độ Development nên OAuth thật sẽ bị chặn với người dùng thường.
-    // Chuyển hướng người dùng sang giao diện Mock OAuth để họ có thể test ứng dụng dễ dàng.
-    setMockProvider(provider);
-    setAuthStep("mock_oauth");
+    try {
+      // Use root URL for OAuth callback to avoid Supabase redirect config issues
+      const callbackUrl = window.location.origin;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: callbackUrl,
+        }
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      setErrorMessage("Lỗi kết nối: " + err.message);
+    }
   };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
@@ -316,7 +325,7 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
                   {mockProvider === "google" ? <GoogleIcon /> : <Facebook className="w-7 h-7 text-[#1877F2] fill-[#1877F2]" />}
                 </div>
                 <h3 className="text-xl font-black text-slate-800 tracking-tight">Đăng nhập bằng {mockProvider === "google" ? "Google" : "Facebook"}</h3>
-                <p className="text-sm text-slate-500 mt-2 font-medium">Vì ứng dụng đang trong giai đoạn phát triển, tính năng đăng nhập thật tạm khóa. Chọn tài khoản mẫu để tiếp tục trải nghiệm ngay.</p>
+                <p className="text-sm text-slate-500 mt-2 font-medium">Chọn tài khoản mẫu để tiếp tục</p>
              </div>
              
              <div className="space-y-3 mt-2">
