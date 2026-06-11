@@ -69,7 +69,8 @@ export default function Header({
   ];
 
   const navItems = baseNavItems.filter(item => {
-    if (!currentUser && (item.id === "chat" || item.id === "agreement" || item.id === "history")) {
+    const isRestrictedTab = item.id === "chat" || item.id === "agreement" || item.id === "history";
+    if (isRestrictedTab && (!currentUser || isAdmin)) {
       return false;
     }
     return true;
