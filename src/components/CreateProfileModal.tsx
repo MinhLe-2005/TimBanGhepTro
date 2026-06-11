@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { X, Sparkles, Camera, CheckCircle2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import ImageCropperModal from "./ImageCropperModal";
 
 interface CreateProfileModalProps {
   onClose: () => void;
@@ -66,6 +67,7 @@ export default function CreateProfileModal({
   );
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -74,10 +76,21 @@ export default function CreateProfileModal({
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setSelectedAvatar(reader.result as string);
+        setCropImageSrc(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
+    // Reset input so same file can be re-selected
+    e.target.value = "";
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedAvatar(reader.result as string);
+      setCropImageSrc(null);
+    };
+    reader.readAsDataURL(croppedBlob);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -419,5 +432,15 @@ export default function CreateProfileModal({
         </div>
       </div>
     </div>
+
+    {cropImageSrc && (
+      <ImageCropperModal
+        imageSrc={cropImageSrc}
+        onClose={() => setCropImageSrc(null)}
+        onCropComplete={handleCropComplete}
+        aspectRatio={1}
+        circularCrop={true}
+      />
+    )}
   );
 }
