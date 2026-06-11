@@ -1,6 +1,5 @@
 import { Heart, Pencil, Star, Trash2, ShieldCheck, AlertCircle } from "lucide-react";
 import { Roommate } from "../types";
-import { useDialog } from "./ui/DialogProvider";
 import { useEffect, useState } from "react";
 import { getAverageRating, calculateReputationScore, getReputationLabel } from "../utils/scoring";
 
@@ -35,7 +34,6 @@ export default function RoommateCard({
 }: RoommateCardProps) {
   const [isLiked, setIsLiked] = useState(isInitiallyLiked);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
-  const { previewImage } = useDialog();
 
   useEffect(() => {
     setIsLiked(isInitiallyLiked);
@@ -68,12 +66,8 @@ export default function RoommateCard({
         <img
           src={roommate.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop"}
           alt={roommate.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-zoom-in"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           referrerPolicy="no-referrer"
-          onClick={(e) => {
-            e.stopPropagation();
-            previewImage(roommate.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1200&auto=format&fit=crop");
-          }}
         />
 
         {/* Trust Score / Rating Badge */}
