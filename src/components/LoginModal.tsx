@@ -251,18 +251,7 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
                 </div>
                 
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Mật khẩu</label>
-                    {activeTab === "login" && (
-                      <button 
-                        type="button" 
-                        onClick={() => { setAuthStep("forgot_password"); setErrorMessage(""); }}
-                        className="text-[11px] font-bold text-[#006590] hover:underline cursor-pointer"
-                      >
-                        Quên mật khẩu?
-                      </button>
-                    )}
-                  </div>
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-2">Mật khẩu</label>
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
@@ -281,6 +270,17 @@ export default function LoginModal({ onClose, onLoginSuccess }: LoginModalProps)
                     </button>
                   </div>
                 </div>
+                  {activeTab === "login" && (
+                    <div className="flex justify-end mt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => { setAuthStep("forgot_password"); setErrorMessage(""); }}
+                        className="text-[11px] font-bold text-[#006590] hover:underline cursor-pointer"
+                      >
+                        Quên mật khẩu?
+                      </button>
+                    </div>
+                  )}
 
                 {activeTab === "register" && (
                   <div>
