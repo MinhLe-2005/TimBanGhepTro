@@ -1878,7 +1878,7 @@ export default function App() {
        // Also sync to Supabase so avatar + changes persist on reload
        if (import.meta.env.VITE_SUPABASE_URL) {
          try {
-           const validRoommateKeys = ['id', 'name', 'age', 'role', 'phoneNumber', 'avatar', 'status', 'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags', 'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id', 'is_listing', 'createdAt'];
+           const validRoommateKeys = ['id', 'name', 'age', 'role', 'phoneNumber', 'email', 'avatar', 'status', 'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags', 'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id', 'is_listing', 'createdAt'];
            const upsertData: any = {};
            for (const key of validRoommateKeys) {
              if (profile[key as keyof Roommate] !== undefined) {
@@ -1888,6 +1888,9 @@ export default function App() {
            upsertData.user_id = currentUser.id;
            upsertData.postedBy = currentUser.id;
            upsertData.is_listing = false;
+           if (currentUser.email && !upsertData.email) {
+             upsertData.email = currentUser.email;
+           }
            // Fallback to current user ID if profile id is missing or 'me'
            if (!upsertData.id || upsertData.id === 'me') {
                upsertData.id = currentUser.id;

@@ -483,6 +483,12 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
       <div className="flex-1 min-w-0">
         <p className="font-bold text-slate-800 truncate group-hover:text-sky-700 transition-colors">{rm.name}</p>
         <p className="text-xs text-slate-500 truncate">{rm.role} · {rm.district}</p>
+        {(rm.email || rm.phoneNumber) && (
+          <p className="text-xs text-slate-600 truncate mt-0.5">
+            {rm.email && <span className="mr-2">✉️ {rm.email}</span>}
+            {rm.phoneNumber && <span>📞 {rm.phoneNumber}</span>}
+          </p>
+        )}
         {rm.budget ? <p className="text-xs text-[#006590] font-semibold mt-0.5">{(rm.budget/1000000).toFixed(1)} tr/tháng</p> : null}
         <p className="text-[10px] text-slate-400 mt-1 truncate font-mono">UID: {rm.user_id || rm.postedBy || '—'}</p>
         {rm.createdAt && <p className="text-[10px] text-slate-400">Đăng: {new Date(rm.createdAt).toLocaleString('vi-VN')}</p>}

@@ -36,6 +36,7 @@ export interface Roommate {
   gender: "Nam" | "Nữ" | "Khác";
   school?: string;
   phoneNumber?: string;
+  email?: string;
   postedBy?: string; // user ID who posted this listing
   user_id?: string;
   auth_id?: string;
