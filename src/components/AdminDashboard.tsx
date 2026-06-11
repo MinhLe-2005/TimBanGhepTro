@@ -221,15 +221,40 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     return false;
   };
 
+  const removeReportEvidence = async (report: any) => {
+    const evidenceUrls = [
+      report.image,
+      report.evidence_url,
+      report.evidence_image_url,
+      report.screenshot_url,
+      ...(Array.isArray(report.evidence_images) ? report.evidence_images : []),
+    ].filter(Boolean);
+
+    if (evidenceUrls.length === 0) return true;
+
+    try {
+      await removePublicStorageUrls(evidenceUrls, "reports");
+      return true;
+    } catch (storageError) {
+      console.error("[Admin] Could not remove report evidence:", storageError);
+      toast(
+        "Không thể xóa ảnh minh chứng trên Storage. Báo cáo vẫn được giữ lại để tránh tồn ảnh rác.",
+        "error",
+        5000
+      );
+      return false;
+    }
+  };
+
   const resolveChatReport = async (report: any) => {
     const reportMessageId = report.report_message_id || report.id;
     if (!reportMessageId) return false;
-    
+
+    const evidenceRemoved = await removeReportEvidence(report);
+    if (!evidenceRemoved) return false;
+
     const { error } = await supabase.from('messages').delete().eq('id', reportMessageId);
     if (error) return false;
-    await removePublicStorageUrls([report.image], "reports").catch((storageError) => {
-      console.warn("[Admin] Could not remove report evidence:", storageError);
-    });
     setReports(previous =>
       previous.filter(item => (item.report_message_id || item.id) !== reportMessageId)
     );
@@ -277,17 +302,35 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
       return;
     }
 
-    await resolveChatReport(report);
+    const resolved = await resolveChatReport(report);
+    if (!resolved) {
+      toast(
+        `Đã xóa ${messageIds.length} tin nhắn nhưng chưa thể đóng báo cáo. Vui lòng thử lại.`,
+        "warning",
+        5000
+      );
+      return;
+    }
     toast(`Đã xóa ${messageIds.length} tin nhắn vi phạm.`, 'success');
   };
 
   const handleBanReportedUser = async (report: any, targetAccountId: string) => {
     const banned = await handleBanUser(targetAccountId);
     if (!banned) return;
-    await resolveChatReport(report);
+    const resolved = await resolveChatReport(report);
+    if (!resolved) {
+      toast(
+        "Đã khóa tài khoản nhưng chưa thể đóng báo cáo. Vui lòng thử lại.",
+        "warning",
+        5000
+      );
+    }
   };
 
   const resolveReviewReport = async (report: any, _status: 'dismissed' | 'review_deleted' | 'user_banned') => {
+    const evidenceRemoved = await removeReportEvidence(report);
+    if (!evidenceRemoved) return false;
+
     let error = null;
     if (report.source === 'table') {
       ({ error } = await supabase.from('review_reports').delete().eq('id', report.id));
@@ -331,7 +374,15 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
       toast('Không thể xóa feedback.', 'error');
       return;
     }
-    await resolveReviewReport(report, 'review_deleted');
+    const resolved = await resolveReviewReport(report, 'review_deleted');
+    if (!resolved) {
+      toast(
+        "Đã xóa feedback nhưng chưa thể đóng báo cáo. Vui lòng thử lại.",
+        "warning",
+        5000
+      );
+      return;
+    }
     onReviewDeleted?.(report.review_id);
     toast('Đã xóa feedback phản cảm.', 'success');
   };
@@ -344,7 +395,14 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     }
     const banned = await handleBanUser(reviewerId);
     if (!banned) return;
-    await resolveReviewReport(report, 'user_banned');
+    const resolved = await resolveReviewReport(report, 'user_banned');
+    if (!resolved) {
+      toast(
+        "Đã khóa tài khoản nhưng chưa thể đóng báo cáo feedback. Vui lòng thử lại.",
+        "warning",
+        5000
+      );
+    }
   };
 
   const handleUnbanUser = async (userId: string) => {
