@@ -161,70 +161,67 @@ export default function HomeView({
   return (
     <div className="space-y-20 animate-fade-in relative pt-20 lg:pt-28 px-4 lg:px-8 max-w-[1350px] mx-auto">
       {/* 1. Hero Section */}
-      <section className="relative rounded-[32px] sm:rounded-[40px] overflow-hidden min-h-[540px] lg:min-h-[600px] flex flex-col justify-end border-[6px] border-white shadow-2xl shadow-slate-300/40">
+      <section className="relative rounded-[32px] sm:rounded-[40px] overflow-hidden min-h-[560px] lg:min-h-[620px] flex flex-col justify-end border-[6px] border-white shadow-2xl shadow-slate-300/40">
         {/* Background image */}
         <img
-          src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1600&auto=format&fit=crop"
+          src="https://images.unsplash.com/photo-1555854877-bab0e564b8d5?q=80&w=1600&auto=format&fit=crop"
           alt="Căn hộ Đà Nẵng"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover scale-105"
         />
-        {/* Dark gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/75 to-slate-700/30" />
-        {/* Noise texture overlay for depth */}
-        <div className="absolute inset-0 opacity-[0.04] [background-image:url('https://www.transparenttextures.com/patterns/noise.png')]" />
+        {/* Lighter gradient — let the photo breathe */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/50 to-transparent" />
+        {/* Subtle left-side vignette to make text readable */}
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-transparent" />
 
         {/* Floating animated badges */}
-        {/* Badge: Verified */}
-        <div className="absolute top-8 left-8 hidden sm:flex items-center gap-2.5 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2.5 rounded-2xl text-white shadow-lg animate-[float_4s_ease-in-out_infinite]">
-          <span className="w-7 h-7 rounded-full bg-emerald-400/20 flex items-center justify-center">
+        <div className="absolute top-7 left-7 hidden sm:flex items-center gap-2.5 bg-white/15 backdrop-blur-xl border border-white/30 px-4 py-3 rounded-2xl text-white shadow-2xl" style={{animation: 'float 4s ease-in-out infinite'}}>
+          <span className="w-8 h-8 rounded-full bg-emerald-400/30 flex items-center justify-center">
             <ShieldCheck className="w-4 h-4 text-emerald-300" />
           </span>
           <div>
-            <p className="text-[10px] text-white/60 font-bold uppercase tracking-widest leading-none mb-0.5">Xác minh</p>
-            <p className="text-[13px] font-black leading-none">100% An Toàn</p>
+            <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest leading-none mb-0.5">Xác minh</p>
+            <p className="text-[14px] font-black leading-none">100% An Toàn</p>
           </div>
         </div>
 
-        {/* Badge: Active users */}
-        <div className="absolute top-8 right-8 hidden sm:flex items-center gap-2.5 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2.5 rounded-2xl text-white shadow-lg animate-[float_4s_ease-in-out_infinite_1.5s]">
-          <span className="w-7 h-7 rounded-full bg-sky-400/20 flex items-center justify-center">
-            <Users className="w-4 h-4 text-sky-300" />
+        <div className="absolute top-7 right-7 hidden sm:flex items-center gap-2.5 bg-white/15 backdrop-blur-xl border border-white/30 px-4 py-3 rounded-2xl text-white shadow-2xl" style={{animation: 'float 4s ease-in-out infinite 1.5s'}}>
+          <span className="w-8 h-8 rounded-full bg-sky-400/30 flex items-center justify-center">
+            <Users className="w-4 h-4 text-sky-200" />
           </span>
           <div>
-            <p className="text-[10px] text-white/60 font-bold uppercase tracking-widest leading-none mb-0.5">Đang hoạt động</p>
-            <p className="text-[13px] font-black leading-none">{roommates.filter(r => r.is_listing).length}+ Người</p>
+            <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest leading-none mb-0.5">Đang hoạt động</p>
+            <p className="text-[14px] font-black leading-none">{roommates.filter(r => r.is_listing).length}+ Người</p>
           </div>
         </div>
 
-        {/* Badge: Rooms listed */}
-        <div className="absolute top-1/2 -translate-y-1/2 right-8 hidden lg:flex items-center gap-2.5 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2.5 rounded-2xl text-white shadow-lg animate-[float_5s_ease-in-out_infinite_0.5s]">
-          <span className="w-7 h-7 rounded-full bg-rose-400/20 flex items-center justify-center">
+        <div className="absolute top-1/2 -translate-y-1/2 right-7 hidden lg:flex items-center gap-2.5 bg-white/15 backdrop-blur-xl border border-white/30 px-4 py-3 rounded-2xl text-white shadow-2xl" style={{animation: 'float 5s ease-in-out infinite 0.5s'}}>
+          <span className="w-8 h-8 rounded-full bg-rose-400/30 flex items-center justify-center">
             <Home className="w-4 h-4 text-rose-300" />
           </span>
           <div>
-            <p className="text-[10px] text-white/60 font-bold uppercase tracking-widest leading-none mb-0.5">Phòng cho thuê</p>
-            <p className="text-[13px] font-black leading-none">{rooms.length}+ Tin đăng</p>
+            <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest leading-none mb-0.5">Phòng cho thuê</p>
+            <p className="text-[14px] font-black leading-none">{rooms.length}+ Tin đăng</p>
           </div>
         </div>
 
         {/* Content */}
-        <div className="relative z-10 px-7 sm:px-12 lg:px-16 pb-14 pt-32 lg:pt-40">
-          <div className="max-w-2xl">
+        <div className="relative z-10 px-8 sm:px-12 lg:px-16 pb-12 pt-36 lg:pt-44">
+          <div className="max-w-xl">
             {/* Tag */}
-            <div className="inline-flex items-center gap-2 mb-5 px-3.5 py-1.5 rounded-full bg-rose-500/20 border border-rose-400/30 text-rose-300 text-[12px] font-bold uppercase tracking-[0.12em]">
+            <div className="inline-flex items-center gap-2 mb-5 px-3.5 py-1.5 rounded-full bg-rose-500/30 border border-rose-400/50 text-rose-200 text-[12px] font-bold uppercase tracking-[0.12em]">
               <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
               Nền tảng ghép phòng số 1 Đà Nẵng
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-[62px] font-black text-white tracking-tight leading-[1.1] mb-5">
+            <h1 className="text-[42px] sm:text-5xl lg:text-[64px] font-black text-white tracking-tight leading-[1.08] mb-5 drop-shadow-lg">
               Tìm Roommate<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-orange-300 to-amber-300">
                 Đúng Người,
               </span>{" "}
-              <span className="text-white/90">Đúng Vibe.</span>
+              <span className="text-white">Đúng Vibe.</span>
             </h1>
 
-            <p className="text-white/60 text-[15px] sm:text-base leading-relaxed max-w-xl mb-8 font-medium">
+            <p className="text-white/70 text-[15px] leading-relaxed max-w-md mb-8 font-medium">
               Kết nối với người ở ghép phù hợp tại Đà Nẵng — từ giờ giấc sinh hoạt, ngân sách đến phong cách sống.
             </p>
 
@@ -232,40 +229,38 @@ export default function HomeView({
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => onNavigateToTab("roommates")}
-                className="inline-flex items-center gap-2.5 bg-white text-slate-900 hover:bg-slate-100 px-8 py-3.5 rounded-full text-[15px] font-black shadow-xl shadow-black/20 active:scale-95 transition-all duration-200 cursor-pointer"
+                className="inline-flex items-center gap-2.5 bg-white text-slate-900 hover:bg-amber-50 px-8 py-3.5 rounded-full text-[15px] font-black shadow-2xl shadow-black/30 active:scale-95 transition-all duration-200 cursor-pointer"
               >
                 Tìm Bạn Ghép
                 <ArrowRight className="h-4 w-4" />
               </button>
-
               <button
                 onClick={() => onNavigateToTab("rooms")}
-                className="inline-flex items-center gap-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white px-8 py-3.5 rounded-full text-[15px] font-bold active:scale-95 transition-all duration-200 cursor-pointer"
+                className="inline-flex items-center gap-2.5 bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/30 text-white px-8 py-3.5 rounded-full text-[15px] font-bold active:scale-95 transition-all duration-200 cursor-pointer"
               >
                 Xem Phòng Cho Thuê
               </button>
             </div>
-          </div>
 
-          {/* Bottom stats strip */}
-          <div className="flex gap-8 mt-10 flex-wrap">
-            {[
-              { icon: <MapPin className="w-4 h-4" />, value: "7 Quận", label: "Toàn Đà Nẵng" },
-              { icon: <UserCheck className="w-4 h-4" />, value: "Miễn phí", label: "100% Không phí" },
-              { icon: <ShieldCheck className="w-4 h-4" />, value: "Bảo mật", label: "Thông tin riêng tư" },
-            ].map(({ icon, value, label }, i) => (
-              <div key={i} className="flex items-center gap-2.5 text-white">
-                <span className="text-white/50">{icon}</span>
-                <div>
-                  <p className="text-[13px] font-black leading-none">{value}</p>
-                  <p className="text-[11px] text-white/50 mt-0.5 font-medium">{label}</p>
+            {/* Bottom stats strip */}
+            <div className="flex gap-6 mt-8 flex-wrap">
+              {[
+                { icon: <MapPin className="w-3.5 h-3.5" />, value: "7 Quận", label: "Toàn Đà Nẵng" },
+                { icon: <UserCheck className="w-3.5 h-3.5" />, value: "Miễn phí", label: "Không mất phí" },
+                { icon: <ShieldCheck className="w-3.5 h-3.5" />, value: "Bảo mật", label: "Thông tin riêng tư" },
+              ].map(({ icon, value, label }, i) => (
+                <div key={i} className="flex items-center gap-2 text-white">
+                  <span className="text-white/60">{icon}</span>
+                  <div>
+                    <p className="text-[13px] font-black leading-none">{value}</p>
+                    <p className="text-[11px] text-white/55 mt-0.5 font-medium">{label}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
-
 
       {/* Search Bar */}
       <div className="relative z-20 max-w-5xl mx-auto px-4 -mt-6 mb-8">
