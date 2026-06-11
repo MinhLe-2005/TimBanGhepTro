@@ -570,9 +570,34 @@ export default function App() {
           
           // Optimize: Only update the changed record instead of refetching all
           if (payload.eventType === 'INSERT' && payload.new) {
-            setSupabaseRoommates(prev => [unpackRoommate(payload.new), ...prev]);
+            // Note: Since unpackRoommate and unpackRoom were moved, these will now work correctly
+            const newRm = payload.new;
+            if (newRm.features && Array.isArray(newRm.features)) {
+              newRm.features.forEach((f: string) => {
+                if (typeof f !== 'string') return;
+                if (f.startsWith('ROLE:')) newRm.role = f.substring(5);
+                if (f.startsWith('TARGET_TENANTS:')) newRm.targetTenants = parseInt(f.substring(15));
+                if (f.startsWith('HABITS:')) {
+                  try { newRm.habits = JSON.parse(f.substring(7)); } catch (e) {}
+                }
+              });
+              newRm.features = newRm.features.filter((f: string) => typeof f === 'string' && !f.match(/^(ROLE|TARGET_TENANTS|HABITS):/));
+            }
+            setSupabaseRoommates(prev => [newRm, ...prev]);
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            setSupabaseRoommates(prev => prev.map(rm => rm.id === payload.new.id ? unpackRoommate(payload.new) : rm));
+            const newRm = payload.new;
+            if (newRm.features && Array.isArray(newRm.features)) {
+              newRm.features.forEach((f: string) => {
+                if (typeof f !== 'string') return;
+                if (f.startsWith('ROLE:')) newRm.role = f.substring(5);
+                if (f.startsWith('TARGET_TENANTS:')) newRm.targetTenants = parseInt(f.substring(15));
+                if (f.startsWith('HABITS:')) {
+                  try { newRm.habits = JSON.parse(f.substring(7)); } catch (e) {}
+                }
+              });
+              newRm.features = newRm.features.filter((f: string) => typeof f === 'string' && !f.match(/^(ROLE|TARGET_TENANTS|HABITS):/));
+            }
+            setSupabaseRoommates(prev => prev.map(rm => rm.id === newRm.id ? newRm : rm));
           } else if (payload.eventType === 'DELETE' && payload.old) {
             setSupabaseRoommates(prev => prev.filter(rm => rm.id !== payload.old.id));
           }
@@ -587,15 +612,73 @@ export default function App() {
           
           // Optimize: Only update the changed record instead of refetching all
           if (payload.eventType === 'INSERT' && payload.new) {
-            setSupabaseRooms(prev => [unpackRoom(payload.new), ...prev]);
+            const newRoom = payload.new;
+            if (newRoom.features && Array.isArray(newRoom.features)) {
+              newRoom.features.forEach((f: string) => {
+                if (typeof f !== 'string') return;
+                if (f.startsWith('ELECTRICITY:')) newRoom.electricity = f.substring(12);
+                if (f.startsWith('WATER:')) newRoom.water = f.substring(6);
+                if (f.startsWith('PARKING:')) newRoom.parking = f.substring(8);
+                if (f.startsWith('PROXIMITY:')) newRoom.proximity = f.substring(10);
+                if (f.startsWith('HOSTROLE:')) newRoom.hostRole = f.substring(9);
+                if (f.startsWith('ROOMMATE_INFO:')) {
+                  try { newRoom.roommateInfo = JSON.parse(f.substring(14)); } catch (e) {}
+                }
+                if (f.startsWith('HABITS:')) {
+                  try { newRoom.habits = JSON.parse(f.substring(7)); } catch (e) {}
+                }
+              });
+              newRoom.features = newRoom.features.filter((f: string) => typeof f === 'string' && !f.match(/^(ELECTRICITY|WATER|PARKING|PROXIMITY|HOSTROLE|ROOMMATE_INFO|HABITS):/));
+            }
+            setSupabaseRooms(prev => [newRoom, ...prev]);
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            setSupabaseRooms(prev => prev.map(r => r.id === payload.new.id ? unpackRoom(payload.new) : r));
+            const newRoom = payload.new;
+            if (newRoom.features && Array.isArray(newRoom.features)) {
+              newRoom.features.forEach((f: string) => {
+                if (typeof f !== 'string') return;
+                if (f.startsWith('ELECTRICITY:')) newRoom.electricity = f.substring(12);
+                if (f.startsWith('WATER:')) newRoom.water = f.substring(6);
+                if (f.startsWith('PARKING:')) newRoom.parking = f.substring(8);
+                if (f.startsWith('PROXIMITY:')) newRoom.proximity = f.substring(10);
+                if (f.startsWith('HOSTROLE:')) newRoom.hostRole = f.substring(9);
+                if (f.startsWith('ROOMMATE_INFO:')) {
+                  try { newRoom.roommateInfo = JSON.parse(f.substring(14)); } catch (e) {}
+                }
+                if (f.startsWith('HABITS:')) {
+                  try { newRoom.habits = JSON.parse(f.substring(7)); } catch (e) {}
+                }
+              });
+              newRoom.features = newRoom.features.filter((f: string) => typeof f === 'string' && !f.match(/^(ELECTRICITY|WATER|PARKING|PROXIMITY|HOSTROLE|ROOMMATE_INFO|HABITS):/));
+            }
+            setSupabaseRooms(prev => prev.map(r => r.id === newRoom.id ? newRoom : r));
           } else if (payload.eventType === 'DELETE' && payload.old) {
             setSupabaseRooms(prev => prev.filter(r => r.id !== payload.old.id));
           } else {
             // Fallback: refetch if needed
             const { data } = await supabase.from('rooms').select('*').order('createdAt', { ascending: false });
-            if (data) setSupabaseRooms(data.map(unpackRoom));
+            if (data) {
+              const freshRooms = data.map((room: any) => {
+                if (room.features && Array.isArray(room.features)) {
+                  room.features.forEach((f: string) => {
+                    if (typeof f !== 'string') return;
+                    if (f.startsWith('ELECTRICITY:')) room.electricity = f.substring(12);
+                    if (f.startsWith('WATER:')) room.water = f.substring(6);
+                    if (f.startsWith('PARKING:')) room.parking = f.substring(8);
+                    if (f.startsWith('PROXIMITY:')) room.proximity = f.substring(10);
+                    if (f.startsWith('HOSTROLE:')) room.hostRole = f.substring(9);
+                    if (f.startsWith('ROOMMATE_INFO:')) {
+                      try { room.roommateInfo = JSON.parse(f.substring(14)); } catch (e) {}
+                    }
+                    if (f.startsWith('HABITS:')) {
+                      try { room.habits = JSON.parse(f.substring(7)); } catch (e) {}
+                    }
+                  });
+                  room.features = room.features.filter((f: string) => typeof f === 'string' && !f.match(/^(ELECTRICITY|WATER|PARKING|PROXIMITY|HOSTROLE|ROOMMATE_INFO|HABITS):/));
+                }
+                return room;
+              });
+              setSupabaseRooms(freshRooms);
+            }
           }
         }
       )
