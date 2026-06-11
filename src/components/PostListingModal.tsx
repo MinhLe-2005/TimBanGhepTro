@@ -4,6 +4,7 @@ import { Roommate, Room } from "../types";
 import { SCHOOLS_BY_DISTRICT } from "../data";
 import { supabase } from "../lib/supabase";
 import ImageCropperModal from "./ImageCropperModal";
+import { useDialog } from "./ui/DialogProvider";
 
 interface PostListingModalProps {
   onClose: () => void;
@@ -23,6 +24,7 @@ export default function PostListingModal({
   currentProfile,
   editingData
 }: PostListingModalProps) {
+  const { toast } = useDialog();
   const [activeTab, setActiveTab] = useState<"roommate" | "room">(initialTab);
   const [isSuccess, setIsSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -341,8 +343,7 @@ export default function PostListingModal({
       setIsSubmitting(false);
     }
     if (!submitted) return;
-    setSuccessMessage(editingData ? `Đã cập nhật bài Tìm bạn ở ghép cho ${rmName} thành công!` : `Đã đăng bài Tìm bạn ở ghép cho ${rmName} thành công lên cộng đồng RoomieMatch!`);
-    setIsSuccess(true);
+    toast(editingData ? `Đã cập nhật bài tìm bạn ở ghép cho ${rmName} thành công!` : `Đã đăng bài tìm bạn ở ghép cho ${rmName} thành công!`, "success");
     onClose();
   };
 
@@ -351,6 +352,7 @@ export default function PostListingModal({
     setFormError(null);
     if (!rTitle.trim() || !rPrice || !rAddress.trim()) {
       setFormError("Vui lòng cuộn lên và nhập đầy đủ: Tiêu đề, Giá thuê và Địa chỉ phòng.");
+      document.querySelector(".overflow-y-auto")?.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
@@ -448,13 +450,16 @@ export default function PostListingModal({
     }
     if (!submitted) {
       if (newlyUploadedImageUrls.length > 0) {
-        const { deleteImagesFromSupabase } = await import('../lib/supabase');
-        await deleteImagesFromSupabase(newlyUploadedImageUrls, 'room-images');
+        try {
+          const { deleteImagesFromSupabase } = await import('../lib/supabase');
+          await deleteImagesFromSupabase(newlyUploadedImageUrls, 'room-images');
+        } catch (err) {
+          console.error("Failed to delete orphaned images:", err);
+        }
       }
       return;
     }
-    setSuccessMessage(editingData ? `Đã cập nhật bài cho thuê / ghép phòng "${rTitle}" thành công!` : `Đã đăng bài cho thuê / ghép phòng "${rTitle}" thành công!`);
-    setIsSuccess(true);
+    toast(editingData ? `Đã cập nhật tin đăng phòng "${rTitle}" thành công!` : `Đã đăng tin phòng "${rTitle}" thành công!`, "success");
     onClose();
   };
 
@@ -632,7 +637,7 @@ export default function PostListingModal({
                     <div className="space-y-1.5">
                       <label className="block text-[13px] font-semibold text-slate-700">Họ &amp; Tên <span className="text-rose-500">*</span></label>
                       <input
-                        type="text" required value={rmName} onChange={(e) => setRmName(e.target.value)}
+                        type="text" value={rmName} onChange={(e) => setRmName(e.target.value)}
                         placeholder="Ví dụ: Nguyễn Minh Thảo"
                         className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300"
                       />
@@ -842,7 +847,7 @@ export default function PostListingModal({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="block text-[13px] font-semibold text-slate-700">Địa chỉ cụ thể <span className="text-rose-500">*</span></label>
-                      <input type="text" required value={rAddress} onChange={(e) => setRAddress(e.target.value)} placeholder="VD: K34/12 Lê Duẩn"
+                      <input type="text" value={rAddress} onChange={(e) => setRAddress(e.target.value)} placeholder="VD: K34/12 Lê Duẩn"
                         className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
                     </div>
                     <div className="space-y-1.5">

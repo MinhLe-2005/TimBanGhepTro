@@ -3,7 +3,7 @@
 with io.open('src/components/PostListingModal.tsx', 'r', encoding='utf-8') as f:
     content = f.read()
 
-if "toast" in content:
-    print("toast is used")
-else:
-    print("toast is NOT used")
+lines = content.split('\n')
+for i, line in enumerate(lines):
+    if "import { useDialog }" in line or "const { toast } =" in line or "const { toast, confirm } =" in line:
+        print(f"Line {i+1}: {line.strip()}")

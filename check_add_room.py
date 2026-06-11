@@ -6,6 +6,6 @@ with io.open('src/App.tsx', 'r', encoding='utf-8') as f:
 lines = content.split('\n')
 for i, line in enumerate(lines):
     if "const handleAddRoom =" in line:
-        for j in range(max(0, i-2), min(i+15, len(lines))):
+        for j in range(max(0, i-2), min(i+40, len(lines))):
             print(f"Line {j+1}: {lines[j].strip()}")
         break

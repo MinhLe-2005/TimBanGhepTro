@@ -5,7 +5,7 @@ with io.open('src/components/PostListingModal.tsx', 'r', encoding='utf-8') as f:
 
 lines = content.split('\n')
 for i, line in enumerate(lines):
-    if "handleRoomSubmit = async" in line:
-        for j in range(i, i+15):
-            print(f"Line {j+1}: {lines[j]}")
+    if "onSubmitRoom" in line or "handleFormSubmit" in line or "onPostListing" in line:
+        for j in range(max(0, i-2), min(i+15, len(lines))):
+            print(f"Line {j+1}: {lines[j].strip()}")
         break
