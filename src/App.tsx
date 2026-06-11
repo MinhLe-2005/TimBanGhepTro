@@ -416,12 +416,16 @@ export default function App() {
               );
               syncedRoommates.forEach((rm: any) => mergedRoommates.set(String(rm.id), rm));
               freshRoommates = Array.from(mergedRoommates.values());
-              localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(
-                localRoommates.map((rm: any) => {
-                  const synced = syncedRoommates.find((s: any) => String(s.id) === String(rm.id));
-                  return synced ? { ...rm, ...synced } : rm;
-                })
-              ));
+              try {
+                localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(
+                  localRoommates.map((rm: any) => {
+                    const synced = syncedRoommates.find((s: any) => String(s.id) === String(rm.id));
+                    return synced ? { ...rm, ...synced } : rm;
+                  })
+                ));
+              } catch (e) {
+                console.warn("Could not cache posted roommates (quota exceeded):", e);
+              }
             }
           }
           
@@ -430,7 +434,11 @@ export default function App() {
             reviews: []
           }));
           setSupabaseRoommates(enhancedRoommates);
-          localStorage.setItem('roomiematch_cached_roommates', JSON.stringify(enhancedRoommates));
+          try {
+            localStorage.setItem('roomiematch_cached_roommates', JSON.stringify(enhancedRoommates));
+          } catch (e) {
+            console.warn("Could not cache roommates (quota exceeded):", e);
+          }
         }
 
         if (roomsResult.error) {
@@ -496,17 +504,25 @@ export default function App() {
               );
               syncedRooms.forEach((room: any) => mergedRooms.set(String(room.id), room));
               freshRooms = Array.from(mergedRooms.values());
-              localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(
-                localRooms.map((room: any) => {
-                  const synced = syncedRooms.find((s: any) => String(s.id) === String(room.id));
-                  return synced ? { ...room, ...synced } : room;
-                })
-              ));
+              try {
+                localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(
+                  localRooms.map((room: any) => {
+                    const synced = syncedRooms.find((s: any) => String(s.id) === String(room.id));
+                    return synced ? { ...room, ...synced } : room;
+                  })
+                ));
+              } catch (e) {
+                console.warn("Could not cache posted rooms (quota exceeded):", e);
+              }
             }
           }
 
           setSupabaseRooms(freshRooms);
-          localStorage.setItem('roomiematch_cached_rooms', JSON.stringify(freshRooms));
+          try {
+            localStorage.setItem('roomiematch_cached_rooms', JSON.stringify(freshRooms));
+          } catch (e) {
+            console.warn("Could not cache rooms (quota exceeded):", e);
+          }
         }
       } catch (err) {
         console.error("Error fetching listings from Supabase:", err);
