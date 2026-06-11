@@ -2656,18 +2656,7 @@ export default function App() {
           }
           isOwnProfile={!!currentUser && (selectedRoommate.postedBy === currentUser.id || (selectedRoommate as any).user_id === currentUser.id)}
           hasTwoWayMessages={hasTwoWayMessagesWithSelected}
-          hasChatWithRoommate={(() => {
-            // Check if there's any real chat history by looking for stored messages
-            const myId = currentUser?.id || currentUserProfile?.id;
-            if (!myId) return false;
-            // Check if there's a chat session with messages stored in localStorage
-            const chatKey = [myId, selectedRoommate.id].sort().join('_');
-            const storedMessages = localStorage.getItem(`roomiematch_messages_${chatKey}`);
-            const hasStoredMessages = storedMessages && JSON.parse(storedMessages).length > 0;
-            // Also check legacy chat note
-            const chatNote = localStorage.getItem(`chat_notes_${selectedRoommate.id}`) || '';
-            return !!hasStoredMessages || chatNote.length > 0;
-          })()}
+          hasChatWithRoommate={hasTwoWayMessagesWithSelected}
           onDeleteProfile={(id) => {
             handleDeleteRoommate(id);
             if (currentUserProfile && currentUserProfile.id === id) {

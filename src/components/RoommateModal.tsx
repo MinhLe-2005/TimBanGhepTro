@@ -876,7 +876,7 @@ export default function RoommateModal({
                   </button>
                   {showAgreementHint && (
                     <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl whitespace-nowrap shadow-lg animate-fade-in z-50">
-                      💬 Nhắn tin với {roommate.name} trước để tạo thỏa thuận
+                      💬 Hai bên cần nhắn tin cho nhau trước khi tạo thỏa thuận
                       <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
                     </div>
                   )}
