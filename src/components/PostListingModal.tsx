@@ -435,10 +435,7 @@ export default function PostListingModal({
       gender: rGenderTarget,
       electricity: rPriceElectricity,
       water: rPriceWater,
-      parking: "Đỗ xe tầng hầm miễn phí",
-      proximity: "Gần trường đại học & siêu thị tiện lợi",
-      roommateInfo: rRoommateInfo || "Tìm người sạch sẽ, không quấy rầy, chia sẻ tiền bạc đúng kỳ hẹn.",
-      habits: ["Yêu sạch sẽ", "Giữ yên tĩnh chung"],
+      roommateInfo: rRoommateInfo || undefined,
       reviews: []
     };
 
