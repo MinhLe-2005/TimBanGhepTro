@@ -191,7 +191,7 @@ export default function HomeView({
             </span>
             <div>
               <p className="text-[10px] text-white/90 font-bold uppercase tracking-widest leading-none mb-0.5 drop-shadow-md">Người dùng</p>
-              <p className="text-[15px] font-black leading-none drop-shadow-md">{roommates.length} Hồ sơ</p>
+              <p className="text-[15px] font-black leading-none drop-shadow-md">{roommates.length} Thành viên</p>
             </div>
           </div>
 
