@@ -110,6 +110,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
   const [newImages, setNewImages] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showGallery, setShowGallery] = useState(false);
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -246,9 +247,19 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
           <img
             src={room.images[currentImageIndex] || room.images[0]}
             alt={room.title}
-            className="w-full h-full object-cover transition-opacity duration-300"
+            className="w-full h-full object-cover transition-opacity duration-300 cursor-pointer"
             referrerPolicy="no-referrer"
+            onClick={() => setShowGallery(true)}
           />
+
+          {/* Nút Xem tất cả ảnh (Đậm và nổi bật) */}
+          <button
+            onClick={() => setShowGallery(true)}
+            className="absolute bottom-4 right-4 bg-white text-slate-900 px-4 py-2 rounded-xl text-[13px] font-black shadow-lg border border-slate-200 flex items-center gap-2 hover:bg-slate-50 hover:scale-105 active:scale-95 transition-all z-20"
+          >
+            <ImageIcon className="w-4 h-4 text-[#006590]" />
+            XEM TẤT CẢ {room.images.length} ẢNH
+          </button>
           
           {room.images.length > 1 && (
             <>
