@@ -387,82 +387,8 @@ export default function App() {
           console.error("[Profiles] Failed to fetch roommates:", roommatesResult.error);
         }
         const roommatesData = roommatesResult.data;
-        if (roommatesData) {
-          let freshRoommates = roommatesData.map(unpackRoommate);
-          const localRoommates = JSON.parse(localStorage.getItem("roomiematch_posted_roommates") || "[]");
-          const remoteRoommateIds = new Set(freshRoommates.map((roommate: any) => String(roommate.id)));
-          const syncableRoommates = localRoommates.filter(
-            (roommate: any) => {
-              if (!roommate?.id) return false;
-              const ownerId = String(roommate.user_id || roommate.postedBy || "");
-              const ownerName = String(roommate.name || "").trim().toLowerCase();
-              const cachedProfile = JSON.parse(localStorage.getItem("roomiematch_user_profile") || "null");
-              const currentName = String(cachedProfile?.name || currentUser?.name || "").trim().toLowerCase();
-              const isOwner = !ownerId || ownerId === currentUser?.id || (!!currentName && ownerName === currentName);
-              const remote = freshRoommates.find((item: any) => String(item.id) === String(roommate.id));
-              const hasRicherDetails = (!!roommate.school && !remote?.school);
-              return isOwner && (!remoteRoommateIds.has(String(roommate.id)) || hasRicherDetails);
-            }
-          );
-
-          if (currentUser?.id && syncableRoommates.length > 0) {
-            const ownedRoommates = syncableRoommates.map((roommate: any) => {
-              const cleanRoommate: any = {};
-              ROOMMATE_DB_KEYS.forEach((key) => {
-                if (roommate[key] !== undefined) cleanRoommate[key] = roommate[key];
-              });
-              cleanRoommate.postedBy = currentUser.id;
-              cleanRoommate.user_id = currentUser.id;
-              if (cleanRoommate.is_listing === undefined) {
-                cleanRoommate.is_listing = true;
-              }
-              return cleanRoommate;
-            });
-
-            const syncResults = await Promise.all(
-              ownedRoommates.map(async (roommate: any) => {
-                let result = await supabase
-                  .from("roommates")
-                  .upsert(roommate, { onConflict: "id" })
-                  .select()
-                  .single();
-                
-                // Fallback for missing extended columns
-                if (result.error && (result.error.code === "PGRST204" || result.error.code === "42703")) {
-                  result = await supabase
-                    .from("roommates")
-                    .upsert(withoutExtendedRoommateFields(roommate), { onConflict: "id" })
-                    .select()
-                    .single();
-                }
-                return result;
-              })
-            );
-            
-            const syncedRoommates = syncResults.flatMap((result) => result.data ? [result.data] : []);
-            const failedRoommates = syncResults.filter((result) => result.error);
-            failedRoommates.forEach((result) => {
-              console.error("[Profiles] Failed to sync a local roommate profile:", result.error);
-            });
-            if (syncedRoommates.length) {
-              const mergedRoommates = new Map(
-                freshRoommates.map((rm: any) => [String(rm.id), rm])
-              );
-              syncedRoommates.forEach((rm: any) => mergedRoommates.set(String(rm.id), rm));
-              freshRoommates = Array.from(mergedRoommates.values());
-              try {
-                localStorage.setItem("roomiematch_posted_roommates", JSON.stringify(
-                  localRoommates.map((rm: any) => {
-                    const synced = syncedRoommates.find((s: any) => String(s.id) === String(rm.id));
-                    return synced ? { ...rm, ...synced } : rm;
-                  })
-                ));
-              } catch (e) {
-                console.warn("Could not cache posted roommates (quota exceeded):", e);
-              }
-            }
-          }
-          
+        if (!roommatesResult.error && roommatesData?.length) {
+          const freshRoommates = roommatesData.map(unpackRoommate);
           const enhancedRoommates = freshRoommates.map((rm: any) => ({
             ...rm,
             reviews: []
@@ -479,78 +405,8 @@ export default function App() {
           console.error("[Listings] Failed to fetch rooms:", roomsResult.error);
           setIsRoomsLoading(false); // Stop skeleton even on error
         }
-        if (roomsResult.data) {
-          let freshRooms = roomsResult.data.map(unpackRoom);
-          const localRooms = JSON.parse(localStorage.getItem("roomiematch_posted_rooms") || "[]");
-          const remoteRoomIds = new Set(freshRooms.map((room: any) => String(room.id)));
-          const syncableRooms = localRooms.filter((room: any) => {
-            if (!room?.id) return false;
-            const ownerId = String(room.user_id || room.postedBy || "");
-            const ownerName = String(room.hostName || "").trim().toLowerCase();
-            const cachedProfile = JSON.parse(localStorage.getItem("roomiematch_user_profile") || "null");
-            const currentName = String(cachedProfile?.name || currentUser?.name || "").trim().toLowerCase();
-            const isOwner = !ownerId || ownerId === currentUser?.id || (!!currentName && ownerName === currentName);
-            const remote = freshRooms.find((item: any) => String(item.id) === String(room.id));
-            const hasRicherDetails = (
-              (!!room.electricity && !remote?.electricity) ||
-              (!!room.water && !remote?.water) ||
-              (!!room.roommateInfo && !remote?.roommateInfo)
-            );
-            return isOwner && (!remoteRoomIds.has(String(room.id)) || hasRicherDetails);
-          });
-
-          if (currentUser?.id && syncableRooms.length > 0) {
-            const ownedRooms = syncableRooms.map((room: any) => {
-              const cleanRoom: any = {};
-              ROOM_DB_KEYS.forEach((key) => {
-                if (room[key] !== undefined) cleanRoom[key] = room[key];
-              });
-              cleanRoom.postedBy = currentUser.id;
-              cleanRoom.user_id = currentUser.id;
-              return cleanRoom;
-            });
-
-            const syncResults = await Promise.all(
-              ownedRooms.map(async (room: any) => {
-                let result = await supabase
-                  .from("rooms")
-                  .upsert(room, { onConflict: "id" })
-                  .select()
-                  .single();
-                if (result.error && (result.error.code === "PGRST204" || result.error.code === "42703")) {
-                  result = await supabase
-                    .from("rooms")
-                    .upsert(withoutExtendedRoomFields(room), { onConflict: "id" })
-                    .select()
-                    .single();
-                }
-                return result;
-              })
-            );
-            const syncedRooms = syncResults.flatMap((result) => result.data ? [result.data] : []);
-            const failedRooms = syncResults.filter((result) => result.error);
-            failedRooms.forEach((result) => {
-              console.error("[Listings] Failed to sync a local room:", result.error);
-            });
-            if (syncedRooms.length) {
-              const mergedRooms = new Map(
-                freshRooms.map((room: any) => [String(room.id), room])
-              );
-              syncedRooms.forEach((room: any) => mergedRooms.set(String(room.id), room));
-              freshRooms = Array.from(mergedRooms.values());
-              try {
-                localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(
-                  localRooms.map((room: any) => {
-                    const synced = syncedRooms.find((s: any) => String(s.id) === String(room.id));
-                    return synced ? { ...room, ...synced } : room;
-                  })
-                ));
-              } catch (e) {
-                console.warn("Could not cache posted rooms (quota exceeded):", e);
-              }
-            }
-          }
-
+        if (!roomsResult.error && roomsResult.data?.length) {
+          const freshRooms = roomsResult.data.map(unpackRoom);
           setSupabaseRooms(freshRooms);
           try {
             localStorage.setItem('roomiematch_cached_rooms', JSON.stringify(freshRooms));
@@ -568,10 +424,9 @@ export default function App() {
 
       // Secondary data must not delay the public listing pages.
       try {
-        const [reviewsResult, roomReviewsResult, bansResult] = await Promise.all([
+        const [reviewsResult, roomReviewsResult] = await Promise.all([
           supabase.from('reviews').select('*'),
           supabase.from('room_reviews').select('*'),
-          supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS'),
         ]);
 
         if (reviewsResult.error) {
@@ -582,10 +437,6 @@ export default function App() {
           localStorage.setItem('roomiematch_cached_reviews', JSON.stringify(reviewsResult.data));
         }
 
-        if (bansResult.error) {
-          console.error("[Auth] Failed to fetch banned users:", bansResult.error);
-        }
-
         if (roomReviewsResult.data) {
           setSupabaseRoomReviews(roomReviewsResult.data);
           localStorage.setItem('roomiematch_cached_room_reviews', JSON.stringify(roomReviewsResult.data));
@@ -593,15 +444,6 @@ export default function App() {
           console.error("[Room reviews] Fetch failed:", roomReviewsResult.error);
         }
 
-        // Fetch Banned list
-        const bansData = bansResult.data;
-        if (bansData) {
-          const bannedIds = bansData
-            .filter((message: any) => String(message.text || "").startsWith("[BAN]"))
-            .map((message: any) => String(message.text).replace("[BAN]", "").trim());
-          if (currentUser?.id && bannedIds.includes(currentUser.id)) setIsBanned(true);
-          setSupabaseBannedIds(bannedIds);
-        }
       } catch (err) {
         console.error("Error fetching secondary Supabase data:", err);
       }
@@ -616,8 +458,6 @@ export default function App() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'roommates' },
         async (payload) => {
-          console.log('[Realtime] roommates changed:', payload.eventType);
-          
           // Optimize: Only update the changed record instead of refetching all
           if (payload.eventType === 'INSERT' && payload.new) {
             // Note: Since unpackRoommate and unpackRoom were moved, these will now work correctly
@@ -633,7 +473,10 @@ export default function App() {
               });
               newRm.features = newRm.features.filter((f: string) => typeof f === 'string' && !f.match(/^(ROLE|TARGET_TENANTS|HABITS):/));
             }
-            setSupabaseRoommates(prev => [newRm, ...prev]);
+            setSupabaseRoommates(prev => [
+              newRm,
+              ...prev.filter((roommate) => String(roommate.id) !== String(newRm.id)),
+            ]);
           } else if (payload.eventType === 'UPDATE' && payload.new) {
             const newRm = payload.new;
             if (newRm.features && Array.isArray(newRm.features)) {
@@ -647,9 +490,13 @@ export default function App() {
               });
               newRm.features = newRm.features.filter((f: string) => typeof f === 'string' && !f.match(/^(ROLE|TARGET_TENANTS|HABITS):/));
             }
-            setSupabaseRoommates(prev => prev.map(rm => rm.id === newRm.id ? newRm : rm));
+            setSupabaseRoommates(prev => prev.map(
+              (roommate) => String(roommate.id) === String(newRm.id) ? newRm : roommate
+            ));
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            setSupabaseRoommates(prev => prev.filter(rm => rm.id !== payload.old.id));
+            setSupabaseRoommates(prev => prev.filter(
+              (roommate) => String(roommate.id) !== String(payload.old.id)
+            ));
           }
           // Removed fallback refetch - avoid full reload causing layout shift
         }
@@ -658,8 +505,6 @@ export default function App() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'rooms' },
         async (payload) => {
-          console.log('[Realtime] rooms changed:', payload.eventType);
-          
           // Optimize: Only update the changed record instead of refetching all
           if (payload.eventType === 'INSERT' && payload.new) {
             const newRoom = payload.new;
@@ -680,7 +525,10 @@ export default function App() {
               });
               newRoom.features = newRoom.features.filter((f: string) => typeof f === 'string' && !f.match(/^(ELECTRICITY|WATER|PARKING|PROXIMITY|HOSTROLE|ROOMMATE_INFO|HABITS):/));
             }
-            setSupabaseRooms(prev => [newRoom, ...prev]);
+            setSupabaseRooms(prev => [
+              newRoom,
+              ...prev.filter((room) => String(room.id) !== String(newRoom.id)),
+            ]);
           } else if (payload.eventType === 'UPDATE' && payload.new) {
             const newRoom = payload.new;
             if (newRoom.features && Array.isArray(newRoom.features)) {
@@ -700,9 +548,13 @@ export default function App() {
               });
               newRoom.features = newRoom.features.filter((f: string) => typeof f === 'string' && !f.match(/^(ELECTRICITY|WATER|PARKING|PROXIMITY|HOSTROLE|ROOMMATE_INFO|HABITS):/));
             }
-            setSupabaseRooms(prev => prev.map(r => r.id === newRoom.id ? newRoom : r));
+            setSupabaseRooms(prev => prev.map(
+              (room) => String(room.id) === String(newRoom.id) ? newRoom : room
+            ));
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            setSupabaseRooms(prev => prev.filter(r => r.id !== payload.old.id));
+            setSupabaseRooms(prev => prev.filter(
+              (room) => String(room.id) !== String(payload.old.id)
+            ));
           } else {
             // Fallback: refetch if needed
             const { data } = await supabase.from('rooms').select('*').order('createdAt', { ascending: false });
@@ -755,7 +607,7 @@ export default function App() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [currentUser?.id]);
+  }, []);
 
   useEffect(() => {
     if (!import.meta.env.VITE_SUPABASE_URL) return;
@@ -996,12 +848,6 @@ export default function App() {
         })
       : roommates;
     const combined = [...supabaseRoommates, ...visibleLocalRoommates];
-    console.log('[App] Merging roommates:', {
-      supabaseCount: supabaseRoommates.length,
-      localCount: visibleLocalRoommates.length,
-      combinedCount: combined.length
-    });
-    
     const uniqueByIdMap = new Map();
     
     combined.forEach(rm => {
@@ -1035,6 +881,11 @@ export default function App() {
     return result;
   }, [supabaseRoommates, roommates, currentUser, currentUserProfile]);
 
+  const allRoommatesRef = useRef(allRoommates);
+  useEffect(() => {
+    allRoommatesRef.current = allRoommates;
+  }, [allRoommates]);
+
   // Merge local rooms with Supabase rooms (deduplicate by id)
   const allRooms = useMemo(() => {
     const currentName = String(currentUserProfile?.name || currentUser?.name || "").trim().toLowerCase();
@@ -1051,12 +902,6 @@ export default function App() {
         })
       : rooms;
     const combined = [...supabaseRooms, ...visibleLocalRooms];
-    console.log('[App] Merging rooms:', {
-      supabaseCount: supabaseRooms.length,
-      localCount: visibleLocalRooms.length,
-      combinedCount: combined.length
-    });
-    
     const supabaseRoomIdSet = new Set(supabaseRooms.map((sr: any) => String(sr.id)));
     const uniqueByIdMap = new Map();
     
@@ -1573,10 +1418,8 @@ export default function App() {
         .from("roommate_likes")
         .select("roommate_id, user_id");
       
-      console.log("[DEBUG] Fetching roommate likes...", { data, error });
-      
       if (error || !data) {
-        console.log("[DEBUG] Error or no data:", error);
+        if (error) console.error("[Likes] Could not load roommate likes:", error);
         return;
       }
 
@@ -1584,7 +1427,7 @@ export default function App() {
       const counts: Record<string, number> = {};
       
       data.forEach((like: any) => {
-        const target = allRoommates.find((roommate) => roommate.id === like.roommate_id);
+        const target = allRoommatesRef.current.find((roommate) => roommate.id === like.roommate_id);
         
         // Skip if user is liking their own profile
         const isSelfLike = target && (
@@ -1598,9 +1441,6 @@ export default function App() {
         }
       });
       
-      console.log("[DEBUG] Calculated like counts:", counts);
-      console.log("[DEBUG] All roommates count:", allRoommates.length);
-      
       if (currentUser?.id) {
         const savedLikes: string[] = JSON.parse(
           localStorage.getItem("roomiematch_liked_roommates") || "[]"
@@ -1610,7 +1450,7 @@ export default function App() {
           .map((like) => like.roommate_id);
         const missingLikes = savedLikes.filter((id) => {
           if (ownLikes.includes(id)) return false;
-          const target = allRoommates.find((roommate) => roommate.id === id);
+          const target = allRoommatesRef.current.find((roommate) => roommate.id === id);
           return target && target.postedBy !== currentUser.id && target.user_id !== currentUser.id;
         });
 
@@ -1637,7 +1477,6 @@ export default function App() {
         localStorage.setItem("roomiematch_liked_roommates", JSON.stringify(syncedLikes));
       }
 
-      console.log("[DEBUG] Final like counts being set:", counts);
       setRoommateLikeCounts(counts);
     };
 
@@ -1653,20 +1492,14 @@ export default function App() {
           schema: 'public',
           table: 'roommate_likes'
         },
-        (payload) => {
-          console.log("[DEBUG] Realtime event received:", payload);
-          // Refetch counts when likes change
-          fetchRoommateLikes();
-        }
+        () => fetchRoommateLikes()
       )
-      .subscribe((status) => {
-        console.log("[DEBUG] Realtime subscription status:", status);
-      });
+      .subscribe();
     
     return () => {
       supabase.removeChannel(likesChannel);
     };
-  }, [currentUser?.id, allRoommates]);
+  }, [currentUser?.id]);
 
   const handleLikeRoommate = async (id: string, isLiked: boolean) => {
     const isAuth = await requireAuth();
@@ -1958,20 +1791,13 @@ export default function App() {
   // States to hold Supabase fetched lists (moved to top to prevent ReferenceError)
 
   // Calculate matching scores dynamically if user profile changes
-  const [supabaseReviews, setSupabaseReviews] = useState<any[]>([]);
-
-  useEffect(() => {
-    const fetchReviews = async () => {
-      const { data, error } = await supabase.from('reviews').select('*').order('"createdAt"', { ascending: false });
-      if (!error && data) {
-        setSupabaseReviews(data);
-      }
-    };
-    fetchReviews();
-    
-    // NOTE: Realtime disabled temporarily due to duplicate issues
-    // Will re-enable after fixing subscription logic
-  }, []);
+  const [supabaseReviews, setSupabaseReviews] = useState<any[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("roomiematch_cached_reviews") || "[]");
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     const saved = localStorage.getItem("roomiematch_posted_roommates");

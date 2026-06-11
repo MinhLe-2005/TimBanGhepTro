@@ -59,6 +59,16 @@ export default function ChatView({
   const [conversations, setConversations] = useState<any[]>([]);
   const [isInboxLoading, setIsInboxLoading] = useState(true);
   const fetchInboxRef = useRef<(() => void) | null>(null);
+  const roommatesRef = useRef(roommates);
+  const activeRoommateIdRef = useRef(activeRoommateId);
+
+  useEffect(() => {
+    roommatesRef.current = roommates;
+  }, [roommates]);
+
+  useEffect(() => {
+    activeRoommateIdRef.current = activeRoommateId;
+  }, [activeRoommateId]);
 
   useEffect(() => {
     if (!currentUser?.id) {
@@ -451,14 +461,6 @@ export default function ChatView({
     : [];
   const isActiveUserBanned = activeUserIds.some((id) => bannedUserIds.includes(String(id)));
   
-  console.log('[Chat] Active roommate:', {
-    id: activeRoommate?.id,
-    name: activeRoommate?.name,
-    budget: activeRoommate?.budget,
-    lifestyle: activeRoommate?.lifestyle,
-    hasFullData: !!(activeRoommate?.budget && activeRoommate?.lifestyle?.sleep !== 'Bình thường')
-  });
-  
   const activeMessages = activeRoommate ? (chats[activeRoommateId!] || chats[activeRoommate.id] || []) : [];
   const activeAgreementState = useMemo(() => {
     const latestAgreementMessage = [...activeMessages]
@@ -644,14 +646,6 @@ export default function ChatView({
     }
   }, [activeMessages, activeRoommateId, partnerChatId, myChatId]);
   
-  console.log('[Chat] Chat IDs:', {
-    myChatId,
-    activeRoommateId,
-    partnerChatId,
-    finalChatId: chatId,
-    activeRoommateName: activeRoommate?.name,
-    isListingId: activeRoommate?.id?.startsWith('rm-')
-  });
   useEffect(() => {
     if (!activeRoommateId || !activeRoommate || !import.meta.env.VITE_SUPABASE_URL) return;
 
@@ -752,16 +746,6 @@ export default function ChatView({
     // The agreement is active only when the latest event is SIGNED.
     const hasSigned = activeAgreementState.status === "signed";
     
-    console.log('[Chat] Check 2-way messages:', {
-      activeRoommateName: activeRoommate.name,
-      totalMessages: messages.length,
-      myMessages: myMessages.length,
-      theirMessages: theirMessages.length,
-      has2Way,
-      hasSigned,
-      phoneNumber: activeRoommate.phoneNumber
-    });
-    
     setHasTwoWayMessages(has2Way);
     setHasSignedAgreement(hasSigned);
   }, [activeRoommateId, activeRoommate, chats, myChatId, activeAgreementState.status]);
@@ -773,11 +757,12 @@ export default function ChatView({
   useEffect(() => {
     if (!import.meta.env.VITE_SUPABASE_URL) return;
     if (!myAuthId) {
-      console.log('[Chat] myAuthId is undefined, cannot fetch inbox');
+      setIsInboxLoading(false);
       return;
     }
 
-    console.log('[Chat] Fetching inbox for myAuthId:', myAuthId);
+    let cancelled = false;
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
     const fetchInbox = async () => {
       // Chỉ cần tìm bằng Auth UUID - đơn giản, đáng tin cậy
@@ -785,18 +770,11 @@ export default function ChatView({
         .from('messages')
         .select('*')
         .ilike('chat_id', `%${myAuthId}%`)
-        .order('timestamp', { ascending: false });
-
-      console.log('[Chat] Inbox query result:', { 
-        dataCount: data?.length, 
-        error,
-        myAuthId,
-        sampleChatIds: data?.slice(0, 3).map(m => m.chat_id)
-      });
+        .order('timestamp', { ascending: false })
+        .limit(500);
 
       if (!error && data) {
         const inboxMessages = data.filter(msg => !isSystemChannel(msg.chat_id));
-        console.log('[Chat] Found', inboxMessages.length, 'user messages in inbox');
         const conversationMap = new Map();
 
         // Collect all unique partner IDs
@@ -813,7 +791,7 @@ export default function ChatView({
         if (partnerIds.size > 0) {
           const partnerArr = Array.from(partnerIds);
           partnerArr.forEach(partnerId => {
-            const cachedPartner = roommates.find(roommate =>
+            const cachedPartner = roommatesRef.current.find(roommate =>
               roommate.id === partnerId ||
               roommate.user_id === partnerId ||
               roommate.auth_id === partnerId
@@ -821,8 +799,6 @@ export default function ChatView({
             if (cachedPartner) dbPartnerMap.set(partnerId, cachedPartner);
           });
           const missingPartnerArr = partnerArr.filter(partnerId => !dbPartnerMap.has(partnerId));
-          
-          console.log('[Chat] Fetching missing profiles for partners:', missingPartnerArr);
           
           // Batch fetch ALL fields from roommates table (has full data)
           // Priority: roommates (full data with budget, lifestyle, bio) > profiles (basic data only)
@@ -838,33 +814,12 @@ export default function ChatView({
                 ])
               : [emptyResult, emptyResult, emptyResult, emptyResult, emptyResult];
           
-          console.log('[Chat] Fetch results:', {
-            roommatesById: roommatesById.data?.length,
-            roommatesByUserId: roommatesByUserId.data?.length,
-            profilesById: profilesById.data?.length,
-            profilesByAuthId: profilesByAuthId.data?.length,
-            roommates_auth_id: roommates_auth_id.data?.length
-          });
-          
           // Map roommates first (priority - has full lifestyle, bio, budget, etc.)
           [...(roommatesById.data || []), ...(roommatesByUserId.data || []), ...(roommates_auth_id.data || [])].forEach(r => {
-            console.log('[Chat] Roommate from DB:', {
-              id: r.id,
-              name: r.name,
-              user_id: r.user_id,
-              auth_id: r.auth_id,
-              budget: r.budget,
-              hasLifestyle: !!r.lifestyle,
-              bio: r.bio?.substring(0, 30),
-              avatar: r.avatar?.substring(0, 50), // Log avatar
-              avatarType: r.avatar?.startsWith('data:') ? 'base64' : r.avatar?.startsWith('http') ? 'url' : 'unknown'
-            });
             if (!dbPartnerMap.has(r.id)) dbPartnerMap.set(r.id, r);
             if (r.user_id && !dbPartnerMap.has(r.user_id)) dbPartnerMap.set(r.user_id, r);
             if (r.auth_id && !dbPartnerMap.has(r.auth_id)) dbPartnerMap.set(r.auth_id, r);
           });
-          
-          console.log('[Chat] Found in roommates table:', dbPartnerMap.size);
           
           // Fallback to profiles for missing (basic info only)
           [...(profilesById.data || []), ...(profilesByAuthId.data || [])].forEach(p => {
@@ -872,7 +827,6 @@ export default function ChatView({
             if (p.auth_id && !dbPartnerMap.has(p.auth_id)) dbPartnerMap.set(p.auth_id, p);
           });
           
-          console.log('[Chat] Total profiles loaded:', dbPartnerMap.size);
         }
 
         // Track agreements for badge notifications
@@ -897,15 +851,13 @@ export default function ChatView({
               (msg.text?.startsWith('[AGREEMENT_DRAFT]') || false);
           }
 
-          console.log('[Chat] Processing message from partner:', partnerId, 'existing:', conversationMap.has(partnerId));
-
           // Try to get partner - PRIORITIZE database over props
           // 1. Try database first (most up-to-date) - check by all ID types
           let partner = dbPartnerMap.get(partnerId);
           
           // 2. Fallback: try from roommates list from props
           if (!partner) {
-            partner = roommates.find(r => r.id === partnerId || r.user_id === partnerId || r.auth_id === partnerId);
+            partner = roommatesRef.current.find(r => r.id === partnerId || r.user_id === partnerId || r.auth_id === partnerId);
           }
           
           if (!partner) {
@@ -971,8 +923,6 @@ export default function ChatView({
           // - partner.id may be different if partner is retrieved from different tables
           const canonicalId = partnerId;
           
-          console.log('[Chat] Canonical ID for', partner.name, ':', canonicalId, '(from partnerId)');
-          
           // Check if this canonical ID already has a conversation
           if (conversationMap.has(canonicalId)) {
             // Update existing conversation if this message is newer
@@ -987,7 +937,6 @@ export default function ChatView({
                 senderId: msg.sender_id,
                 reactions: msg.reactions || {}
               });
-              console.log('[Chat] Updated existing conversation for canonical ID:', canonicalId);
             }
           } else {
             // New conversation - use canonical ID
@@ -1000,17 +949,19 @@ export default function ChatView({
               senderId: msg.sender_id,
               reactions: msg.reactions || {}
             });
-            console.log('[Chat] Created new conversation with canonical ID:', canonicalId);
           }
         });
 
         // Đảm bảo activeRoommateId luôn có trong list
-        if (activeRoommateId) {
-          let activePartner = roommates.find(r => r.id === activeRoommateId || r.user_id === activeRoommateId) || dbPartnerMap.get(activeRoommateId);
+        const selectedRoommateId = activeRoommateIdRef.current;
+        if (selectedRoommateId) {
+          let activePartner = roommatesRef.current.find(
+            r => r.id === selectedRoommateId || r.user_id === selectedRoommateId
+          ) || dbPartnerMap.get(selectedRoommateId);
           
           if (activePartner) {
             // Use activePartner's user_id or auth_id if available, otherwise fallback to activeRoommateId
-            const canonicalId = activePartner.user_id || activePartner.auth_id || activeRoommateId;
+            const canonicalId = activePartner.user_id || activePartner.auth_id || selectedRoommateId;
             
             // Also check if we already have a conversation with this partner under ANY key
             let hasExisting = false;
@@ -1040,12 +991,11 @@ export default function ChatView({
                 partnerId: canonicalId,
                 lastMessage: 'Bắt đầu cuộc trò chuyện...',
                 timestamp: new Date().toISOString(),
-                chatId: [myAuthId, activeRoommateId].sort().join('_'),
+                chatId: [myAuthId, selectedRoommateId].sort().join('_'),
                 senderId: myAuthId,
                 reactions: {}
               });
               
-              console.log('[Chat] Added active roommate with canonical ID:', canonicalId);
             }
           }
         }
@@ -1064,20 +1014,10 @@ export default function ChatView({
             if (!seenPartners.has(partnerKey)) {
               seenPartners.add(partnerKey);
               deduplicatedConversations.push(conv);
-              console.log('[Chat] Added conversation:', conv.partner.name, 'with key:', partnerKey);
-            } else {
-              console.log('[Chat] SKIPPED DUPLICATE:', conv.partner.name, 'with key:', partnerKey);
             }
           });
-        
-        console.log('[Chat] Setting conversations:', deduplicatedConversations.length, 'after deduplication (was', conversationMap.size, 'map entries)');
-        deduplicatedConversations.forEach((conv, idx) => {
-          console.log(`[Chat] Conv ${idx}:`, {
-            name: conv.partner.name,
-            partnerId: conv.partnerId,
-            hasMessages: !!chats[conv.partnerId]
-          });
-        });
+
+        if (cancelled) return;
         setConversations(deduplicatedConversations);
         try {
           localStorage.setItem(
@@ -1096,20 +1036,31 @@ export default function ChatView({
       }
 
     };
+    fetchInboxRef.current = fetchInbox;
     fetchInbox();
+
+    const scheduleInboxRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(fetchInbox, 150);
+    };
 
     const inboxChannel = supabase
       .channel('inbox_updates')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         const newMsg = payload.new as any;
         if (newMsg.chat_id?.includes(myAuthId) && !isSystemChannel(newMsg.chat_id)) {
-          fetchInbox();
+          scheduleInboxRefresh();
         }
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(inboxChannel); };
-  }, [myAuthId, roommates, activeRoommateId]);
+    return () => {
+      cancelled = true;
+      if (refreshTimer) clearTimeout(refreshTimer);
+      if (fetchInboxRef.current === fetchInbox) fetchInboxRef.current = null;
+      supabase.removeChannel(inboxChannel);
+    };
+  }, [myAuthId]);
 
 
 

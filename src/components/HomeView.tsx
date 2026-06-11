@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Sparkles, Users, Building, ShieldCheck, HeartHandshake, Eye, ArrowRight, ArrowUpRight, Clock, Trash2, Coins, FileText, Search, MapPin, DollarSign, UserCheck, ChevronDown, Heart, Home, ChevronLeft, ChevronRight } from "lucide-react";
 import { Roommate, Room } from "../types";
 import RoommateCard from "./RoommateCard";
@@ -112,9 +112,26 @@ export default function HomeView({
     }
   };
 
+  const listedRoommates = useMemo(
+    () => roommates.filter(
+      (roommate) =>
+        roommate.is_listing !== false &&
+        String(roommate.is_listing) !== "false"
+    ),
+    [roommates]
+  );
+  const likedRoommates = useMemo(
+    () => roommates.filter((roommate) =>
+      likedRoommateIds.includes(roommate.id) ||
+      likedRoommateIds.includes(roommate.user_id || "") ||
+      likedRoommateIds.includes(roommate.auth_id || "")
+    ),
+    [roommates, likedRoommateIds]
+  );
+
   useEffect(() => {
-    const listedRoommatesLength = roommates.filter(r => r.is_listing === true).length;
-    const listedRoomsLength = rooms.length; // assuming all rooms are listed
+    const listedRoommatesLength = listedRoommates.length;
+    const listedRoomsLength = rooms.length;
 
     const roommateInterval = setInterval(() => {
       if (!isRoommateCarouselPaused) {
@@ -132,10 +149,10 @@ export default function HomeView({
       clearInterval(roommateInterval);
       clearInterval(roomInterval);
     };
-  }, [isRoommateCarouselPaused, isRoomCarouselPaused, roommates, rooms]);
+  }, [isRoommateCarouselPaused, isRoomCarouselPaused, listedRoommates.length, rooms.length]);
 
-  const scrollPrev = () => handleScrollPrev(carouselRef, roommates.filter(r => r.is_listing === true).length);
-  const scrollNext = () => handleScrollNext(carouselRef, roommates.filter(r => r.is_listing === true).length);
+  const scrollPrev = () => handleScrollPrev(carouselRef, listedRoommates.length);
+  const scrollNext = () => handleScrollNext(carouselRef, listedRoommates.length);
   const scrollRoomPrev = () => handleScrollPrev(roomCarouselRef, rooms.length);
   const scrollRoomNext = () => handleScrollNext(roomCarouselRef, rooms.length);
 
@@ -143,10 +160,9 @@ export default function HomeView({
   const budgets = ["Tất cả mức giá", "Dưới 2 triệu", "2 - 3 triệu", "3 - 5 triệu", "Trên 5 triệu"];
   const lifestyles = ["Mọi phong cách", "Ngăn nắp", "Yêu động vật", "Không hút thuốc", "Cú đêm", "Thích nấu ăn"];
   
-  const popularRoommates = roommates
+  const popularRoommates = listedRoommates
     .filter(
       (roommate) =>
-        roommate.is_listing === true &&
         roommate.status !== "Đã tìm được" &&
         (roommateLikeCounts[roommate.id] || 0) > 0
     )
@@ -429,21 +445,7 @@ export default function HomeView({
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin">
-                {(() => {
-                  // Debug logging
-                  console.log('[HomeView] likedRoommateIds:', likedRoommateIds);
-                  console.log('[HomeView] roommates sample IDs:', roommates.slice(0, 3).map(r => ({ id: r.id, user_id: r.user_id, name: r.name })));
-                  
-                  // Filter with flexible ID matching (id, user_id, or auth_id)
-                  const likedRoommates = roommates.filter((r) => 
-                    likedRoommateIds.includes(r.id) || 
-                    likedRoommateIds.includes(r.user_id) ||
-                    likedRoommateIds.includes(r.auth_id)
-                  );
-                  
-                  console.log('[HomeView] Filtered likedRoommates:', likedRoommates.length, likedRoommates.map(r => r.name));
-                  
-                  return likedRoommates.map((roommate) => (
+                {likedRoommates.map((roommate) => (
                     <RoommateCard
                       key={roommate.id}
                       roommate={roommate}
@@ -452,8 +454,7 @@ export default function HomeView({
                       isInitiallyLiked={true}
                       onStartChat={onStartChat}
                     />
-                  ));
-                })()}
+                  ))}
               </div>
             )}
           </div>
@@ -595,7 +596,6 @@ export default function HomeView({
           >
             {/* Chỉ hiển thị listings (is_listing=true), không hiển thị profiles. */}
             {(() => {
-              const listedRoommates = roommates.filter(r => r.is_listing === true);
               const items = listedRoommates.length >= 4 
                 ? [...listedRoommates, ...listedRoommates, ...listedRoommates]
                 : listedRoommates;
@@ -806,10 +806,9 @@ export default function HomeView({
       <PopularRoommatesModal
         isOpen={isPopularModalOpen}
         onClose={() => setIsPopularModalOpen(false)}
-        popularRoommates={roommates
+        popularRoommates={listedRoommates
           .filter(
             (roommate) =>
-              roommate.is_listing === true &&
               roommate.status !== "Đã tìm được" &&
               (roommateLikeCounts[roommate.id] || 0) > 0
           )
