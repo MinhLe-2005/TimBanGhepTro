@@ -5,9 +5,11 @@ with io.open('src/components/HomeView.tsx', 'r', encoding='utf-8') as f:
 
 lines = content.split('\n')
 for i, line in enumerate(lines):
-    if "import RoomCard" in line:
+    if "likedRoommateIds.length > 4" in line:
         print(f"Line {i+1}: {line.strip()}")
-    if "const [showAllLikedRoommates" in line:
+    if "likedRoommates.slice(0, 4)" in line:
         print(f"Line {i+1}: {line.strip()}")
-    if "const [showAllLikedRooms" in line:
+    if "likedRoomIds.length > 4" in line:
+        print(f"Line {i+1}: {line.strip()}")
+    if "likedRooms.slice(0, 4)" in line:
         print(f"Line {i+1}: {line.strip()}")

@@ -440,7 +440,7 @@ export default function HomeView({
                 Bạn Ở Ghép Tiềm Năng 
                 <span className="ml-2 bg-rose-100 text-rose-600 text-xs py-0.5 px-2.5 rounded-full font-black">{likedRoommateIds.length}</span>
               </h3>
-              {likedRoommateIds.length > 4 && (
+              {likedRoommateIds.length > 2 && (
                 <button
                   onClick={() => setIsLikedRoommatesModalOpen(true)}
                   className="flex shrink-0 items-center gap-1.5 text-sm font-bold text-[#006590] transition-colors hover:text-rose-600 cursor-pointer"
@@ -463,7 +463,7 @@ export default function HomeView({
             ) : (
               <div className="flex flex-col gap-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[500px] overflow-hidden">
-                  {likedRoommates.slice(0, 4).map((roommate) => (
+                  {likedRoommates.slice(0, 2).map((roommate) => (
                       <RoommateCard
                         key={roommate.id}
                         roommate={roommate}
@@ -486,7 +486,7 @@ export default function HomeView({
                 Phòng Trọ Yêu Thích 
                 <span className="ml-2 bg-sky-100 text-sky-600 text-xs py-0.5 px-2.5 rounded-full font-black">{likedRoomIds.length}</span>
               </h3>
-              {likedRoomIds.length > 4 && (
+              {likedRoomIds.length > 2 && (
                 <button
                   onClick={() => setIsLikedRoomsModalOpen(true)}
                   className="flex shrink-0 items-center gap-1.5 text-sm font-bold text-[#006590] transition-colors hover:text-sky-600 cursor-pointer"
@@ -511,7 +511,7 @@ export default function HomeView({
                 <div className="grid grid-cols-1 gap-4 max-h-[500px] overflow-hidden">
                   {(() => {
                     const likedRooms = rooms.filter((r) => likedRoomIds.includes(r.id));
-                    const visibleRooms = likedRooms.slice(0, 4);
+                    const visibleRooms = likedRooms.slice(0, 2);
                     
                     return (
                       <>
