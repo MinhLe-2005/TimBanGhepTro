@@ -473,7 +473,7 @@ export default function PostListingModal({
       }
       return;
     }
-    toast(editingData ? `Cập nhật tin đăng phòng thành công` : `Đăng bài tin mới thành công`, "success");
+    toast(editingData ? `Cập nhật tin đăng phòng "${rTitle}" thành công!` : `Đã đăng tin phòng "${rTitle}" thành công!`, "success");
     if (onSuccess) onSuccess('room');
     onClose();
   };
