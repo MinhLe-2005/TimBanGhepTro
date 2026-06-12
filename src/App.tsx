@@ -1030,6 +1030,21 @@ export default function App() {
   };
 
   const handleAddRoom = async (newRoom: Room): Promise<boolean> => {
+    if (!editingListingData) {
+      const currentName = String(currentUserProfile?.name || currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || "").trim().toLowerCase();
+      const hasPostedRoom = rooms.some(r => {
+        if (currentUser?.id && (r.postedBy === currentUser.id || r.user_id === currentUser.id)) return true;
+        if (!currentUser?.id && currentUserProfile?.id && (r.postedBy === currentUserProfile.id || r.user_id === currentUserProfile.id)) return true;
+        const ownerName = String(r.hostName || "").trim().toLowerCase();
+        if (!currentUser?.id && currentName && ownerName === currentName) return true;
+        return false;
+      });
+      if (hasPostedRoom) {
+        toast('Bạn đã đăng 1 bài phòng trọ. Mỗi người chỉ được phép đăng tối đa 1 bài. Vui lòng xóa bài cũ nếu muốn tạo bài mới!', 'warning', 6000);
+        return false;
+      }
+    }
+
     const roomId = editingListingData?.id || newRoom.id;
     const uploadedRoomImageUrls: string[] = [];
     let finalImages = newRoom.images;
@@ -1163,6 +1178,22 @@ export default function App() {
   };
 
   const handleAddRoommate = async (newRoommate: Roommate): Promise<boolean> => {
+    if (!editingListingData) {
+      const currentName = String(currentUserProfile?.name || currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || "").trim().toLowerCase();
+      const hasPostedRoommate = roommates.some(r => {
+        if (r.is_listing === false) return false;
+        if (currentUser?.id && (r.postedBy === currentUser.id || r.user_id === currentUser.id)) return true;
+        if (!currentUser?.id && currentUserProfile?.id && (r.postedBy === currentUserProfile.id || r.user_id === currentUserProfile.id)) return true;
+        const ownerName = String(r.name || "").trim().toLowerCase();
+        if (!currentUser?.id && currentName && ownerName === currentName) return true;
+        return false;
+      });
+      if (hasPostedRoommate) {
+        toast('Bạn đã đăng 1 bài tìm bạn ghép phòng. Mỗi người chỉ được phép đăng tối đa 1 bài. Vui lòng xóa bài cũ nếu muốn tạo bài mới!', 'warning', 6000);
+        return false;
+      }
+    }
+
     const roommateWithOwner = { 
       ...newRoommate, 
       postedBy: currentUser?.id || "", 
