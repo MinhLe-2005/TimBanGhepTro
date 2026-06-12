@@ -1,41 +1,22 @@
-﻿import io
+﻿import json
+import urllib.request
 
-with io.open('src/lib/supabase.ts', 'r', encoding='utf-8') as f:
+with open('.env', 'r', encoding='utf-8') as f:
     content = f.read()
 
-upload_utility = """
-export async function uploadImageToSupabase(file: File, bucketName: string = 'room-images'): Promise<string | null> {
-  if (!isConfigured) {
-    console.warn("⚠️ Cannot upload image, Supabase is not configured.");
-    return null;
-  }
-  try {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-    const filePath = `${fileName}`;
+url = ''
+key = ''
+for line in content.split('\n'):
+    if line.startswith('VITE_SUPABASE_URL='):
+        url = line.split('=')[1].strip().strip('"').strip("'")
+    if line.startswith('VITE_SUPABASE_ANON_KEY='):
+        key = line.split('=', 1)[1].strip().strip('"').strip("'")
 
-    const { error: uploadError } = await supabase.storage
-      .from(bucketName)
-      .upload(filePath, file);
-
-    if (uploadError) {
-      console.error('Supabase upload error:', uploadError);
-      return null;
-    }
-
-    const { data } = supabase.storage.from(bucketName).getPublicUrl(filePath);
-    return data.publicUrl;
-  } catch (err) {
-    console.error('Unexpected error during upload:', err);
-    return null;
-  }
-}
-"""
-
-if "uploadImageToSupabase" not in content:
-    content += upload_utility
-    with io.open('src/lib/supabase.ts', 'w', encoding='utf-8') as f:
-        f.write(content)
-    print("Added uploadImageToSupabase")
-else:
-    print("Already exists")
+# Update 1 test avatar
+req = urllib.request.Request(f"{url}/rest/v1/roommates?avatar=like.data:image*&limit=1", data=json.dumps({"avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop"}).encode(), headers={"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json", "Prefer": "return=representation"}, method="PATCH")
+try:
+    with urllib.request.urlopen(req) as response:
+        data = json.loads(response.read().decode())
+        print(f"Updated: {len(data)}")
+except Exception as e:
+    print(e)

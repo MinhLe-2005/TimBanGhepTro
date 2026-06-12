@@ -840,14 +840,13 @@ export default function App() {
     const currentName = String(currentUserProfile?.name || currentUser?.name || "").trim().toLowerCase();
     const visibleLocalRoommates = import.meta.env.VITE_SUPABASE_URL
       ? roommates.filter((roommate) => {
-          if (supabaseRoommates.some(sr => sr.id === roommate.id)) return true;
-          if (initialRoommateIds.has(String(roommate.id))) return true;
-          const ownerId = String(roommate.user_id || roommate.postedBy || "");
-          const ownerName = String(roommate.name || "").trim().toLowerCase();
-          return !!currentUser?.id && (
-            ownerId === currentUser.id ||
-            (!ownerId && !!currentName && ownerName === currentName)
-          );
+          // If Supabase is connected, only include local mock data
+          // Do not resurrect user's old local posts if they were deleted from Supabase
+          if (initialRoommateIds.has(String(roommate.id))) {
+             // Don't duplicate if it's already in Supabase
+             return !supabaseRoommates.some(sr => sr.id === roommate.id);
+          }
+          return false;
         })
       : roommates;
     const combined = [...supabaseRoommates, ...visibleLocalRoommates];
