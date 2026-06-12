@@ -63,7 +63,7 @@ export default function CreateProfileModal({
   // ✅ Ưu tiên profile avatar (user đã chọn) trước auth avatar (Google/Facebook)
   const defaultAvatar = currentProfile?.avatar || currentUser?.avatar || avatars[4];
   const [selectedAvatar, setSelectedAvatar] = useState(defaultAvatar);
-  const [status, setStatus] = useState<"Đang tìm" | "Đang trao đổi" | "Đã tìm được">(
+  const [status, setStatus] = useState<"Đang tìm" | "Đã tìm được">(
     currentProfile?.status || "Đang tìm"
   );
   const [isSaving, setIsSaving] = useState(false);
@@ -388,7 +388,6 @@ export default function CreateProfileModal({
                 <select value={status} onChange={(e: any) => setStatus(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] text-slate-800 outline-none transition-all cursor-pointer">
                   <option value="Đang tìm">Đang tìm roommate</option>
-                  <option value="Đang trao đổi">Đang trao đổi với ai đó</option>
                   <option value="Đã tìm được">Đã tìm được roommate</option>
                 </select>
               </div>

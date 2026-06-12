@@ -161,7 +161,7 @@ export default function PostListingModal({
   const [rmBudget, setRmBudget] = useState("");
   const [rmPhone, setRmPhone] = useState("");
   const [rmBio, setRmBio] = useState("");
-  const [rmStatus, setRmStatus] = useState<"Đang tìm" | "Đang trao đổi" | "Đã tìm được">("Đang tìm");
+  const [rmStatus, setRmStatus] = useState<"Đang tìm" | "Đã tìm được">("Đang tìm");
   const [rmAvatar, setRmAvatar] = useState(AVATAR_PRESETS[0]);
   const [rmAvatarFile, setRmAvatarFile] = useState<File | null>(null);
   const [rmType, setRmType] = useState("Phòng trọ");
@@ -628,7 +628,6 @@ export default function PostListingModal({
                         <select value={rmStatus} onChange={(e) => setRmStatus(e.target.value as any)}
                           className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-3 py-3 text-[13px] outline-none text-slate-800 transition-all cursor-pointer">
                           <option value="Đang tìm">Đang tìm roommate</option>
-                          <option value="Đang trao đổi">Đang trao đổi với ai đó</option>
                           <option value="Đã tìm được">Đã tìm được roommate</option>
                         </select>
                       </div>

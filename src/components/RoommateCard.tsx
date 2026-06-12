@@ -191,27 +191,21 @@ export default function RoommateCard({
         <div className={`${compact ? "mb-0 mt-1" : "mb-3"} w-fit text-[11px] font-bold px-2.5 py-1 rounded-md flex items-center gap-2 ${
           roommate.status === "Đã tìm được"
             ? "bg-red-50/80 text-red-700 border border-red-100/50"
-            : roommate.status === "Đang trao đổi"
-            ? "bg-amber-50/80 text-amber-700 border border-amber-100/50"
             : "bg-emerald-50/80 text-emerald-700 border border-emerald-100/50"
         }`}>
           <span className="relative flex h-2 w-2 shrink-0">
             <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${
               roommate.status === "Đã tìm được"
                 ? "bg-red-400"
-                : roommate.status === "Đang trao đổi"
-                  ? "bg-amber-400"
-                  : "bg-emerald-400"
+                : "bg-emerald-400"
             }`} />
             <span className={`relative inline-flex h-2 w-2 rounded-full ${
               roommate.status === "Đã tìm được"
                 ? "bg-red-500"
-                : roommate.status === "Đang trao đổi"
-                  ? "bg-amber-500"
-                  : "bg-emerald-500"
+                : "bg-emerald-500"
             }`} />
           </span>
-          {roommate.status === "Đã tìm được" ? "Đã tìm được roommate" : roommate.status === "Đang trao đổi" ? "Đang trao đổi" : "Đang tìm roommate"}
+          {roommate.status === "Đã tìm được" ? "Đã tìm được roommate" : "Đang tìm roommate"}
         </div>
 
         {/* Lifestyle Tags - Compact */}

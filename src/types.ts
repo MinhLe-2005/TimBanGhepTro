@@ -30,7 +30,7 @@ export interface Roommate {
   reputationScore: number;
   tags: string[];
   isVerified: boolean;
-  status?: "Đang tìm" | "Đang trao đổi" | "Đã tìm được" | "Đã có phòng" | "Chưa có phòng";
+  status?: "Đang tìm" | "Đã tìm được" | "Đã có phòng" | "Chưa có phòng";
   bio: string;
   budget: number;
   gender: "Nam" | "Nữ" | "Khác";

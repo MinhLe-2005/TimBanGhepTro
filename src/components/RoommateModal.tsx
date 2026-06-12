@@ -353,9 +353,7 @@ export default function RoommateModal({
                 <span className={`absolute bottom-1 right-1 flex h-7 w-7 items-center justify-center rounded-full border-4 border-white shadow-sm ${
                   roommate.status === "Đã tìm được"
                     ? "bg-red-500"
-                    : roommate.status === "Đang trao đổi"
-                      ? "bg-amber-500"
-                      : "bg-emerald-500"
+                    : "bg-emerald-500"
                 }`}>
                   <span className="h-2 w-2 rounded-full bg-white" />
                 </span>
@@ -369,22 +367,16 @@ export default function RoommateModal({
                   <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold shadow-sm backdrop-blur-sm ${
                     roommate.status === "Đã tìm được"
                       ? "border-red-100 bg-red-50/90 text-red-700"
-                      : roommate.status === "Đang trao đổi"
-                        ? "border-amber-100 bg-amber-50/90 text-amber-700"
-                        : "border-emerald-300 bg-emerald-100 text-emerald-800 shadow-[0_3px_10px_rgba(16,185,129,0.16)]"
+                      : "border-emerald-300 bg-emerald-100 text-emerald-800 shadow-[0_3px_10px_rgba(16,185,129,0.16)]"
                   }`}>
                     <span className={`h-1.5 w-1.5 rounded-full ${
                       roommate.status === "Đã tìm được"
                         ? "bg-red-500"
-                        : roommate.status === "Đang trao đổi"
-                          ? "bg-amber-500"
-                          : "bg-emerald-500 animate-pulse"
+                        : "bg-emerald-500 animate-pulse"
                     }`} />
                     {roommate.status === "Đã tìm được"
                       ? "Đã tìm được roommate"
-                      : roommate.status === "Đang trao đổi"
-                        ? "Đang trao đổi"
-                        : "Đang tìm roommate"}
+                      : "Đang tìm roommate"}
                   </span>
                 </div>
 

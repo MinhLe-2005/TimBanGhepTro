@@ -447,7 +447,6 @@ export default function RoommatesView({
               >
                 <option value="Tất cả">Tất cả</option>
                 <option value="Đang tìm">🟢 Đang tìm</option>
-                <option value="Đang trao đổi">🟡 Đang trao đổi</option>
                 <option value="Đã tìm được">🔴 Đã tìm được</option>
               </select>
             </div>
