@@ -70,19 +70,22 @@ export default function RoommateCard({
           referrerPolicy="no-referrer"
         />
 
-        {/* Trust Score / Rating Badge */}
+        {/* Trust Score Badge */}
         <div className="absolute top-4 left-4 z-10">
-          {reviewsCount > 0 && averageRating !== null ? (
-            <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-full border border-amber-200/60 animate-trust-badge">
-              <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 animate-trust-star" />
-              <span className="text-[12px] font-black text-slate-800 tracking-tight">{averageRating.toFixed(1)}</span>
-              <span className="text-[10px] font-bold text-slate-400">({reviewsCount})</span>
-            </div>
-          ) : (
-            <div className="flex items-center bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full shadow-sm border border-slate-200/60">
-              <span className="text-[10px] font-bold text-slate-500">Chưa đánh giá</span>
-            </div>
-          )}
+          <div className={`flex items-center gap-1.5 backdrop-blur-md px-2.5 py-1 rounded-full shadow-sm border ${
+            reputationScore !== null
+              ? reputationScore >= 70
+                ? "bg-emerald-50/95 border-emerald-200/60 text-emerald-700"
+                : reputationScore >= 50
+                ? "bg-amber-50/95 border-amber-200/60 text-amber-700"
+                : "bg-rose-50/95 border-rose-200/60 text-rose-700"
+              : "bg-white/90 border-slate-200/60 text-slate-500"
+          }`}>
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span className="text-[10px] font-black uppercase tracking-wide">
+              {reputationScore !== null ? `Uy tín ${reputationScore}%` : "Chưa có điểm"}
+            </span>
+          </div>
         </div>
 
         {/* Saved Like Button - hidden for admin */}
@@ -155,20 +158,7 @@ export default function RoommateCard({
           <span className="font-semibold text-slate-700">{roommate.role}</span> <span className="mx-1.5 text-slate-300">•</span> {roommate.district || roommate.location.split(',')[0]}
         </div>
 
-        {reputationScore !== null && (
-          <div className={`flex items-center gap-1.5 ${compact ? "mb-2" : "mb-3"}`}>
-            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md border ${
-              reputationScore >= 70 ? 'bg-emerald-50 border-emerald-100 text-emerald-700' :
-              reputationScore >= 50 ? 'bg-amber-50 border-amber-100 text-amber-700' :
-              'bg-rose-50 border-rose-100 text-rose-700'
-            }`}>
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-black uppercase tracking-wide">
-                Uy tín {getReputationLabel(reputationScore)}
-              </span>
-            </div>
-          </div>
-        )}
+        {/* Removed redundant body trust score */}
 
         {/* Detailed Info Grid */}
         <div className={`grid grid-cols-2 gap-2 text-[12px] ${compact ? "mb-2" : "mb-3"}`}>
