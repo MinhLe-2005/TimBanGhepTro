@@ -3,6 +3,7 @@ import { X, Flame, ChevronLeft, ChevronRight, Shield, Zap, Droplet, Building, Ma
 import { Room, Roommate } from "../types";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { calculateReputationScore, getReputationLabel } from "../utils/scoring";
+import { compressImageFile } from "../utils/cropImage";
 
 interface RoomModalProps {
   room: Room | null;

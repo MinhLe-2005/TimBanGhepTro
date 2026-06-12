@@ -5,7 +5,7 @@ import { useState } from "react";
 interface RoomCardProps {
   room: Room;
   onViewDetails: (room: Room) => void;
-  onLikeChange?: (id: string, isLiked: boolean) => boolean | void;
+  onLikeChange?: (id: string, isLiked: boolean) => boolean | void | Promise<boolean>;
   isInitiallyLiked?: boolean;
   onDelete?: (id: string) => void;
   onEdit?: (room: Room) => void;

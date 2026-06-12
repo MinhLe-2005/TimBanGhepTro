@@ -2696,8 +2696,8 @@ export default function App() {
           currentProfile={currentUserProfile}
           editingData={editingListingData}
           onSuccess={(tab) => {
-            if (tab === 'room') setCurrentView('rooms');
-            if (tab === 'roommate') setCurrentView('roommates');
+            if (tab === 'room') setActiveTab('rooms');
+            if (tab === 'roommate') setActiveTab('roommates');
           }}
         />
       )}

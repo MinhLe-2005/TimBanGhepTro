@@ -8,7 +8,7 @@ interface LikedRoomsModalProps {
   onClose: () => void;
   likedRooms: Room[];
   likedRoomIds: string[];
-  onLikeRoom?: (id: string, isLiked: boolean) => void | Promise<boolean>;
+  onLikeRoom?: (id: string, isLiked: boolean) => boolean | void | Promise<boolean>;
   onViewRoom: (room: Room) => void;
   isAdmin?: boolean;
 }

@@ -7,7 +7,7 @@ import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useDialog } from "./ui/DialogProvider";
 import MessageReactions from "./MessageReactions";
 import { CHAT_REPORT_PREFIX, getModerationChannel, isSystemChannel } from "../lib/moderation";
-import { removePublicStorageUrls } from "../lib/storage";
+import { removePublicStorageUrls, uploadInlineImage } from "../lib/storage";
 
 interface ChatViewProps {
   roommates: Roommate[];
