@@ -364,8 +364,8 @@ export default function PostListingModal({
   const handleRoomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
-    if (!rTitle.trim() || !rPrice || !rAddress.trim()) {
-      setFormError("Vui lòng cuộn lên và nhập đầy đủ: Tiêu đề, Giá thuê và Địa chỉ phòng.");
+    if (!rTitle.trim() || !rPrice || !rAddress.trim() || !rPhone.trim()) {
+      setFormError("Vui lòng cuộn lên và nhập đầy đủ: Tiêu đề, Giá thuê, Địa chỉ phòng và Số điện thoại.");
       document.querySelector(".overflow-y-auto")?.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -470,7 +470,7 @@ export default function PostListingModal({
       }
       return;
     }
-    toast(editingData ? `Đã cập nhật tin đăng phòng "${rTitle}" thành công!` : `Đã đăng tin phòng "${rTitle}" thành công!`, "success");
+    toast(editingData ? `Cập nhật tin đăng phòng thành công` : `Đăng bài tin mới thành công`, "success");
     onClose();
   };
 
@@ -1016,7 +1016,7 @@ export default function PostListingModal({
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="block text-[13px] font-semibold text-slate-700">Số điện thoại liên hệ <span className="text-slate-400 font-normal">(không bắt buộc)</span></label>
+                    <label className="block text-[13px] font-semibold text-slate-700">Số điện thoại liên hệ <span className="text-rose-500">*</span></label>
                     <input type="text" value={rPhone} onChange={(e) => setRPhone(e.target.value)} placeholder="09xx xxx xxx"
                       className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] font-bold outline-none text-slate-800 transition-all placeholder:text-slate-300 placeholder:font-normal" />
                   </div>
