@@ -6,7 +6,7 @@ import { supabase } from "../lib/supabase";
 import { uploadInlineImage, isInlineImage } from "../lib/storage";
 import ImageCropperModal from "./ImageCropperModal";
 import { useDialog } from "./ui/DialogProvider";
-
+import { compressImageFile } from "../utils/cropImage";
 interface PostListingModalProps {
   onClose: () => void;
   isOpen?: boolean;
@@ -59,7 +59,9 @@ export default function PostListingModal({
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     
-    if (rImages.length + files.length > 5) {
+    const userImagesCount = rImages.filter(p => !ROOM_IMAGE_PRESETS.includes(p.preview)).length;
+    
+    if (userImagesCount + files.length > 5) {
       alert("Bạn chỉ có thể tải lên tối đa 5 ảnh cho mỗi phòng!");
       return;
     }
