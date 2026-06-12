@@ -1,8 +1,5 @@
 ﻿import io
-
-with io.open('src/components/PopularRoommatesModal.tsx', 'r', encoding='utf-8') as f:
+with io.open('src/components/RoommateModal.tsx', 'r', encoding='utf-8') as f:
     content = f.read()
-
-lines = content.split('\n')
-for i, line in enumerate(lines[:30]):
-    print(f"Line {i+1}: {line.strip()}")
+if "supabase" in content and "reviews" in content:
+    print("Found reviews fetch in RoommateModal.tsx")

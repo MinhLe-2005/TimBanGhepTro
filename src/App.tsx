@@ -836,36 +836,20 @@ export default function App() {
 
   // Merge local roommates with Supabase roommates (deduplicate by id AND name)
   const allRoommates = useMemo(() => {
-    const initialRoommateIds = new Set(INITIAL_ROOMMATES.map((roommate) => String(roommate.id)));
-    const currentName = String(currentUserProfile?.name || currentUser?.name || "").trim().toLowerCase();
-    const visibleLocalRoommates = import.meta.env.VITE_SUPABASE_URL
-      ? roommates.filter((roommate) => {
-          // If Supabase is connected, only include local mock data
-          // Do not resurrect user's old local posts if they were deleted from Supabase
-          if (initialRoommateIds.has(String(roommate.id))) {
-             // Don't duplicate if it's already in Supabase
-             return !supabaseRoommates.some(sr => sr.id === roommate.id);
-          }
-          return false;
-        })
-      : roommates;
-    const combined = [...supabaseRoommates, ...visibleLocalRoommates];
-    const uniqueByIdMap = new Map();
+    let result = [...roommates];
     
-    combined.forEach(rm => {
-      const existingById = uniqueByIdMap.get(rm.id);
-      // If same ID appears twice, prefer the listing version over profile
-      // Also strictly prefer the version that has been enriched with reviews
-      if (!existingById || 
-          (rm.is_listing && !existingById.is_listing) ||
-          ((rm.reviews?.length || 0) > (existingById.reviews?.length || 0)) ||
-          (rm.reviews && !existingById.reviews)
-      ) {
-        uniqueByIdMap.set(rm.id, rm);
-      }
-    });
-    
-    const result = Array.from(uniqueByIdMap.values());
+    if (import.meta.env.VITE_SUPABASE_URL) {
+      const initialRoommateIds = new Set(INITIAL_ROOMMATES.map((r) => String(r.id)));
+      
+      result = result.filter(r => {
+        // Keep if it exists in Supabase
+        if (supabaseRoommates.some(sr => sr.id === r.id)) return true;
+        // Keep if it's initial mock data
+        if (initialRoommateIds.has(String(r.id))) return true;
+        // Drop ghost local posts
+        return false;
+      });
+    }
 
     // Sort: newest listings on top. Sample data (fixed IDs) gets timestamp 0 → goes to bottom
     result.sort((a, b) => {
@@ -881,7 +865,7 @@ export default function App() {
     });
 
     return result;
-  }, [supabaseRoommates, roommates, currentUser, currentUserProfile]);
+  }, [supabaseRoommates, roommates]);
 
   const allRoommatesRef = useRef(allRoommates);
   useEffect(() => {
