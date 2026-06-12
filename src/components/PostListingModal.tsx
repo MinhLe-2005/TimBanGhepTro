@@ -12,6 +12,7 @@ interface PostListingModalProps {
   isOpen?: boolean;
   onSubmitRoom?: (room: Room) => boolean | Promise<boolean>;
   onSubmitRoommate?: (roommate: Roommate) => boolean | Promise<boolean>;
+  onSuccess?: (tab: 'room' | 'roommate') => void;
   initialTab?: "roommate" | "room";
   currentProfile?: any;
   editingData?: any;
@@ -21,6 +22,7 @@ export default function PostListingModal({
   onClose,
   onSubmitRoom,
   onSubmitRoommate,
+  onSuccess,
   initialTab = "roommate",
   currentProfile,
   editingData
@@ -358,6 +360,7 @@ export default function PostListingModal({
     }
     if (!submitted) return;
     toast(editingData ? `Đã cập nhật bài tìm bạn ở ghép cho ${rmName} thành công!` : `Đã đăng bài tìm bạn ở ghép cho ${rmName} thành công!`, "success");
+    if (onSuccess) onSuccess('roommate');
     onClose();
   };
 
@@ -471,6 +474,7 @@ export default function PostListingModal({
       return;
     }
     toast(editingData ? `Cập nhật tin đăng phòng thành công` : `Đăng bài tin mới thành công`, "success");
+    if (onSuccess) onSuccess('room');
     onClose();
   };
 

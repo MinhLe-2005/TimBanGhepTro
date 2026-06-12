@@ -2695,6 +2695,10 @@ export default function App() {
           onSubmitRoom={handleAddRoom}
           currentProfile={currentUserProfile}
           editingData={editingListingData}
+          onSuccess={(tab) => {
+            if (tab === 'room') setCurrentView('rooms');
+            if (tab === 'roommate') setCurrentView('roommates');
+          }}
         />
       )}
 
