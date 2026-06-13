@@ -2598,7 +2598,8 @@ export default function ChatView({
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Signature Modal for Agreement Signing */}
