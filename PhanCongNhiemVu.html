@@ -294,11 +294,29 @@
                     </div>
 
                     <div class="task-item">
-                        <div class="task-title"><span>#9</span> Cập nhật DB: Lý do từ chối & Reports <span class="tag-require">BẮT BUỘC</span></div>
+                        <div class="task-title"><span>#1 & #3</span> Setup Trigger Chat Hệ thống</div>
                         <div class="task-desc">
                             <ul>
-                                <li><strong>Bảng roommates & rooms:</strong> Thêm cột <code>rejectReason</code> (kiểu Text) để lưu lý do Admin không duyệt bài.</li>
-                                <li><strong>Báo cáo (Report):</strong> Setup database để lưu dữ liệu report (hiện FE đang gửi tạm vào bảng <code>messages</code>, cần Nhựt xem có cần tách bảng <code>reports</code> riêng không).</li>
+                                <li>FE đã làm xong UI tin nhắn cảnh báo. Nhựt cần setup Trigger trên Supabase để tự động quét từ khóa "chuyển khoản", "cọc" và bắn tin nhắn vào bảng <code>messages</code> với flag <code>is_system = true</code>.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="task-item">
+                        <div class="task-title"><span>#4</span> Thêm DB: Lý do từ chối (Reject)</div>
+                        <div class="task-desc">
+                            <ul>
+                                <li><strong>Bảng roommates & rooms:</strong> Thêm cột <code>rejectReason</code> (kiểu Text). FE đã làm xong nút Reject và luồng nhập lý do bên Admin Dashboard, chỉ chờ có cột này trong DB để lưu.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="task-item">
+                        <div class="task-title"><span>#10</span> Setup DB: Lưu trữ Report (Báo cáo)</div>
+                        <div class="task-desc">
+                            <ul>
+                                <li>FE đã làm xong UI Report, chặn spam và hiện đang gửi tạm data report vào bảng <code>messages</code>.</li>
+                                <li>Nhựt cần xem xét tạo bảng <code>reports</code> riêng trên Supabase (có các cột: target_id, reason, source...) và sửa lại API gửi report bên FE cho chuẩn.</li>
                             </ul>
                         </div>
                     </div>
