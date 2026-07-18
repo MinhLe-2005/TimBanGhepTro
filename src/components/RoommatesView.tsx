@@ -24,6 +24,8 @@ interface RoommatesViewProps {
   currentUserId?: string;
   initialFilters?: any;
   isAdmin?: boolean;
+  hideFoundRoom?: boolean;
+  setHideFoundRoom?: (val: boolean) => void;
 }
 
 export default function RoommatesView({
@@ -42,6 +44,8 @@ export default function RoommatesView({
   currentUserId,
   initialFilters,
   isAdmin = false,
+  hideFoundRoom = true,
+  setHideFoundRoom = () => {},
 }: RoommatesViewProps) {
   const { toast } = useDialog();
   const [searchTerm, setSearchTerm] = useState("");
@@ -57,7 +61,6 @@ export default function RoommatesView({
   const [maxBudget, setMaxBudget] = useState<number>(20000000);
   const [budgetTag, setBudgetTag] = useState<string>("Tất cả");
   const [showMyPostsOnly, setShowMyPostsOnly] = useState(false);
-  const [hideFoundRoom, setHideFoundRoom] = useState(true); // Default hide
   const [reportingRoommate, setReportingRoommate] = useState<Roommate | null>(null);
 
   useEffect(() => {

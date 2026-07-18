@@ -21,8 +21,8 @@ interface HomeViewProps {
   onStartChat: (id: string) => void;
   currentUserProfile?: any;
   onRequireAuth?: () => void;
-  onOpenCreateProfile?: () => void;
   isAdmin?: boolean;
+  hideInactiveRoommates?: boolean;
 }
 
 export default function HomeView({
@@ -40,7 +40,8 @@ export default function HomeView({
   currentUserProfile,
   onRequireAuth,
   onOpenCreateProfile,
-  isAdmin = false
+  isAdmin = false,
+  hideInactiveRoommates = true
 }: HomeViewProps) {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState("Tất cả Đà Nẵng");
@@ -121,10 +122,10 @@ export default function HomeView({
       (roommate) => {
         const isListing = roommate.is_listing !== false && String(roommate.is_listing) !== "false";
         const isAvailable = !["Đã tìm được roommate", "Đã tìm được", "Đã có phòng", "expired"].includes(roommate.status || "");
-        return isListing && isAvailable;
+        return hideInactiveRoommates ? (isListing && isAvailable) : isListing;
       }
     ),
-    [roommates]
+    [roommates, hideInactiveRoommates]
   );
   const likedRoommates = useMemo(
     () => roommates.filter((roommate) =>

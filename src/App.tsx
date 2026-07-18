@@ -788,6 +788,7 @@ export default function App() {
 
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [hasPendingAgreement, setHasPendingAgreement] = useState(false);
+  const [hideInactiveRoommates, setHideInactiveRoommates] = useState(true);
   const activeTabRef = useRef(activeTab);
 
   useEffect(() => {
@@ -2530,6 +2531,7 @@ export default function App() {
             onRequireAuth={requireAuth}
             onOpenCreateProfile={() => setIsProfileModalOpen(true)}
             isAdmin={isAdmin}
+            hideInactiveRoommates={hideInactiveRoommates}
           />
         )}
 
@@ -2550,6 +2552,8 @@ export default function App() {
             initialFilters={globalSearchFilters}
             isAdmin={isAdmin}
             onClearSelectedRoommate={() => setSelectedRoommate(null)}
+            hideFoundRoom={hideInactiveRoommates}
+            setHideFoundRoom={setHideInactiveRoommates}
           />
         )}
 
