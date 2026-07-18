@@ -118,9 +118,11 @@ export default function HomeView({
 
   const listedRoommates = useMemo(
     () => roommates.filter(
-      (roommate) =>
-        roommate.is_listing !== false &&
-        String(roommate.is_listing) !== "false"
+      (roommate) => {
+        const isListing = roommate.is_listing !== false && String(roommate.is_listing) !== "false";
+        const isAvailable = !["Đã tìm được roommate", "Đã tìm được", "Đã có phòng", "expired"].includes(roommate.status || "");
+        return isListing && isAvailable;
+      }
     ),
     [roommates]
   );
