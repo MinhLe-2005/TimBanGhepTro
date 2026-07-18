@@ -5,6 +5,7 @@ import { Room } from "../types";
 import RoomCard from "./RoomCard";
 import { supabase } from "../lib/supabase";
 import { CHAT_REPORT_PREFIX } from "../lib/moderation";
+import ReportModal from "./ReportModal";
 
 interface RoomsViewProps {
   rooms: Room[];
@@ -47,6 +48,7 @@ export default function RoomsView({
   const [priceTag, setPriceTag] = useState<string>("Tất cả");
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [showMyPostsOnly, setShowMyPostsOnly] = useState(false);
+  const [reportingRoom, setReportingRoom] = useState<Room | null>(null);
 
   const handlePriceTagClick = (tag: string) => {
     setPriceTag(tag);
@@ -90,21 +92,24 @@ export default function RoomsView({
     { id: "baigieuxe", label: "Bãi giữ xe", keywords: ["bãi giữ xe", "bãi xe", "chỗ để xe", "gửi xe", "để xe", "đỗ xe"] },
   ];
 
-  const handleReportRoom = async (room: Room) => {
+  const handleReportRoomClick = (room: Room) => {
     if (!currentUserId) {
       if (onRequireAuth) onRequireAuth();
       return;
     }
-    const reason = window.prompt("Nhập lý do báo cáo bài đăng này:");
-    if (!reason || !reason.trim()) return;
+    setReportingRoom(room);
+  };
 
-    const targetId = room.user_id || room.postedBy || room.id;
+  const handleSubmitReport = async (reason: string) => {
+    if (!reportingRoom || !currentUserId) return;
+
+    const targetId = reportingRoom.user_id || reportingRoom.postedBy || reportingRoom.id;
     const payload = {
       target_id: targetId,
-      reason: reason.trim(),
+      reason: reason,
       source: 'room_listing',
-      room_id: room.id,
-      room_title: room.title
+      room_id: reportingRoom.id,
+      room_title: reportingRoom.title
     };
 
     const { error } = await supabase.from('messages').insert({
@@ -118,6 +123,8 @@ export default function RoomsView({
     } else {
       toast("Cảm ơn bạn đã báo cáo. Quản trị viên sẽ xem xét.", "success");
     }
+    
+    setReportingRoom(null);
   };
 
   // Filter listings
@@ -459,10 +466,12 @@ export default function RoomsView({
               onViewDetails={onViewRoom}
               onLikeChange={isAdmin ? undefined : onLikeRoom}
               isInitiallyLiked={likedRoomIds.includes(room.id)}
-              onDelete={isAdmin || currentUserId === room.user_id || currentUserId === room.postedBy ? onDeleteRoom : undefined}
+              onContact={() => onContact(room)}
+              onReport={() => handleReportRoomClick(room)}
               onEdit={isAdmin || currentUserId === room.user_id || currentUserId === room.postedBy ? onEditRoom : undefined}
-              onReport={handleReportRoom}
+              onDelete={isAdmin || currentUserId === room.user_id || currentUserId === room.postedBy ? onDeleteRoom : undefined}
               currentUserId={currentUserId}
+              hideContact={showMyPostsOnly}
             />
           ))}
         </div>
@@ -491,6 +500,14 @@ export default function RoomsView({
           </button>
         </div>
       )}
+      
+      {/* Modals */}
+      <ReportModal
+        isOpen={!!reportingRoom}
+        onClose={() => setReportingRoom(null)}
+        onSubmit={handleSubmitReport}
+        targetName={reportingRoom?.title || ""}
+      />
     </div>
   );
 }

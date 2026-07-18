@@ -6,6 +6,7 @@ import { SCHOOLS_BY_DISTRICT } from "../data";
 import RoommateCard from "./RoommateCard";
 import { supabase } from "../lib/supabase";
 import { CHAT_REPORT_PREFIX } from "../lib/moderation";
+import ReportModal from "./ReportModal";
 
 interface RoommatesViewProps {
   roommates: Roommate[];
@@ -57,6 +58,7 @@ export default function RoommatesView({
   const [budgetTag, setBudgetTag] = useState<string>("Tất cả");
   const [showMyPostsOnly, setShowMyPostsOnly] = useState(false);
   const [hideFoundRoom, setHideFoundRoom] = useState(true); // Default hide
+  const [reportingRoommate, setReportingRoommate] = useState<Roommate | null>(null);
 
   useEffect(() => {
     if (initialFilters) {
@@ -136,21 +138,24 @@ export default function RoommatesView({
       String((roommate as any).is_listing) !== "false"
   );
   
-  const handleReportRoommate = async (roommate: Roommate) => {
+  const handleReportRoommateClick = (roommate: Roommate) => {
     if (!currentUserId) {
       if (onRequireAuth) onRequireAuth();
       return;
     }
-    const reason = window.prompt("Nhập lý do báo cáo bài đăng này:");
-    if (!reason || !reason.trim()) return;
+    setReportingRoommate(roommate);
+  };
 
-    const targetId = roommate.user_id || roommate.postedBy || roommate.id;
+  const handleSubmitReport = async (reason: string) => {
+    if (!reportingRoommate || !currentUserId) return;
+
+    const targetId = reportingRoommate.user_id || reportingRoommate.postedBy || reportingRoommate.id;
     const payload = {
       target_id: targetId,
-      reason: reason.trim(),
+      reason: reason,
       source: 'roommate_listing',
-      roommate_id: roommate.id,
-      roommate_name: roommate.name
+      roommate_id: reportingRoommate.id,
+      roommate_name: reportingRoommate.name
     };
 
     const { error } = await supabase.from('messages').insert({
@@ -164,6 +169,8 @@ export default function RoommatesView({
     } else {
       toast("Cảm ơn bạn đã báo cáo. Quản trị viên sẽ xem xét.", "success");
     }
+    
+    setReportingRoommate(null);
   };
 
   // Apply filters on top of listings-only data
@@ -482,9 +489,10 @@ export default function RoommatesView({
                 className="w-full bg-white rounded-xl px-4 py-3 text-sm font-bold text-slate-800 border border-slate-200 shadow-sm outline-none hover:border-slate-300 focus:border-[#006590] focus:ring-4 focus:ring-sky-100 transition-all cursor-pointer"
               >
                 <option value="Tất cả">Tất cả</option>
-                <option value="Đang tìm">🟢 Đang tìm</option>
-                <option value="Đã tìm được">🔴 Đã tìm được</option>
-                <option value="Đã có phòng">🔴 Đã có phòng</option>
+                <option value="Đang tìm">● Đang tìm</option>
+                <option value="Đang trao đổi">● Đang trao đổi</option>
+                <option value="Đã tìm được">● Đã tìm được</option>
+                <option value="Đã có phòng">● Đã có phòng</option>
               </select>
               <label className="flex items-center gap-2 mt-2 cursor-pointer group">
                 <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${hideFoundRoom ? 'bg-[#006590] border-[#006590]' : 'border-slate-300 bg-white group-hover:border-[#006590]'}`}>
@@ -561,7 +569,7 @@ export default function RoommatesView({
               onEdit={isAdmin ? undefined : onEditRoommate}
               onDelete={isAdmin || currentUserId === roommate.user_id || currentUserId === roommate.postedBy ? onDeleteRoommate : undefined}
               onClearSelectedRoommate={onClearSelectedRoommate}
-              onReport={handleReportRoommate}
+              onReport={() => handleReportRoommateClick(roommate)}
               currentUserId={currentUserId}
             />
           ))}
@@ -593,6 +601,14 @@ export default function RoommatesView({
           </button>
         </div>
       )}
+
+      {/* Modals */}
+      <ReportModal
+        isOpen={!!reportingRoommate}
+        onClose={() => setReportingRoommate(null)}
+        onSubmit={handleSubmitReport}
+        targetName={reportingRoommate?.name || ""}
+      />
     </div>
   );
 }
