@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, AlertTriangle, Shield, Trash2, Ban, ShieldCheck, FileText, UserCheck, Flag, Check, Star, RefreshCw } from "lucide-react";
+import { Users, AlertTriangle, Shield, Trash2, Ban, ShieldCheck, FileText, UserCheck, Flag, Check, Star, RefreshCw, Search, Image as ImageIcon } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { Roommate, Room } from "../types";
 import { useDialog } from "./ui/DialogProvider";
@@ -798,6 +798,26 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                           <div>
                             <p className="font-bold text-slate-800 text-sm line-clamp-2">{room.title}</p>
                             <p className="text-xs text-slate-500 truncate">{room.district}</p>
+                            {room.utilityImage && (
+                              <div className="mt-2 flex items-center gap-2">
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); previewImage(room.utilityImage!); }}
+                                  className="text-[11px] font-bold bg-amber-100 text-amber-700 px-2 py-1 rounded hover:bg-amber-200 transition-colors flex items-center gap-1"
+                                >
+                                  <ImageIcon className="w-3 h-3" /> Xem hóa đơn
+                                </button>
+                                <a 
+                                  href={`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(room.utilityImage)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-[11px] font-bold bg-sky-100 text-sky-700 px-2 py-1 rounded hover:bg-sky-200 transition-colors flex items-center gap-1"
+                                  title="Tìm kiếm hình ảnh trên Google để check ảnh mạng"
+                                >
+                                  <Search className="w-3 h-3" /> Check ảnh mạng
+                                </a>
+                              </div>
+                            )}
                           </div>
                           <div className="flex justify-between items-center mt-2">
                              <span className="text-xs font-bold text-emerald-600">{(room.price/1000000).toFixed(1)} tr/tháng</span>
