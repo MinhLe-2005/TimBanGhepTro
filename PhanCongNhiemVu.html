@@ -271,6 +271,27 @@
                         </div>
                     </div>
 
+                    <div class="task-item">
+                        <div class="task-title"><span>#8</span> Tạo bảng <code>admin_roles</code> <span class="tag-require">BẮT BUỘC</span></div>
+                        <div class="task-desc">
+                            <ul>
+                                <li>Chạy SQL sau trong Supabase SQL Editor để tạo bảng phân quyền Admin:</li>
+                            </ul>
+                            <pre style="background:#1e293b;color:#e2e8f0;padding:12px;border-radius:8px;font-size:0.82rem;overflow-x:auto;margin-top:8px;">CREATE TABLE admin_roles (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL UNIQUE,
+  created_at timestamptz DEFAULT now()
+);</pre>
+                            <ul style="margin-top:8px;">
+                                <li>Cấp quyền RLS cho bảng: Admin Dashboard đọc được, user thường không đọc được.</li>
+                            </ul>
+                            <div class="sync-note">
+                                ⚠️ <strong>Tại sao cần bảng này:</strong> Minh đã làm tính năng <strong>Phân quyền Admin</strong> trong Dashboard — Admin có thể bấm nút ⭐ để cấp/thu hồi quyền Admin cho bất kỳ user nào mà không cần đụng vào code hay Vercel.<br>
+                                👉 Khi Nhựt tạo xong bảng này, tính năng sẽ hoạt động ngay lập tức. Nếu chưa có bảng, bấm nút sẽ báo lỗi.
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
