@@ -243,6 +243,21 @@
                     </div>
 
                     <div class="task-item">
+                        <div class="task-title"><span>#5b</span> Gửi Email thông báo sắp hết hạn <span class="tag-logic">Logic nặng</span></div>
+                        <div class="task-desc">
+                            <ul>
+                                <li>Dùng <strong>Supabase Edge Function</strong> kết hợp cron job để tự động gửi email nhắc nhở.</li>
+                                <li><strong>Điều kiện:</strong> Bài đăng còn đúng <strong>2 ngày</strong> nữa là hết hạn → gửi email tới địa chỉ email của chủ bài đăng.</li>
+                                <li><strong>Nội dung email mẫu:</strong> <em>"Bài đăng của bạn sắp hết hạn hiển thị. Nếu vẫn đang tìm roommate, hãy đăng nhập và bấm Gia hạn để tiếp tục hiển thị."</em></li>
+                                <li>Có thể dùng service gửi mail miễn phí như <code>Resend</code> hoặc <code>SendGrid</code> tích hợp với Supabase Edge Function.</li>
+                            </ul>
+                            <div class="sync-note">
+                                ⚠️ <strong>Lưu ý:</strong> Frontend (Minh) đã làm sẵn nút <strong>"Gia hạn bài đăng"</strong> trong trang Lịch Sử Thỏa Thuận. Email chỉ cần dẫn user vào trang đó là xong, không cần làm thêm giao diện mới.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="task-item">
                         <div class="task-title"><span>#4 & #6</span> Schema Hóa đơn & Dọn Data giả</div>
                         <div class="task-desc">
                             <ul>
