@@ -57,7 +57,15 @@ BEGIN
             part1 := split_part(NEW.chat_id, '_', 1);
             part2 := split_part(NEW.chat_id, '_', 2);
             
-            IF NEW.sender_id = part1 THEN
+            IF NEW.sender_id = part1 OR EXISTS (
+                SELECT 1 FROM public.roommates 
+                WHERE (id = part1 OR user_id = part1 OR auth_id = part1) 
+                  AND (id = NEW.sender_id OR user_id = NEW.sender_id OR auth_id = NEW.sender_id)
+            ) OR EXISTS (
+                SELECT 1 FROM public.profiles 
+                WHERE (id = part1 OR auth_id = part1) 
+                  AND (id = NEW.sender_id OR auth_id = NEW.sender_id)
+            ) THEN
                 partner_id := part2;
             ELSE
                 partner_id := part1;

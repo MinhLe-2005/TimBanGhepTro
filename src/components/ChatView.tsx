@@ -487,6 +487,7 @@ export default function ChatView({
     return rawActiveMessages.filter((msg, idx) => {
       // 1. Kiểm tra visibleTo từ Database Trigger
       if (msg.visibleTo && msg.visibleTo !== myChatId) {
+        console.log('[ChatFilter] Hiding message (visibleTo mismatch):', msg.text, 'visibleTo:', msg.visibleTo, 'myChatId:', myChatId);
         return false;
       }
       
@@ -501,15 +502,20 @@ export default function ChatView({
           }
         }
         
+        console.log('[ChatFilter] System msg:', msg.text, 'prevUserMsg:', prevUserMsg?.text, 'senderId:', prevUserMsg?.senderId);
+        
         // Nếu tin nhắn gần nhất phía trước được gửi bởi chính mình ("me" hoặc myChatId)
         if (prevUserMsg) {
           const isSenderMe = prevUserMsg.senderId === "me" || prevUserMsg.senderId === myChatId;
+          console.log('[ChatFilter] isSenderMe:', isSenderMe, 'myChatId:', myChatId);
           if (isSenderMe) {
             // Kiểm tra xem tin nhắn đó có chứa từ khóa nhạy cảm hay không
             const suspiciousKeywords = ["đặt cọc", "chuyển tiền", "chuyển khoản", "tiền cọc", "cọc giữ chỗ", "gửi cọc", "chuyển khoản trước", "gửi cọc giữ chỗ", "chuyển tiền gấp"];
             const textLower = (prevUserMsg.text || "").toLowerCase();
             const isSuspicious = suspiciousKeywords.some(kw => textLower.includes(kw));
+            console.log('[ChatFilter] isSuspicious:', isSuspicious, 'text:', textLower);
             if (isSuspicious) {
+              console.log('[ChatFilter] Hiding system warning for sender:', msg.text);
               return false; // Ẩn cảnh báo đối với người gửi
             }
           }
