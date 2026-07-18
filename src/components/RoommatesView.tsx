@@ -494,9 +494,9 @@ export default function RoommatesView({
                 <option value="Đã tìm được">● Đã tìm được</option>
                 <option value="Đã có phòng">● Đã có phòng</option>
               </select>
-              <label className="flex items-center gap-2 mt-2 cursor-pointer group">
-                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${hideFoundRoom ? 'bg-[#006590] border-[#006590]' : 'border-slate-300 bg-white group-hover:border-[#006590]'}`}>
-                  {hideFoundRoom && <CheckSquare className="w-3 h-3 text-white" />}
+              <label className="flex items-center gap-3 mt-3 cursor-pointer group bg-slate-50 hover:bg-slate-100 p-2 rounded-lg transition-colors border border-slate-100">
+                <div className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors shadow-sm ${hideFoundRoom ? 'bg-[#006590] border-[#006590]' : 'border-slate-300 bg-white group-hover:border-[#006590]'}`}>
+                  {hideFoundRoom && <CheckSquare className="w-4 h-4 text-white" />}
                 </div>
                 <input
                   type="checkbox"
@@ -504,7 +504,7 @@ export default function RoommatesView({
                   onChange={(e) => setHideFoundRoom(e.target.checked)}
                   className="hidden"
                 />
-                <span className="text-xs text-slate-600 font-medium group-hover:text-slate-800 transition-colors">Ẩn người đã có/tìm được phòng</span>
+                <span className="text-sm text-slate-700 font-bold group-hover:text-slate-900 transition-colors">Ẩn người đã có/tìm được phòng</span>
               </label>
             </div>
           </div>
