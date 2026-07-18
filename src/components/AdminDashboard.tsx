@@ -30,6 +30,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   const [agreements, setAgreements] = useState<any[]>([]);
   const [allSupabaseRoommates, setAllSupabaseRoommates] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [adminUserIds, setAdminUserIds] = useState<string[]>([]);
 
   const fetchAdminData = async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
@@ -40,6 +41,10 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
         .select('*')
         .order('createdAt', { ascending: false });
       if (allRoommatesData) setAllSupabaseRoommates(allRoommatesData);
+
+      // Fetch admin roles
+      const { data: adminRoles } = await supabase.from('admin_roles').select('user_id');
+      if (adminRoles) setAdminUserIds(adminRoles.map((r: any) => r.user_id));
 
       // Fetch Reports
       const { data: reportMsgs, error: reportError } = await supabase
@@ -471,6 +476,24 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     fetchAdminData(false);
   };
 
+  const handlePromoteAdmin = async (userId: string, userName: string) => {
+    const ok = await confirm(`Bạn có chắc muốn cấp quyền Admin cho "${userName}" không?\nHọ sẽ có toàn quyền quản trị hệ thống.`);
+    if (!ok) return;
+    const { error } = await supabase.from('admin_roles').insert({ user_id: userId });
+    if (error) { toast('Lỗi: ' + error.message, 'error'); return; }
+    setAdminUserIds(prev => [...prev, userId]);
+    toast(`✅ Đã cấp quyền Admin cho ${userName}!`, 'success');
+  };
+
+  const handleDemoteAdmin = async (userId: string, userName: string) => {
+    const ok = await confirm(`Bạn có chắc muốn thu hồi quyền Admin của "${userName}" không?`);
+    if (!ok) return;
+    const { error } = await supabase.from('admin_roles').delete().eq('user_id', userId);
+    if (error) { toast('Lỗi: ' + error.message, 'error'); return; }
+    setAdminUserIds(prev => prev.filter(id => id !== userId));
+    toast(`✅ Đã thu hồi quyền Admin của ${userName}.`, 'success');
+  };
+
   const tabBtn = (tab: typeof activeTab, label: string, count: number, icon: React.ReactNode, color: string) => (
     <button onClick={() => setActiveTab(tab)}
       className={`px-5 py-3 rounded-xl font-bold flex items-center gap-2 transition-all ${activeTab === tab ? color : "bg-white text-slate-600 hover:bg-slate-50"}`}>
@@ -478,49 +501,66 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     </button>
   );
 
-  const UserCard = ({ rm, isBanned, itemType = 'bài đăng' }: { rm: any; isBanned: boolean; itemType?: string }) => (
-    <div 
-      className="border border-slate-200 p-4 rounded-2xl flex items-start gap-4 relative overflow-hidden cursor-pointer hover:border-sky-300 hover:shadow-md transition-all group"
-      onClick={() => onViewRoommate?.(rm)}
-    >
-      {isBanned && <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-[1px] z-10 flex items-center justify-center pointer-events-none"><span className="bg-rose-600 text-white px-3 py-1 rounded-full text-xs font-black shadow-lg">BANNED</span></div>}
-      <img 
-        src={rm.avatar} 
-        className="w-12 h-12 rounded-full object-cover shrink-0 cursor-zoom-in hover:opacity-80 transition-opacity" 
-        alt={rm.name} 
-        onClick={(e) => {
-          e.stopPropagation();
-          previewImage(rm.avatar);
-        }}
-      />
-      <div className="flex-1 min-w-0">
-        <p className="font-bold text-slate-800 truncate group-hover:text-sky-700 transition-colors">{rm.name}</p>
-        <p className="text-xs text-slate-500 truncate">{rm.role} · {rm.district}</p>
-        <div className="text-xs text-slate-600 truncate mt-1 flex flex-col gap-0.5">
-          <span className="truncate" title={rm.email || "Chưa cập nhật email"}>✉️ {rm.email || "Chưa cập nhật email"}</span>
-          <span className="truncate" title={rm.phoneNumber || "Chưa cập nhật SĐT"}>📞 {rm.phoneNumber || "Chưa cập nhật SĐT"}</span>
+  const UserCard = ({ rm, isBanned, itemType = 'bài đăng' }: { rm: any; isBanned: boolean; itemType?: string }) => {
+    const uid = rm.user_id || rm.id;
+    const isThisAdmin = adminUserIds.includes(uid);
+    return (
+      <div 
+        className="border border-slate-200 p-4 rounded-2xl flex items-start gap-4 relative overflow-hidden cursor-pointer hover:border-sky-300 hover:shadow-md transition-all group"
+        onClick={() => onViewRoommate?.(rm)}
+      >
+        {isBanned && <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-[1px] z-10 flex items-center justify-center pointer-events-none"><span className="bg-rose-600 text-white px-3 py-1 rounded-full text-xs font-black shadow-lg">BANNED</span></div>}
+        {isThisAdmin && <div className="absolute top-2 left-2 z-10 bg-amber-400 text-white text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1"><Star className="w-3 h-3" /> ADMIN</div>}
+        <img 
+          src={rm.avatar} 
+          className="w-12 h-12 rounded-full object-cover shrink-0 cursor-zoom-in hover:opacity-80 transition-opacity" 
+          alt={rm.name} 
+          onClick={(e) => {
+            e.stopPropagation();
+            previewImage(rm.avatar);
+          }}
+        />
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-slate-800 truncate group-hover:text-sky-700 transition-colors">{rm.name}</p>
+          <p className="text-xs text-slate-500 truncate">{rm.role} · {rm.district}</p>
+          <div className="text-xs text-slate-600 truncate mt-1 flex flex-col gap-0.5">
+            <span className="truncate" title={rm.email || "Chưa cập nhật email"}>✉️ {rm.email || "Chưa cập nhật email"}</span>
+            <span className="truncate" title={rm.phoneNumber || "Chưa cập nhật SĐT"}>📞 {rm.phoneNumber || "Chưa cập nhật SĐT"}</span>
+          </div>
+          {rm.budget ? <p className="text-xs text-[#006590] font-semibold mt-0.5">{(rm.budget/1000000).toFixed(1)} tr/tháng</p> : null}
+          <p className="text-[10px] text-slate-400 mt-1 truncate font-mono">UID: {rm.user_id || rm.postedBy || '—'}</p>
+          {rm.createdAt && <p className="text-[10px] text-slate-400">Đăng: {new Date(rm.createdAt).toLocaleString('vi-VN')}</p>}
         </div>
-        {rm.budget ? <p className="text-xs text-[#006590] font-semibold mt-0.5">{(rm.budget/1000000).toFixed(1)} tr/tháng</p> : null}
-        <p className="text-[10px] text-slate-400 mt-1 truncate font-mono">UID: {rm.user_id || rm.postedBy || '—'}</p>
-        {rm.createdAt && <p className="text-[10px] text-slate-400">Đăng: {new Date(rm.createdAt).toLocaleString('vi-VN')}</p>}
-      </div>
-      <div className="flex flex-col gap-1.5 z-20 shrink-0" onClick={e => e.stopPropagation()}>
-        {!isBanned && (rm.user_id || rm.id) && (
-          <button onClick={() => handleBanUser(rm.user_id || rm.id)} className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl transition-colors" title="Khóa user">
-            <Ban className="w-4 h-4" />
+        <div className="flex flex-col gap-1.5 z-20 shrink-0" onClick={e => e.stopPropagation()}>
+          {/* Promote / Demote Admin */}
+          {uid && (
+            isThisAdmin ? (
+              <button onClick={() => handleDemoteAdmin(uid, rm.name)} className="p-2 bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white rounded-xl transition-colors" title="Thu hồi quyền Admin">
+                <Star className="w-4 h-4" />
+              </button>
+            ) : (
+              <button onClick={() => handlePromoteAdmin(uid, rm.name)} className="p-2 bg-slate-50 text-slate-400 hover:bg-amber-100 hover:text-amber-600 rounded-xl transition-colors" title="Cấp quyền Admin">
+                <Star className="w-4 h-4" />
+              </button>
+            )
+          )}
+          {!isBanned && (rm.user_id || rm.id) && (
+            <button onClick={() => handleBanUser(rm.user_id || rm.id)} className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl transition-colors" title="Khóa user">
+              <Ban className="w-4 h-4" />
+            </button>
+          )}
+          {isBanned && (
+            <button onClick={() => handleUnbanUser(rm.user_id || rm.id)} className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl transition-colors" title="Mở khóa">
+              <ShieldCheck className="w-4 h-4" />
+            </button>
+          )}
+          <button onClick={() => handleDeleteListing('roommates', rm.id, itemType)} className="p-2 bg-slate-50 text-slate-400 hover:bg-slate-200 hover:text-slate-700 rounded-xl transition-colors" title="Xóa">
+            <Trash2 className="w-4 h-4" />
           </button>
-        )}
-        {isBanned && (
-          <button onClick={() => handleUnbanUser(rm.user_id || rm.id)} className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl transition-colors" title="Mở khóa">
-            <ShieldCheck className="w-4 h-4" />
-          </button>
-        )}
-        <button onClick={() => handleDeleteListing('roommates', rm.id, itemType)} className="p-2 bg-slate-50 text-slate-400 hover:bg-slate-200 hover:text-slate-700 rounded-xl transition-colors" title="Xóa">
-          <Trash2 className="w-4 h-4" />
-        </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 mt-16 animate-fade-in">

@@ -773,7 +773,18 @@ export default function App() {
   }, [currentUser, currentUserProfile]);
 
   const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || "admin@roomiematch.com";
-  const isAdmin = currentUser?.email === adminEmail || currentUser?.email === "quanly@roomiematch.com" || currentUser?.id === "7a1b28ab-058f-49b6-85bb-3cb61406db31";
+  const [adminUserIds, setAdminUserIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    supabase.from('admin_roles').select('user_id').then(({ data }) => {
+      if (data) setAdminUserIds(data.map((r: any) => r.user_id));
+    });
+  }, []);
+
+  const isAdmin = currentUser?.email === adminEmail
+    || currentUser?.email === "quanly@roomiematch.com"
+    || currentUser?.id === "7a1b28ab-058f-49b6-85bb-3cb61406db31"
+    || (!!currentUser?.id && adminUserIds.includes(currentUser.id));
 
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [hasPendingAgreement, setHasPendingAgreement] = useState(false);
