@@ -788,7 +788,7 @@ export default function App() {
 
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [hasPendingAgreement, setHasPendingAgreement] = useState(false);
-  const [hideInactiveRoommates, setHideInactiveRoommates] = useState(true);
+  const [hideInactiveRoommates, setHideInactiveRoommates] = useState(false);
   const activeTabRef = useRef(activeTab);
 
   useEffect(() => {
