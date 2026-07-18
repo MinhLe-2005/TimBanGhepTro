@@ -183,6 +183,21 @@ export default function ChatView({
          activeRoommate?.id ||
          activeRoommateId;
 
+       // Check if already reported
+       const { data: existingReports } = await supabase
+         .from('messages')
+         .select('id')
+         .eq('chat_id', CHAT_REPORT_PREFIX + myId)
+         .eq('sender_id', myId)
+         .like('text', `%[REPORT]%`)
+         .like('text', `%"target_id":"${targetAccountId}"%`);
+
+       if (existingReports && existingReports.length > 0) {
+         toast("Bạn đã báo cáo người dùng này rồi. Quản trị viên đang xem xét.", "warning", 5000);
+         closeReportModal();
+         return;
+       }
+
        setIsUploadingReport(true);
        let finalImageUrl = "";
 

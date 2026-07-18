@@ -153,6 +153,22 @@ export default function RoommatesView({
     if (!reportingRoommate || !currentUserId) return;
 
     const targetId = reportingRoommate.user_id || reportingRoommate.postedBy || reportingRoommate.id;
+
+    // Check if already reported
+    const { data: existingReports } = await supabase
+      .from('messages')
+      .select('id')
+      .eq('chat_id', CHAT_REPORT_PREFIX + currentUserId)
+      .eq('sender_id', currentUserId)
+      .like('text', `%[REPORT]%`)
+      .like('text', `%"target_id":"${targetId}"%`);
+      
+    if (existingReports && existingReports.length > 0) {
+      toast("Bạn đã báo cáo người dùng/bài đăng này rồi.", "warning");
+      setReportingRoommate(null);
+      return;
+    }
+
     const payload = {
       target_id: targetId,
       reason: reason,

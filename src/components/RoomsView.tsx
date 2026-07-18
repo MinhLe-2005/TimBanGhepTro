@@ -104,6 +104,22 @@ export default function RoomsView({
     if (!reportingRoom || !currentUserId) return;
 
     const targetId = reportingRoom.user_id || reportingRoom.postedBy || reportingRoom.id;
+
+    // Check if already reported
+    const { data: existingReports } = await supabase
+      .from('messages')
+      .select('id')
+      .eq('chat_id', CHAT_REPORT_PREFIX + currentUserId)
+      .eq('sender_id', currentUserId)
+      .like('text', `%[REPORT]%`)
+      .like('text', `%"target_id":"${targetId}"%`);
+      
+    if (existingReports && existingReports.length > 0) {
+      toast("Bạn đã báo cáo nội dung này rồi.", "warning");
+      setReportingRoom(null);
+      return;
+    }
+
     const payload = {
       target_id: targetId,
       reason: reason,

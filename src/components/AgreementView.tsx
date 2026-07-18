@@ -494,6 +494,16 @@ export default function AgreementView({
          year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
        }));
        setIsSigned(true);
+       
+       if (messagePrefix === "[AGREEMENT_SIGNED]") {
+         // Auto download PDF after a short delay to allow React state to update UI
+         setTimeout(() => {
+           if (typeof window !== 'undefined') {
+             const pdfBtn = document.getElementById('auto-download-pdf-btn');
+             if (pdfBtn) pdfBtn.click();
+           }
+         }, 800);
+       }
     } else {
        toast('Lỗi khi xử lý thỏa thuận! Vui lòng thử lại.', 'error');
        console.error(error);
@@ -1336,6 +1346,7 @@ export default function AgreementView({
               <div className="mt-4 space-y-3">
                 <button
                   type="button"
+                  id="auto-download-pdf-btn"
                   onClick={handleDownloadPDF}
                   className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-black rounded-xl text-[14px] transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20"
                 >
