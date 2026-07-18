@@ -2075,12 +2075,24 @@ export default function App() {
 
   const handleExtendPost = async (type: 'room' | 'roommate', id: string) => {
     try {
+      const now = new Date().toISOString();
       const { error } = await supabase
         .from(type === 'room' ? 'rooms' : 'roommates')
-        .update({ created_at: new Date().toISOString() })
+        .update({ created_at: now })
         .eq('id', id);
       
-      if (error) throw error;
+      // Bỏ qua lỗi nếu là bài đăng ở local (ví dụ Profile chưa đồng bộ lên Supabase)
+      if (error && !String(error.message).includes('uuid')) {
+         console.warn('Supabase update failed, might be local data:', error);
+      }
+      
+      // Nếu là gia hạn Profile của chính mình, cập nhật luôn vào Local Storage để UI phản hồi ngay
+      if (type === 'roommate' && currentUserProfile && (id === currentUserProfile.id || id === currentUser?.id)) {
+        const updatedProfile = { ...currentUserProfile, created_at: now, createdAt: now };
+        setCurrentUserProfile(updatedProfile);
+        localStorage.setItem("roomiematch_user_profile", JSON.stringify(updatedProfile));
+      }
+
       toast('Đã gia hạn bài đăng thành công! Bài của bạn đã được đẩy lên đầu.', 'success');
       
       if (type === 'room') {
