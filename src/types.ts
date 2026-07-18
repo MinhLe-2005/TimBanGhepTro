@@ -77,8 +77,7 @@ export interface Room {
   reviews?: RoomReview[];
   electricity?: string;
   water?: string;
-  utilityBills?: "Có hóa đơn rõ ràng" | "Không có hóa đơn" | "Thỏa thuận";
-  priceCommitment?: "Không cam kết" | "Cam kết 3 tháng" | "Cam kết 6 tháng" | "Cam kết 1 năm";
+  utilityImage?: string;
   parking?: string;
   proximity?: string;
   hostRole?: string;

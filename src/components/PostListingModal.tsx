@@ -196,8 +196,9 @@ export default function PostListingModal({
   const [rKitchen, setRKitchen] = useState("Bếp riêng");
   const [rPriceElectricity, setRPriceElectricity] = useState("3.500đ/kWh");
   const [rPriceWater, setRPriceWater] = useState("10.000đ/m3");
-  const [rUtilityBills, setRUtilityBills] = useState<"Có hóa đơn rõ ràng" | "Không có hóa đơn" | "Thỏa thuận">("Thỏa thuận");
-  const [rPriceCommitment, setRPriceCommitment] = useState<"Không cam kết" | "Cam kết 3 tháng" | "Cam kết 6 tháng" | "Cam kết 1 năm">("Không cam kết");
+  const [rUtilityImage, setRUtilityImage] = useState<string | null>(null);
+  const [rUtilityImageFile, setRUtilityImageFile] = useState<File | null>(null);
+  const [rCommitmentChecked, setRCommitmentChecked] = useState(false);
   const [rPets, setRPets] = useState<"thoải mái" | "không cho nuôi">("thoải mái");
   const [rGenderTarget, setRGenderTarget] = useState<"Nam" | "Nữ" | "Khác" | "Tất cả">("Tất cả");
   const [rPhone, setRPhone] = useState("");
@@ -264,8 +265,8 @@ export default function PostListingModal({
         setRKitchen(editingData.kitchen || "Bếp riêng");
         setRPriceElectricity(editingData.electricity || "3.500đ/kWh");
         setRPriceWater(editingData.water || "10.000đ/m3");
-        setRUtilityBills(editingData.utilityBills || "Thỏa thuận");
-        setRPriceCommitment(editingData.priceCommitment || "Không cam kết");
+        setRUtilityImage(editingData.utilityImage || null);
+        setRCommitmentChecked(true); // Nếu edit thì coi như đã cam kết
         setRPets(editingData.pets || "thoải mái");
         setRGenderTarget(editingData.gender || "Tất cả");
         setRPhone(editingData.phoneNumber || "");
@@ -432,6 +433,13 @@ export default function PostListingModal({
       uploadedImageUrls = [ROOM_IMAGE_PRESETS[0]]; // fallback
     }
 
+    // Handle Utility Image Upload
+    let finalUtilityImageUrl = rUtilityImage;
+    if (rUtilityImageFile) {
+        const { uploadImageToSupabase } = await import('../lib/supabase');
+        finalUtilityImageUrl = await uploadImageToSupabase(rUtilityImageFile);
+    }
+
     const newRoom: Room = {
       id: `room-${Date.now()}`,
       title: rTitle,
@@ -456,8 +464,7 @@ export default function PostListingModal({
       gender: rGenderTarget,
       electricity: rPriceElectricity,
       water: rPriceWater,
-      utilityBills: rUtilityBills,
-      priceCommitment: rPriceCommitment,
+      utilityImage: finalUtilityImageUrl || undefined,
       roommateInfo: rRoommateInfo || undefined,
       reviews: []
     };
@@ -944,26 +951,30 @@ export default function PostListingModal({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="block text-[13px] font-semibold text-slate-700">Minh bạch điện nước</label>
-                      <select value={rUtilityBills} onChange={(e) => setRUtilityBills(e.target.value as any)}
-                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 cursor-pointer transition-all">
-                        <option value="Thỏa thuận">Thỏa thuận sau</option>
-                        <option value="Có hóa đơn rõ ràng">Có hóa đơn rõ ràng (App EVN, Cấp nước)</option>
-                        <option value="Không có hóa đơn">Không có hóa đơn / Chủ trọ thu khoán</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="block text-[13px] font-semibold text-slate-700">Cam kết giá thuê</label>
-                      <select value={rPriceCommitment} onChange={(e) => setRPriceCommitment(e.target.value as any)}
-                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 cursor-pointer transition-all">
-                        <option value="Không cam kết">Không cam kết</option>
-                        <option value="Cam kết 3 tháng">Cam kết không tăng giá 3 tháng</option>
-                        <option value="Cam kết 6 tháng">Cam kết không tăng giá 6 tháng</option>
-                        <option value="Cam kết 1 năm">Cam kết không tăng giá 1 năm</option>
-                      </select>
-                    </div>
+                  <div className="space-y-2 mt-4">
+                    <label className="block text-[13px] font-semibold text-slate-700">Ảnh chụp Hóa đơn Điện/Nước/Internet gần nhất (Tùy chọn)</label>
+                    <p className="text-[11px] text-slate-500 mb-2">Hóa đơn cần hiển thị đúng địa chỉ căn phòng mà bạn đang đăng ký.</p>
+                    {rUtilityImage ? (
+                      <div className="relative inline-block">
+                        <img src={rUtilityImage} alt="Hóa đơn" className="h-24 w-auto rounded-lg object-cover border border-slate-200" />
+                        <button type="button" onClick={() => { setRUtilityImage(null); setRUtilityImageFile(null); }} className="absolute -top-2 -right-2 bg-rose-500 text-white p-1 rounded-full hover:bg-rose-600 shadow-md">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center w-full sm:w-1/2 h-24 border-2 border-dashed border-slate-300 rounded-xl hover:border-[#006590] hover:bg-slate-50 cursor-pointer transition-colors text-slate-500">
+                        <div className="flex flex-col items-center">
+                          <Upload className="w-5 h-5 mb-1 text-slate-400" />
+                          <span className="text-[12px] font-medium">Tải ảnh hóa đơn lên</span>
+                        </div>
+                        <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setRUtilityImageFile(e.target.files[0]);
+                            setRUtilityImage(URL.createObjectURL(e.target.files[0]));
+                          }
+                        }} />
+                      </label>
+                    )}
                   </div>
                 </div>
 
@@ -1060,6 +1071,18 @@ export default function PostListingModal({
                       className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 resize-none transition-all placeholder:text-slate-300" />
                   </div>
                 </div>
+                
+                <div className="px-1 mt-4">
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    <div className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${rCommitmentChecked ? 'bg-[#006590] border-[#006590]' : 'bg-white border-slate-300 group-hover:border-[#006590]'}`}>
+                      {rCommitmentChecked && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                    </div>
+                    <input type="checkbox" className="hidden" checked={rCommitmentChecked} onChange={(e) => setRCommitmentChecked(e.target.checked)} />
+                    <span className="text-[13px] text-slate-700 leading-tight">
+                      Tôi cam kết các hình ảnh và thông tin cung cấp phía trên là <span className="font-bold text-rose-600">chính xác</span> và thuộc <span className="font-bold text-[#006590]">quyền sử dụng thực tế</span> của tôi.
+                    </span>
+                  </label>
+                </div>
 
                 {formError && (
                   <div className="p-3 bg-rose-50 border border-rose-200 text-rose-600 text-[13px] font-medium rounded-xl text-center">
@@ -1071,8 +1094,8 @@ export default function PostListingModal({
                     className="px-6 py-3 border border-slate-200 hover:bg-slate-50 font-semibold rounded-full text-sm text-slate-500 duration-150 cursor-pointer">
                     Hủy bỏ
                   </button>
-                  <button type="submit" disabled={isSubmitting}
-                    className="px-8 py-3 bg-[#006590] hover:bg-[#005176] disabled:bg-slate-300 disabled:cursor-wait font-bold rounded-full text-sm text-white duration-150 cursor-pointer shadow-md flex items-center gap-2">
+                  <button type="submit" disabled={isSubmitting || !rCommitmentChecked}
+                    className="px-8 py-3 bg-[#006590] hover:bg-[#005176] disabled:bg-slate-300 disabled:cursor-not-allowed font-bold rounded-full text-sm text-white duration-150 cursor-pointer shadow-md flex items-center gap-2">
                     <Plus className="h-4 w-4" />
                     {isSubmitting ? "Đang lưu..." : editingData ? "Cập nhật tin phòng trọ" : "Đăng tin phòng trọ"}
                   </button>
