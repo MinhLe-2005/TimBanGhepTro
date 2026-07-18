@@ -208,8 +208,8 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   // Listings = is_listing is not false; Profiles = is_listing is false
   const listings = allSupabaseRoommates.filter(r => r.is_listing !== false && r.is_listing !== 'false');
   const profiles = allSupabaseRoommates.filter(r => r.is_listing === false || r.is_listing === 'false');
-  const pendingListings = listings.filter(r => !r.isVerified);
-  const pendingRooms = rooms.filter(r => !r.isVerifiedRoom);
+  const pendingListings = listings.filter(r => r.isVerified === false);
+  const pendingRooms = rooms.filter(r => r.isVerifiedRoom === false);
 
   const handleBanUser = async (userId: string) => {
     const ok = await confirm({ title: 'Khóa tài khoản', message: 'Bạn có chắc muốn khóa vĩnh viễn tài khoản này?', confirmText: 'Khóa ngay', type: 'error' });
