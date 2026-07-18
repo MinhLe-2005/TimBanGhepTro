@@ -8,7 +8,8 @@ ALTER TABLE public.roommates
   ADD COLUMN IF NOT EXISTS "postedBy" text,
   ADD COLUMN IF NOT EXISTS is_listing boolean DEFAULT true,
   ADD COLUMN IF NOT EXISTS "createdAt" timestamptz DEFAULT now(),
-  ADD COLUMN IF NOT EXISTS school text;
+  ADD COLUMN IF NOT EXISTS school text,
+  ADD COLUMN IF NOT EXISTS "rejectReason" text;
 
 ALTER TABLE public.rooms
   ADD COLUMN IF NOT EXISTS user_id text,
@@ -20,7 +21,8 @@ ALTER TABLE public.rooms
   ADD COLUMN IF NOT EXISTS "hostRole" text,
   ADD COLUMN IF NOT EXISTS "roommateInfo" text,
   ADD COLUMN IF NOT EXISTS habits jsonb DEFAULT '[]'::jsonb,
-  ADD COLUMN IF NOT EXISTS "createdAt" timestamptz DEFAULT now();
+  ADD COLUMN IF NOT EXISTS "createdAt" timestamptz DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS "rejectReason" text;
 
 -- 2. Các bản ghi roommate cũ (không phải profile) cần is_listing = true
 -- Profile là bản ghi có is_listing = false được set rõ ràng

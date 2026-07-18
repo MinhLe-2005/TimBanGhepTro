@@ -44,6 +44,7 @@ const ROOMMATE_DB_KEYS = [
 const withoutExtendedRoomFields = (room: Record<string, any>) => {
   const {
     electricity, water, parking, proximity, hostRole, roommateInfo, habits,
+    rejectReason,
     ...legacyRoom
   } = room;
   const extendedFeatures = [...(legacyRoom.features || [])];
@@ -60,7 +61,7 @@ const withoutExtendedRoomFields = (room: Record<string, any>) => {
 };
 
 const withoutExtendedRoommateFields = (roommate: Record<string, any>) => {
-  const { school, ...legacyRoommate } = roommate;
+  const { school, rejectReason, ...legacyRoommate } = roommate;
   const extendedTags = [...(legacyRoommate.tags || [])];
   if (school) extendedTags.push(`SCHOOL:${school}`);
   legacyRoommate.tags = extendedTags;
