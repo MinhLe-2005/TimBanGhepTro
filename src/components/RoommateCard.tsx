@@ -90,26 +90,26 @@ export default function RoommateCard({
           </div>
         </div>
 
-        {/* Saved Like Button - hidden for admin */}
-        {onLikeChange && (
-          <button
-            onClick={handleLike}
-            className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-red-500 hover:scale-110 active:scale-90 transition-all duration-200 shadow-sm"
-          >
-            <Heart className={`h-4 w-4 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
-          </button>
-        )}
-
-        {/* Report Button */}
-        {onReport && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onReport(roommate); }}
-            className="absolute top-14 right-4 z-10 w-8 h-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-amber-500 hover:scale-110 active:scale-90 transition-all duration-200 shadow-sm"
-            title="Báo cáo hồ sơ này"
-          >
-            <AlertCircle className="h-4 w-4" />
-          </button>
-        )}
+        {/* Action buttons: Like + Report grouped */}
+        <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+          {onLikeChange && (
+            <button
+              onClick={handleLike}
+              className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-red-500 hover:scale-110 active:scale-90 transition-all duration-200 shadow-sm"
+            >
+              <Heart className={`h-4 w-4 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
+            </button>
+          )}
+          {onReport && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onReport(roommate); }}
+              className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-amber-500 hover:scale-110 active:scale-90 transition-all duration-200 shadow-sm"
+              title="Báo cáo hồ sơ này"
+            >
+              <AlertCircle className="h-4 w-4" />
+            </button>
+          )}
+        </div>
 
         {showLikeCount && likeCount > 0 && (
           <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 rounded-full border border-white/70 bg-white/95 px-2.5 py-1 text-[10px] font-bold text-rose-600 shadow-sm backdrop-blur-sm">
