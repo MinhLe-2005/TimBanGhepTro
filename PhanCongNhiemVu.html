@@ -291,6 +291,17 @@
                             </div>
                         </div>
                     </div>
+                    </div>
+
+                    <div class="task-item">
+                        <div class="task-title"><span>#9</span> Cập nhật DB: Lý do từ chối & Reports <span class="tag-require">BẮT BUỘC</span></div>
+                        <div class="task-desc">
+                            <ul>
+                                <li><strong>Bảng roommates & rooms:</strong> Thêm cột <code>rejectReason</code> (kiểu Text) để lưu lý do Admin không duyệt bài.</li>
+                                <li><strong>Báo cáo (Report):</strong> Setup database để lưu dữ liệu report (hiện FE đang gửi tạm vào bảng <code>messages</code>, cần Nhựt xem có cần tách bảng <code>reports</code> riêng không).</li>
+                            </ul>
+                        </div>
+                    </div>
 
                 </div>
             </div>
@@ -340,6 +351,17 @@
                             <ul>
                                 <li><strong>Trang chủ tìm kiếm:</strong> Lọc bỏ (Filter) các hồ sơ có <code>status = 'Đã có phòng'</code> khỏi danh sách Tìm Bạn.</li>
                                 <li><strong>Khung Chat:</strong> Tin nhắn nào có <code>is_system = true</code> sẽ tự động hiển thị style riêng (nền đỏ nhạt, icon ⚠️, chữ đậm) — chờ Nhựt setup Trigger bắn tin nhắn hệ thống vào bảng <code>messages</code> với flag <code>is_system = true</code>.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    </div>
+
+                    <div class="task-item">
+                        <div class="task-title"><span>#9</span> Xóa Clone Data & Ẩn bài viết cũ</div>
+                        <div class="task-desc">
+                            <ul>
+                                <li>Xóa toàn bộ các dữ liệu mẫu (Sơn Tùng, Chi Dân, clone AI) khỏi danh sách khởi tạo để web chỉ hiển thị user thật.</li>
+                                <li>Viết logic tự động lọc và ẩn các bài đăng đã quá 30 ngày (dựa vào <code>createdAt</code>) để tránh loãng data cũ.</li>
                             </ul>
                         </div>
                     </div>
