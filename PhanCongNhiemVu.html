@@ -258,10 +258,11 @@
                     </div>
 
                     <div class="task-item">
-                        <div class="task-title"><span>#4 & #6</span> Schema Hóa đơn</div>
+                        <div class="task-title"><span>#4 & #6</span> Schema Hóa đơn & Luồng Duyệt Bài</div>
                         <div class="task-desc">
                             <ul>
-                                <li>Bảng <code>rooms</code>: Thêm cột <code>bill_image</code> (lưu ảnh hóa đơn) và đổi mặc định <code>status = 'pending'</code>. Tạo bucket Storage cho bill.</li>
+                                <li><strong>Bảng rooms:</strong> Thêm cột <code>bill_image</code> (lưu ảnh hóa đơn). Đổi cờ duyệt bài đăng: Thêm field <code>isVerifiedRoom = false</code> mặc định (chờ Admin duyệt). Tạo bucket Storage cho ảnh hóa đơn.</li>
+                                <li><strong>Bảng roommates (nếu cần):</strong> Thêm field <code>isVerified = false</code> mặc định để chờ Admin duyệt.</li>
                             </ul>
                             <div class="sync-note">
                                 ⚠️ <strong>Sync với Minh (Frontend):</strong> Minh đã làm form upload ảnh hóa đơn và lưu URL vào field <code>utilityImage</code> trong bảng <code>rooms</code>.<br>
