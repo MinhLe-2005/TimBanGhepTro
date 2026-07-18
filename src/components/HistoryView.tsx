@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { AlertCircle, BadgeCheck, Check, Clock, Eye, FileText, UserRound, X } from "lucide-react";
 import { useDialog } from "./ui/DialogProvider";
 import { supabase } from "../lib/supabase";
-import { Roommate } from "../types";
+import { Roommate, Room } from "../types";
 import {
   AgreementRecord,
   buildAgreementHistory,
@@ -14,8 +14,10 @@ interface HistoryViewProps {
   currentUserProfile: any;
   currentUser?: any;
   roommates: Roommate[];
+  rooms?: Room[];
   onRequireAuth?: () => void;
   onRequireProfile?: () => void;
+  onExtendPost?: (type: 'room' | 'roommate', id: string) => void;
 }
 
 const fallbackAvatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb";
@@ -46,13 +48,20 @@ export default function HistoryView({
   currentUserProfile,
   currentUser,
   roommates,
+  rooms = [],
   onRequireAuth,
   onRequireProfile,
+  onExtendPost,
 }: HistoryViewProps) {
+  const [activeTab, setActiveTab] = useState<'agreements' | 'posts'>('agreements');
   const [agreements, setAgreements] = useState<AgreementRecord[]>([]);
   const [selectedAgreement, setSelectedAgreement] = useState<AgreementRecord | null>(null);
-  const { previewImage } = useDialog();
+  const { previewImage, toast } = useDialog();
   const myAuthId = currentUser?.id || "";
+
+  // Get user's posts
+  const myRooms = rooms.filter(r => r.postedBy === myAuthId || r.user_id === myAuthId);
+  const myRoommates = roommates.filter(r => r.postedBy === myAuthId || r.user_id === myAuthId);
 
   useEffect(() => {
     if (!myAuthId) return;
@@ -125,20 +134,47 @@ export default function HistoryView({
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in pb-16 pt-6">
       <section className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-8">
-        <div className="flex items-center gap-3 pb-6 border-b border-slate-100">
-          <div className="w-12 h-12 bg-[#006590]/10 text-[#006590] rounded-xl flex items-center justify-center">
-            <FileText className="w-6 h-6" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-[#006590]/10 text-[#006590] rounded-xl flex items-center justify-center">
+              <FileText className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-slate-800">Quản Lý Giao Dịch</h1>
+              <p className="text-sm text-slate-500">
+                Lịch sử thỏa thuận và bài đăng của bạn
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-black text-slate-800">Lịch Sử Thỏa Thuận</h1>
-            <p className="text-sm text-slate-500">
-              Theo dõi bản chờ ký, đã ký và đã hủy
-            </p>
+          
+          {/* Tabs */}
+          <div className="flex bg-slate-100 p-1.5 rounded-xl self-stretch sm:self-auto shrink-0">
+            <button
+              onClick={() => setActiveTab('agreements')}
+              className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
+                activeTab === 'agreements'
+                  ? 'bg-white text-[#006590] shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Thỏa thuận
+            </button>
+            <button
+              onClick={() => setActiveTab('posts')}
+              className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
+                activeTab === 'posts'
+                  ? 'bg-white text-[#006590] shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Bài đăng
+            </button>
           </div>
         </div>
 
         <div className="mt-6 space-y-4">
-          {agreements.length === 0 ? (
+          {activeTab === 'agreements' ? (
+            agreements.length === 0 ? (
             <div className="text-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
               <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
               <p className="text-slate-500 font-bold">Chưa có thỏa thuận nào</p>
@@ -204,6 +240,41 @@ export default function HistoryView({
                   </article>
                 );
               })}
+            </div>
+          )) : (
+            <div className="space-y-6">
+              {myRooms.length === 0 && myRoommates.length === 0 ? (
+                <div className="text-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                  <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-500 font-bold">Bạn chưa có bài đăng nào</p>
+                </div>
+              ) : (
+                <>
+                  {myRoommates.length > 0 && (
+                    <div>
+                      <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <UserRound className="w-5 h-5 text-[#006590]" />
+                        Hồ sơ tìm người ở ghép
+                      </h3>
+                      <div className="grid gap-4">
+                        {myRoommates.map(r => <PostItem key={r.id} item={r} type="roommate" onExtend={() => onExtendPost?.('roommate', r.id)} />)}
+                      </div>
+                    </div>
+                  )}
+
+                  {myRooms.length > 0 && (
+                    <div>
+                      <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-emerald-600" />
+                        Bài đăng cho thuê phòng
+                      </h3>
+                      <div className="grid gap-4">
+                        {myRooms.map(r => <PostItem key={r.id} item={r} type="room" onExtend={() => onExtendPost?.('room', r.id)} />)}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
         </div>
@@ -439,6 +510,50 @@ function EmptyAccess({
           className="w-full py-3 bg-[#006590] hover:bg-[#005176] text-white font-bold rounded-xl transition-colors"
         >
           {buttonLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PostItem({ item, type, onExtend }: { item: any; type: 'room' | 'roommate'; onExtend: () => void }) {
+  const createdAt = new Date(item.created_at || Date.now());
+  const now = new Date();
+  
+  // Assume expiration is 30 days
+  const expiresAt = new Date(createdAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const daysLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const isExpired = daysLeft <= 0;
+  const isExpiringSoon = daysLeft > 0 && daysLeft <= 3; // within 3 days
+
+  return (
+    <div className={`p-4 sm:p-5 rounded-2xl border transition-all ${isExpired ? 'border-red-200 bg-red-50/30' : isExpiringSoon ? 'border-amber-200 bg-amber-50/30' : 'border-slate-100 bg-white hover:border-sky-200 hover:shadow-md'}`}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h4 className="text-base font-bold text-slate-800 line-clamp-1">{type === 'room' ? item.title : item.name}</h4>
+          <p className="text-xs text-slate-500 mt-1">Đăng ngày: {formatDateTime(item.created_at)}</p>
+          <div className="mt-2 flex items-center gap-2">
+            {isExpired ? (
+              <span className="px-2.5 py-1 bg-red-100 text-red-700 rounded text-[10px] font-bold uppercase flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" /> Đã hết hạn
+              </span>
+            ) : isExpiringSoon ? (
+              <span className="px-2.5 py-1 bg-amber-100 text-amber-700 rounded text-[10px] font-bold uppercase flex items-center gap-1">
+                <Clock className="w-3 h-3" /> Hết hạn sau {daysLeft} ngày
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded text-[10px] font-bold uppercase flex items-center gap-1">
+                <Check className="w-3 h-3" /> Còn {daysLeft} ngày
+              </span>
+            )}
+          </div>
+        </div>
+        
+        <button
+          onClick={onExtend}
+          className="shrink-0 px-4 py-2 bg-sky-100 hover:bg-sky-200 text-[#006590] text-xs font-bold rounded-xl transition-colors whitespace-nowrap"
+        >
+          Gia hạn bài đăng
         </button>
       </div>
     </div>

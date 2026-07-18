@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import html2pdf from "html2pdf.js";
 import {
   Sparkles,
   User,
@@ -17,7 +18,8 @@ import {
   X,
   FileEdit,
   Send,
-  Eye
+  Eye,
+  Download
 } from "lucide-react";
 import { Roommate } from "../types";
 import { supabase } from "../lib/supabase";
@@ -93,6 +95,7 @@ export default function AgreementView({
   const [billsText, setBillsText] = useState("");
   const [petsText, setPetsText] = useState("");
   const [otherNotesText, setOtherNotesText] = useState("");
+  const pdfRef = useRef<HTMLDivElement>(null);
   
   // Fetch agreements from Supabase
   const [agreements, setAgreements] = useState<any[]>([]);
@@ -608,6 +611,27 @@ export default function AgreementView({
     setFullName("");
     setSignedDate("");
     setOtherNotesText("");
+  };
+
+  const handleDownloadPDF = () => {
+    if (!pdfRef.current) return;
+    const element = pdfRef.current;
+    
+    // Make visible for rendering
+    element.style.display = 'block';
+    
+    const opt = {
+      margin:       15,
+      filename:     `Thoa_Thuan_RoomieMatch_${selectedRoommate?.name || 'ban'}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    
+    html2pdf().set(opt).from(element).save().then(() => {
+      element.style.display = 'none';
+      toast('Đã tải xuống file PDF thành công!', 'success');
+    });
   };
 
   const selectedRoommate = {
@@ -1308,6 +1332,18 @@ export default function AgreementView({
               </div>
             </div>
 
+            {isSigned && !isEditingDraft && (
+              <div className="mt-4 space-y-3">
+                <button
+                  type="button"
+                  onClick={handleDownloadPDF}
+                  className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-black rounded-xl text-[14px] transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20"
+                >
+                  <Download className="w-5 h-5" /> Tải Xuống Bản In (PDF)
+                </button>
+              </div>
+            )}
+
             {((localPendingPayload?.status === 'pending' && localPendingPayload.sender_id !== currentUser.id) ||
               (!localPendingPayload && activeAgreement?.status === 'pending' && activeAgreement.creator_id !== currentUser.id)) && !isEditingDraft && (
               <div className="mt-4 space-y-3">
@@ -1517,6 +1553,58 @@ export default function AgreementView({
           </div>
         </div>
       )}
+
+      {/* HIDDEN PDF TEMPLATE FOR PRINTING */}
+      <div ref={pdfRef} style={{ display: 'none', backgroundColor: '#fff', color: '#000', padding: '20px', fontFamily: 'sans-serif' }}>
+        <div style={{ textAlign: 'center', marginBottom: '30px', borderBottom: '2px solid #000', paddingBottom: '10px' }}>
+          <h1 style={{ fontSize: '24px', margin: '0 0 10px 0', textTransform: 'uppercase' }}>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</h1>
+          <h2 style={{ fontSize: '18px', margin: '0 0 10px 0' }}>Độc lập - Tự do - Hạnh phúc</h2>
+          <br/>
+          <h1 style={{ fontSize: '22px', margin: '20px 0 10px 0' }}>THỎA THUẬN SỐNG CHUNG (ROOMIEMATCH)</h1>
+        </div>
+
+        <div style={{ marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '16px', borderBottom: '1px solid #ccc', paddingBottom: '5px' }}>I. THÔNG TIN CÁC BÊN</h3>
+          <p style={{ margin: '10px 0' }}><strong>Bên A (Đại diện/Người khởi tạo):</strong> {fullName || currentUserProfile?.name || '..............................'}</p>
+          <p style={{ margin: '10px 0' }}><strong>Bên B (Bạn cùng phòng):</strong> {selectedRoommate?.name || '..............................'}</p>
+          <p style={{ margin: '10px 0' }}><strong>Ngày ký kết hiệu lực:</strong> {signedDate || '..............................'}</p>
+        </div>
+
+        <div style={{ marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '16px', borderBottom: '1px solid #ccc', paddingBottom: '5px' }}>II. CÁC ĐIỀU KHOẢN QUY ĐỊNH CHUNG</h3>
+          <ul style={{ lineHeight: '1.8' }}>
+            <li><strong>Giờ yên tĩnh:</strong> {quietHours || (quietOption === 'chuan' ? 'Chuẩn' : quietOption === 'cudemo' ? 'Cú đêm' : quietOption === 'tudo' ? 'Tự do' : 'Tùy chỉnh')}</li>
+            <li><strong>Phân chia việc nhà:</strong> {cleaningText || (cleaningOption === 'tuan' ? 'Theo tuần' : cleaningOption === 'co_dinh' ? 'Cố định' : cleaningOption === 'tu_giac' ? 'Tự giác' : cleaningOption === 'lao_cong' ? 'Thuê người' : 'Tùy chỉnh')}</li>
+            <li><strong>Khách đến chơi:</strong> {visitorsText || (visitorsOption === 'khong_dan' ? 'Không dẫn khách' : visitorsOption === 'ban_ngay' ? 'Chỉ ban ngày' : visitorsOption === 'qua_dem_co_han' ? 'Qua đêm có hạn' : visitorsOption === 'cung_gioi' ? 'Chỉ cùng giới' : 'Tùy chỉnh')}</li>
+            <li><strong>Chia chi phí:</strong> {billsText || (billsOption === 'chia_deu' ? 'Chia đều 100%' : billsOption === 'thuc_te' ? 'Theo ngày ở' : billsOption === 'thiet_bi' ? 'Theo thiết bị' : 'Tùy chỉnh')}</li>
+            <li><strong>Nuôi thú cưng:</strong> {petsText || (petsOption === 'khong_nuoi' ? 'Không nuôi' : 'Tùy chỉnh')}</li>
+          </ul>
+        </div>
+
+        {otherNotesText.trim() && (
+          <div style={{ marginBottom: '30px' }}>
+            <h3 style={{ fontSize: '16px', borderBottom: '1px solid #ccc', paddingBottom: '5px' }}>III. THỎA THUẬN KHÁC</h3>
+            <p style={{ fontStyle: 'italic' }}>{otherNotesText}</p>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '50px', textAlign: 'center' }}>
+          <div style={{ width: '45%' }}>
+            <h4 style={{ margin: '0 0 50px 0' }}>ĐẠI DIỆN BÊN A</h4>
+            <p><strong>{fullName || currentUserProfile?.name || ''}</strong></p>
+            <p style={{ fontSize: '12px', color: '#666' }}>(Đã ký điện tử xác nhận)</p>
+          </div>
+          <div style={{ width: '45%' }}>
+            <h4 style={{ margin: '0 0 50px 0' }}>ĐẠI DIỆN BÊN B</h4>
+            <p><strong>{selectedRoommate?.name || ''}</strong></p>
+            <p style={{ fontSize: '12px', color: '#666' }}>(Đã ký điện tử xác nhận)</p>
+          </div>
+        </div>
+        
+        <div style={{ marginTop: '50px', fontSize: '10px', textAlign: 'center', color: '#888' }}>
+          Văn bản được tạo và chứng thực tự động bởi hệ thống RoomieMatch.
+        </div>
+      </div>
 
     </div>
   );

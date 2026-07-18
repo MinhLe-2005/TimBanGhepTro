@@ -1,9 +1,0 @@
-﻿import io
-
-with io.open('src/App.tsx', 'r', encoding='utf-8') as f:
-    content = f.read()
-
-import re
-matches = re.finditer(r'setIsRoommatesLoading\((.*?)\)', content)
-for m in matches:
-    print(m.group(0))

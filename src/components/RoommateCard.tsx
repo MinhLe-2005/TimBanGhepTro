@@ -12,6 +12,7 @@ interface RoommateCardProps {
   onEdit?: (roommate: Roommate) => void;
   onDelete?: (id: string) => void;
   onClearSelectedRoommate?: () => void;
+  onReport?: (roommate: Roommate) => void;
   currentUserId?: string;
   compact?: boolean;
   likeCount?: number;
@@ -27,6 +28,7 @@ export default function RoommateCard({
   onEdit,
   onDelete,
   onClearSelectedRoommate,
+  onReport,
   currentUserId,
   compact = false,
   likeCount = 0,
@@ -95,6 +97,17 @@ export default function RoommateCard({
             className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-red-500 hover:scale-110 active:scale-90 transition-all duration-200 shadow-sm"
           >
             <Heart className={`h-4 w-4 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
+          </button>
+        )}
+
+        {/* Report Button */}
+        {onReport && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onReport(roommate); }}
+            className="absolute top-14 right-4 z-10 w-8 h-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-amber-500 hover:scale-110 active:scale-90 transition-all duration-200 shadow-sm"
+            title="Báo cáo hồ sơ này"
+          >
+            <AlertCircle className="h-4 w-4" />
           </button>
         )}
 

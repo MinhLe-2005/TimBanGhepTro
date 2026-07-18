@@ -196,6 +196,8 @@ export default function PostListingModal({
   const [rKitchen, setRKitchen] = useState("Bếp riêng");
   const [rPriceElectricity, setRPriceElectricity] = useState("3.500đ/kWh");
   const [rPriceWater, setRPriceWater] = useState("10.000đ/m3");
+  const [rUtilityBills, setRUtilityBills] = useState<"Có hóa đơn rõ ràng" | "Không có hóa đơn" | "Thỏa thuận">("Thỏa thuận");
+  const [rPriceCommitment, setRPriceCommitment] = useState<"Không cam kết" | "Cam kết 3 tháng" | "Cam kết 6 tháng" | "Cam kết 1 năm">("Không cam kết");
   const [rPets, setRPets] = useState<"thoải mái" | "không cho nuôi">("thoải mái");
   const [rGenderTarget, setRGenderTarget] = useState<"Nam" | "Nữ" | "Khác" | "Tất cả">("Tất cả");
   const [rPhone, setRPhone] = useState("");
@@ -262,6 +264,8 @@ export default function PostListingModal({
         setRKitchen(editingData.kitchen || "Bếp riêng");
         setRPriceElectricity(editingData.electricity || "3.500đ/kWh");
         setRPriceWater(editingData.water || "10.000đ/m3");
+        setRUtilityBills(editingData.utilityBills || "Thỏa thuận");
+        setRPriceCommitment(editingData.priceCommitment || "Không cam kết");
         setRPets(editingData.pets || "thoải mái");
         setRGenderTarget(editingData.gender || "Tất cả");
         setRPhone(editingData.phoneNumber || "");
@@ -452,6 +456,8 @@ export default function PostListingModal({
       gender: rGenderTarget,
       electricity: rPriceElectricity,
       water: rPriceWater,
+      utilityBills: rUtilityBills,
+      priceCommitment: rPriceCommitment,
       roommateInfo: rRoommateInfo || undefined,
       reviews: []
     };
@@ -935,6 +941,28 @@ export default function PostListingModal({
                       <label className="block text-[13px] font-semibold text-slate-700">Giá nước sinh hoạt</label>
                       <input type="text" value={rPriceWater} onChange={(e) => setRPriceWater(e.target.value)} placeholder="10.000đ/m3 hoặc 50.000đ/người/tháng"
                         className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Minh bạch điện nước</label>
+                      <select value={rUtilityBills} onChange={(e) => setRUtilityBills(e.target.value as any)}
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 cursor-pointer transition-all">
+                        <option value="Thỏa thuận">Thỏa thuận sau</option>
+                        <option value="Có hóa đơn rõ ràng">Có hóa đơn rõ ràng (App EVN, Cấp nước)</option>
+                        <option value="Không có hóa đơn">Không có hóa đơn / Chủ trọ thu khoán</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[13px] font-semibold text-slate-700">Cam kết giá thuê</label>
+                      <select value={rPriceCommitment} onChange={(e) => setRPriceCommitment(e.target.value as any)}
+                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 cursor-pointer transition-all">
+                        <option value="Không cam kết">Không cam kết</option>
+                        <option value="Cam kết 3 tháng">Cam kết không tăng giá 3 tháng</option>
+                        <option value="Cam kết 6 tháng">Cam kết không tăng giá 6 tháng</option>
+                        <option value="Cam kết 1 năm">Cam kết không tăng giá 1 năm</option>
+                      </select>
                     </div>
                   </div>
                 </div>

@@ -41,6 +41,7 @@ export interface Roommate {
   user_id?: string;
   auth_id?: string;
   is_listing?: boolean;
+  created_at?: string;
   lifestyle: {
     sleep: "Cú đêm" | "Ngủ sớm" | "Bình thường";
     pets: "Yêu mèo" | "Yêu chó" | "Không tiện nuôi" | "Thoải mái";
@@ -76,6 +77,8 @@ export interface Room {
   reviews?: RoomReview[];
   electricity?: string;
   water?: string;
+  utilityBills?: "Có hóa đơn rõ ràng" | "Không có hóa đơn" | "Thỏa thuận";
+  priceCommitment?: "Không cam kết" | "Cam kết 3 tháng" | "Cam kết 6 tháng" | "Cam kết 1 năm";
   parking?: string;
   proximity?: string;
   hostRole?: string;
@@ -83,6 +86,7 @@ export interface Room {
   habits?: string[];
   postedBy?: string; // user ID who posted this listing
   user_id?: string;
+  created_at?: string;
 }
 
 export interface RoomReview {

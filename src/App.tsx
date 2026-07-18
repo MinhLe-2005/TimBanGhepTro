@@ -2045,6 +2045,29 @@ export default function App() {
 
   const [pendingAgreementPayload, setPendingAgreementPayload] = useState<any>(null);
 
+  const handleExtendPost = async (type: 'room' | 'roommate', id: string) => {
+    try {
+      const { error } = await supabase
+        .from(type === 'room' ? 'rooms' : 'roommates')
+        .update({ created_at: new Date().toISOString() })
+        .eq('id', id);
+      
+      if (error) throw error;
+      toast('Đã gia hạn bài đăng thành công! Bài của bạn đã được đẩy lên đầu.', 'success');
+      
+      if (type === 'room') {
+        const { data } = await supabase.from('rooms').select('*').order('created_at', { ascending: false });
+        if (data) setAllRooms(data as Room[]);
+      } else {
+        const { data } = await supabase.from('roommates').select('*').order('created_at', { ascending: false });
+        if (data) setAllRoommates(data as Roommate[]);
+      }
+    } catch (err) {
+      console.error('Error extending post:', err);
+      toast('Có lỗi xảy ra khi gia hạn bài đăng.', 'error');
+    }
+  };
+
   const startAgreementForm = async (roommateId: string, payload?: any) => {
     const isAuth = await requireAuth();
     if (!isAuth) return;
@@ -2573,8 +2596,10 @@ export default function App() {
             currentUserProfile={currentUserProfile}
             currentUser={currentUser}
             roommates={allRoommates}
+            rooms={allRooms}
             onRequireAuth={requireAuth}
             onRequireProfile={() => setIsProfileModalOpen(true)}
+            onExtendPost={handleExtendPost}
           />
         )}
 

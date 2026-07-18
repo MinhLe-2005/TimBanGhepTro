@@ -9,6 +9,7 @@ interface RoomCardProps {
   isInitiallyLiked?: boolean;
   onDelete?: (id: string) => void;
   onEdit?: (room: Room) => void;
+  onReport?: (room: Room) => void;
   currentUserId?: string;
 }
 
@@ -19,6 +20,7 @@ export default function RoomCard({
   isInitiallyLiked = false,
   onDelete,
   onEdit,
+  onReport,
   currentUserId,
 }: RoomCardProps) {
   const [isLiked, setIsLiked] = useState(isInitiallyLiked);
@@ -151,6 +153,17 @@ export default function RoomCard({
             className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-red-500 hover:scale-110 active:scale-90 transition-all duration-200 border border-slate-100/50 shadow-md"
           >
             <Heart className={`h-5 w-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
+          </button>
+        )}
+
+        {/* Report Button */}
+        {onReport && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onReport(room); }}
+            className="absolute top-16 right-4 z-10 w-10 h-10 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-amber-500 hover:scale-110 active:scale-90 transition-all duration-200 border border-slate-100/50 shadow-md"
+            title="Báo cáo tin này"
+          >
+            <AlertCircle className="h-4 w-4" />
           </button>
         )}
 

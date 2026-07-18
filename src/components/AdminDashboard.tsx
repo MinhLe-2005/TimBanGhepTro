@@ -23,7 +23,7 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({ currentUser, roommates, rooms, onDeleteRoommate, onDeleteRoom, onReviewDeleted, onViewRoommate, onViewRoom }: AdminDashboardProps) {
   const { confirm, toast, previewImage } = useDialog();
-  const [activeTab, setActiveTab] = useState<"reports" | "reviewReports" | "users" | "listings" | "rooms" | "agreements">("reviewReports");
+  const [activeTab, setActiveTab] = useState<"reports" | "reviewReports" | "pendingListings" | "users" | "listings" | "rooms" | "agreements">("reviewReports");
   const [reports, setReports] = useState<any[]>([]);
   const [reviewReports, setReviewReports] = useState<any[]>([]);
   const [bannedUsers, setBannedUsers] = useState<string[]>([]);
@@ -203,6 +203,8 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   // Listings = is_listing is not false; Profiles = is_listing is false
   const listings = allSupabaseRoommates.filter(r => r.is_listing !== false && r.is_listing !== 'false');
   const profiles = allSupabaseRoommates.filter(r => r.is_listing === false || r.is_listing === 'false');
+  const pendingListings = listings.filter(r => !r.isVerified);
+  const pendingRooms = rooms.filter(r => !r.isVerifiedRoom);
 
   const handleBanUser = async (userId: string) => {
     const ok = await confirm({ title: 'Khóa tài khoản', message: 'Bạn có chắc muốn khóa vĩnh viễn tài khoản này?', confirmText: 'Khóa ngay', type: 'error' });
@@ -458,6 +460,17 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     }
   };
 
+  const handleApproveListing = async (table: 'roommates' | 'rooms', id: string) => {
+    const field = table === 'roommates' ? 'isVerified' : 'isVerifiedRoom';
+    const { error } = await supabase.from(table).update({ [field]: true }).eq('id', id);
+    if (error) {
+      toast('Không thể duyệt bài viết.', 'error');
+      return;
+    }
+    toast('✅ Đã duyệt bài viết thành công!', 'success');
+    fetchAdminData(false);
+  };
+
   const tabBtn = (tab: typeof activeTab, label: string, count: number, icon: React.ReactNode, color: string) => (
     <button onClick={() => setActiveTab(tab)}
       className={`px-5 py-3 rounded-xl font-bold flex items-center gap-2 transition-all ${activeTab === tab ? color : "bg-white text-slate-600 hover:bg-slate-50"}`}>
@@ -521,6 +534,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
       <div className="flex flex-wrap gap-3 mb-8">
         {tabBtn("reports", "Báo cáo", reports.length, <AlertTriangle className="w-5 h-5" />, "bg-rose-100 text-rose-700")}
         {tabBtn("reviewReports", "Feedback bị báo cáo", reviewReports.length, <Flag className="w-5 h-5" />, "bg-amber-100 text-amber-700")}
+        {tabBtn("pendingListings", "Duyệt bài đăng", pendingListings.length + pendingRooms.length, <Check className="w-5 h-5" />, "bg-indigo-100 text-indigo-700")}
         {tabBtn("listings", "Bài đăng tìm bạn", listings.length, <Users className="w-5 h-5" />, "bg-sky-100 text-[#006590]")}
         {tabBtn("users", "Hồ sơ người dùng", profiles.length, <UserCheck className="w-5 h-5" />, "bg-purple-100 text-purple-700")}
         {tabBtn("rooms", "Tin đăng phòng", rooms.length, <FileText className="w-5 h-5" />, "bg-emerald-100 text-emerald-700")}
@@ -744,6 +758,61 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {listings.map(rm => <UserCard key={rm.id} rm={rm} isBanned={rm.user_id ? bannedUsers.includes(rm.user_id) : bannedUsers.includes(rm.id)} itemType="bài đăng tìm bạn" />)}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB: PENDING LISTINGS */}
+            {activeTab === "pendingListings" && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-black text-slate-800">Duyệt bài đăng ({pendingListings.length + pendingRooms.length})</h3>
+                {pendingListings.length === 0 && pendingRooms.length === 0 ? (
+                  <div className="text-center py-10 bg-slate-50 rounded-2xl"><p className="text-slate-500 font-bold">Không có bài đăng nào cần duyệt.</p></div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {pendingListings.map(rm => (
+                      <div key={rm.id} className="relative">
+                        <UserCard rm={rm} isBanned={rm.user_id ? bannedUsers.includes(rm.user_id) : bannedUsers.includes(rm.id)} itemType="bài đăng tìm bạn" />
+                        <button onClick={() => handleApproveListing('roommates', rm.id)} className="absolute bottom-2 right-12 p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors shadow-sm" title="Duyệt bài">
+                          <Check className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                    {pendingRooms.map(room => (
+                      <div 
+                        key={room.id} 
+                        className="border border-slate-200 p-4 rounded-2xl flex gap-4 cursor-pointer hover:border-sky-300 hover:shadow-md transition-all relative"
+                        onClick={() => onViewRoom?.(room)}
+                      >
+                        <img 
+                          src={room.images?.[0] || (room as any).hostAvatar} 
+                          className="w-16 h-16 rounded-xl object-cover shrink-0 cursor-zoom-in" 
+                          alt={room.title} 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            previewImage(room.images?.[0] || (room as any).hostAvatar);
+                          }}
+                        />
+                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                          <div>
+                            <p className="font-bold text-slate-800 text-sm line-clamp-2">{room.title}</p>
+                            <p className="text-xs text-slate-500 truncate">{room.district}</p>
+                          </div>
+                          <div className="flex justify-between items-center mt-2">
+                             <span className="text-xs font-bold text-emerald-600">{(room.price/1000000).toFixed(1)} tr/tháng</span>
+                          </div>
+                        </div>
+                        <div className="absolute bottom-2 right-2 flex gap-2">
+                          <button onClick={(e) => { e.stopPropagation(); handleApproveListing('rooms', room.id); }} className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors shadow-sm" title="Duyệt bài">
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); handleDeleteListing('rooms', room.id, 'tin đăng phòng'); }} className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl transition-colors shadow-sm" title="Xóa">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

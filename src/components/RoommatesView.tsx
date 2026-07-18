@@ -4,6 +4,8 @@ import { useDialog } from "./ui/DialogProvider";
 import { Roommate } from "../types";
 import { SCHOOLS_BY_DISTRICT } from "../data";
 import RoommateCard from "./RoommateCard";
+import { supabase } from "../lib/supabase";
+import { CHAT_REPORT_PREFIX } from "../lib/moderation";
 
 interface RoommatesViewProps {
   roommates: Roommate[];
@@ -54,6 +56,7 @@ export default function RoommatesView({
   const [maxBudget, setMaxBudget] = useState<number>(20000000);
   const [budgetTag, setBudgetTag] = useState<string>("Tất cả");
   const [showMyPostsOnly, setShowMyPostsOnly] = useState(false);
+  const [hideFoundRoom, setHideFoundRoom] = useState(true); // Default hide
 
   useEffect(() => {
     if (initialFilters) {
@@ -133,6 +136,36 @@ export default function RoommatesView({
       String((roommate as any).is_listing) !== "false"
   );
   
+  const handleReportRoommate = async (roommate: Roommate) => {
+    if (!currentUserId) {
+      if (onRequireAuth) onRequireAuth();
+      return;
+    }
+    const reason = window.prompt("Nhập lý do báo cáo bài đăng này:");
+    if (!reason || !reason.trim()) return;
+
+    const targetId = roommate.user_id || roommate.postedBy || roommate.id;
+    const payload = {
+      target_id: targetId,
+      reason: reason.trim(),
+      source: 'roommate_listing',
+      roommate_id: roommate.id,
+      roommate_name: roommate.name
+    };
+
+    const { error } = await supabase.from('messages').insert({
+      chat_id: CHAT_REPORT_PREFIX + currentUserId,
+      sender_id: currentUserId,
+      text: `[REPORT] ${JSON.stringify(payload)}`
+    });
+
+    if (error) {
+      toast("Không thể gửi báo cáo, vui lòng thử lại sau.", "error");
+    } else {
+      toast("Cảm ơn bạn đã báo cáo. Quản trị viên sẽ xem xét.", "success");
+    }
+  };
+
   // Apply filters on top of listings-only data
   const filteredRoommates = listingsOnly.filter((roommate) => {
     // Search by name, role, bio, location
@@ -155,8 +188,11 @@ export default function RoommatesView({
     const matchesBudget = (roommate.budget || 0) >= minBudget && (roommate.budget || 0) <= budgetMax;
 
     const matchesStatus = () => {
-      if (statusFilter === "Tất cả") return true;
       const currentStatus = roommate.status || "Đang tìm";
+      if (hideFoundRoom && (currentStatus === "Đã tìm được" || currentStatus === "Đã có phòng")) {
+        return false;
+      }
+      if (statusFilter === "Tất cả") return true;
       return currentStatus === statusFilter;
     };
 
@@ -448,7 +484,20 @@ export default function RoommatesView({
                 <option value="Tất cả">Tất cả</option>
                 <option value="Đang tìm">🟢 Đang tìm</option>
                 <option value="Đã tìm được">🔴 Đã tìm được</option>
+                <option value="Đã có phòng">🔴 Đã có phòng</option>
               </select>
+              <label className="flex items-center gap-2 mt-2 cursor-pointer group">
+                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${hideFoundRoom ? 'bg-[#006590] border-[#006590]' : 'border-slate-300 bg-white group-hover:border-[#006590]'}`}>
+                  {hideFoundRoom && <CheckSquare className="w-3 h-3 text-white" />}
+                </div>
+                <input
+                  type="checkbox"
+                  checked={hideFoundRoom}
+                  onChange={(e) => setHideFoundRoom(e.target.checked)}
+                  className="hidden"
+                />
+                <span className="text-xs text-slate-600 font-medium group-hover:text-slate-800 transition-colors">Ẩn người đã có/tìm được phòng</span>
+              </label>
             </div>
           </div>
         </div>
@@ -510,9 +559,10 @@ export default function RoommatesView({
               isInitiallyLiked={likedRoommateIds.includes(roommate.id)}
               onStartChat={isAdmin ? undefined : onStartChat}
               onEdit={isAdmin ? undefined : onEditRoommate}
-              onDelete={isAdmin ? undefined : onDeleteRoommate}
-              onClearSelectedRoommate={isAdmin ? undefined : onClearSelectedRoommate}
-              currentUserId={isAdmin ? undefined : currentUserId}
+              onDelete={isAdmin || currentUserId === roommate.user_id || currentUserId === roommate.postedBy ? onDeleteRoommate : undefined}
+              onClearSelectedRoommate={onClearSelectedRoommate}
+              onReport={handleReportRoommate}
+              currentUserId={currentUserId}
             />
           ))}
         </div>

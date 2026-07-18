@@ -3,6 +3,8 @@ import { Search, MapPin, Building, Sparkles, Users, Cat, DollarSign, CheckSquare
 import { useDialog } from "./ui/DialogProvider";
 import { Room } from "../types";
 import RoomCard from "./RoomCard";
+import { supabase } from "../lib/supabase";
+import { CHAT_REPORT_PREFIX } from "../lib/moderation";
 
 interface RoomsViewProps {
   rooms: Room[];
@@ -87,6 +89,36 @@ export default function RoomsView({
     { id: "baove", label: "Có bảo vệ", keywords: ["bảo vệ", "an ninh", "an toàn"] },
     { id: "baigieuxe", label: "Bãi giữ xe", keywords: ["bãi giữ xe", "bãi xe", "chỗ để xe", "gửi xe", "để xe", "đỗ xe"] },
   ];
+
+  const handleReportRoom = async (room: Room) => {
+    if (!currentUserId) {
+      if (onRequireAuth) onRequireAuth();
+      return;
+    }
+    const reason = window.prompt("Nhập lý do báo cáo bài đăng này:");
+    if (!reason || !reason.trim()) return;
+
+    const targetId = room.user_id || room.postedBy || room.id;
+    const payload = {
+      target_id: targetId,
+      reason: reason.trim(),
+      source: 'room_listing',
+      room_id: room.id,
+      room_title: room.title
+    };
+
+    const { error } = await supabase.from('messages').insert({
+      chat_id: CHAT_REPORT_PREFIX + currentUserId,
+      sender_id: currentUserId,
+      text: `[REPORT] ${JSON.stringify(payload)}`
+    });
+
+    if (error) {
+      toast("Không thể gửi báo cáo, vui lòng thử lại sau.", "error");
+    } else {
+      toast("Cảm ơn bạn đã báo cáo. Quản trị viên sẽ xem xét.", "success");
+    }
+  };
 
   // Filter listings
   const filteredRooms = rooms.filter((room) => {
@@ -427,9 +459,10 @@ export default function RoomsView({
               onViewDetails={onViewRoom}
               onLikeChange={isAdmin ? undefined : onLikeRoom}
               isInitiallyLiked={likedRoomIds.includes(room.id)}
-              onDelete={isAdmin ? undefined : onDeleteRoom}
-              onEdit={isAdmin ? undefined : onEditRoom}
-              currentUserId={isAdmin ? undefined : currentUserId}
+              onDelete={isAdmin || currentUserId === room.user_id || currentUserId === room.postedBy ? onDeleteRoom : undefined}
+              onEdit={isAdmin || currentUserId === room.user_id || currentUserId === room.postedBy ? onEditRoom : undefined}
+              onReport={handleReportRoom}
+              currentUserId={currentUserId}
             />
           ))}
         </div>

@@ -1546,6 +1546,9 @@ export default function ChatView({
                   const isSystemBlock = msg.text === "[SYSTEM_BLOCK]" || msg.text === "[SYSTEM_UNBLOCK]";
                   if (isSystemBlock) return null;
 
+                  const suspiciousKeywords = ["đặt cọc", "chuyển tiền", "chuyển khoản", "tiền cọc"];
+                  const containsSuspicious = !isMe && msg.text && suspiciousKeywords.some(kw => msg.text.toLowerCase().includes(kw));
+
                   return (
                     <div
                       key={msg.id}
@@ -1659,6 +1662,22 @@ export default function ChatView({
                               <Flag className="h-3.5 w-3.5" />
                             </button>
                           )}
+                        </div>
+                      )}
+
+                      {/* System Safety Warning */}
+                      {containsSuspicious && (
+                        <div className="mt-2 flex w-full justify-start max-w-[85%]">
+                          <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-[11px] sm:text-xs text-rose-700 shadow-sm flex items-start gap-2">
+                            <ShieldCheck className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                            <div>
+                              <span className="font-bold">Cảnh báo an toàn: </span>
+                              Tuyệt đối không chuyển tiền cọc trước khi xem phòng trực tiếp và ký hợp đồng minh bạch. 
+                              <button onClick={() => openMessageReport(msg.id)} className="ml-1 text-rose-600 underline font-bold hover:text-rose-800">
+                                Báo cáo nếu có dấu hiệu lừa đảo.
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       )}
                       </div>
