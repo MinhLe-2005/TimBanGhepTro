@@ -688,7 +688,8 @@ export default function ChatView({
           [activeRoommateId]: data.map((d: any) => ({
             id: d.id, chatId: d.chat_id, senderId: d.sender_id,
             text: d.text, imageUrl: d.image_url, timestamp: d.timestamp,
-            reactions: d.reactions || {} // ✅ Include reactions
+            reactions: d.reactions || {}, // ✅ Include reactions
+            isSystem: d.is_system || false
           }))
         }));
       }
@@ -711,7 +712,16 @@ export default function ChatView({
             const cur = prev[activeRoommateId] || [];
             if (cur.some(m => m.id === newMsg.id)) return prev;
             // Insert and sort to ensure chronological order when merging streams
-            const updated = [...cur, { id: newMsg.id, chatId: newMsg.chat_id, senderId: newMsg.sender_id, text: newMsg.text, imageUrl: newMsg.image_url, timestamp: newMsg.timestamp, reactions: newMsg.reactions || {} }];
+            const updated = [...cur, { 
+              id: newMsg.id, 
+              chatId: newMsg.chat_id, 
+              senderId: newMsg.sender_id, 
+              text: newMsg.text, 
+              imageUrl: newMsg.image_url, 
+              timestamp: newMsg.timestamp, 
+              reactions: newMsg.reactions || {},
+              isSystem: newMsg.is_system || false
+            }];
             return { ...prev, [activeRoommateId]: updated.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()) };
           });
         })
@@ -1560,6 +1570,20 @@ export default function ChatView({
 
                   const isSystemBlock = msg.text === "[SYSTEM_BLOCK]" || msg.text === "[SYSTEM_UNBLOCK]";
                   if (isSystemBlock) return null;
+
+                  if (msg.isSystem) {
+                    return (
+                      <div key={msg.id} className="flex w-full justify-center mb-6 animate-fade-in">
+                        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 max-w-[85%] text-xs sm:text-sm text-red-800 shadow-[0_2px_4px_rgba(244,63,94,0.05)] flex items-start gap-2.5">
+                          <span className="text-base shrink-0 select-none">⚠️</span>
+                          <div>
+                            <span className="font-bold text-rose-700">Cảnh báo hệ thống: </span>
+                            <span className="font-semibold text-rose-950">{msg.text.replace('⚠️ CẢNH BÁO AN TOÀN: ', '')}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
 
                   const suspiciousKeywords = ["đặt cọc", "chuyển tiền", "chuyển khoản", "tiền cọc"];
                   const containsSuspicious = !isMe && msg.text && suspiciousKeywords.some(kw => msg.text.toLowerCase().includes(kw));

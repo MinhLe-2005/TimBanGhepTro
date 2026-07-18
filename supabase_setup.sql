@@ -29,6 +29,7 @@ CREATE TABLE public.messages (
     text TEXT,
     image_url TEXT,
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    is_system BOOLEAN DEFAULT false,
     
     -- Thêm index để tăng tốc truy vấn
     CONSTRAINT messages_chat_id_idx UNIQUE (id)
@@ -38,6 +39,41 @@ CREATE TABLE public.messages (
 CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON public.messages(chat_id);
 CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON public.messages(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_messages_sender ON public.messages(sender_id);
+
+-- TRIGGER TỰ ĐỘNG CẢNH BÁO TIN NHẮN NHẠY CẢM
+CREATE OR REPLACE FUNCTION public.detect_suspicious_message()
+RETURNS TRIGGER AS $$
+DECLARE
+    lower_text TEXT;
+    warning_text TEXT := '⚠️ CẢNH BÁO AN TOÀN: Tuyệt đối không chuyển khoản trước, gửi tiền cọc giữ chỗ hoặc giao dịch tài chính gấp trước khi xem phòng trực tiếp và ký hợp đồng thuê/ở ghép rõ ràng để tránh bị lừa đảo.';
+BEGIN
+    lower_text := lower(NEW.text);
+    
+    -- Kiểm tra nếu không phải tin nhắn hệ thống và chứa từ khóa nhạy cảm
+    IF (NEW.is_system = false OR NEW.is_system IS NULL) AND (
+        lower_text LIKE '%chuyển khoản trước%' OR
+        lower_text LIKE '%gửi cọc giữ chỗ%' OR
+        lower_text LIKE '%chuyển tiền gấp%' OR
+        lower_text LIKE '%đặt cọc%' OR
+        lower_text LIKE '%tiền cọc%' OR
+        lower_text LIKE '%gửi cọc%' OR
+        lower_text LIKE '%chuyển khoản%' OR
+        lower_text LIKE '%chuyển tiền%'
+    ) THEN
+        -- Tự động sinh thêm một tin nhắn hệ thống cảnh báo cho khung chat này
+        INSERT INTO public.messages (chat_id, sender_id, text, is_system)
+        VALUES (NEW.chat_id, 'system', warning_text, true);
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_detect_suspicious_message ON public.messages;
+CREATE TRIGGER trg_detect_suspicious_message
+    AFTER INSERT ON public.messages
+    FOR EACH ROW
+    EXECUTE FUNCTION public.detect_suspicious_message();
 
 -- 2. TẠO BẢNG AGREEMENTS
 DROP TABLE IF EXISTS public.agreements CASCADE;

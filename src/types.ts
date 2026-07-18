@@ -108,6 +108,7 @@ export interface Message {
   timestamp: string; // ISO string
   imageUrl?: string; // Optional image URL
   reactions?: Record<string, string[]>; // { "❤️": ["user1", "user2"], "😂": ["user3"] }
+  isSystem?: boolean;
 }
 
 export interface Agreement {

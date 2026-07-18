@@ -24,6 +24,45 @@ ALTER TABLE public.rooms
   ADD COLUMN IF NOT EXISTS "createdAt" timestamptz DEFAULT now(),
   ADD COLUMN IF NOT EXISTS "rejectReason" text;
 
+-- Đảm bảo cột is_system tồn tại trong bảng messages
+ALTER TABLE public.messages
+  ADD COLUMN IF NOT EXISTS is_system boolean DEFAULT false;
+
+-- Đảm bảo Trigger tự động cảnh báo tin nhắn nhạy cảm tồn tại
+CREATE OR REPLACE FUNCTION public.detect_suspicious_message()
+RETURNS TRIGGER AS $$
+DECLARE
+    lower_text TEXT;
+    warning_text TEXT := '⚠️ CẢNH BÁO AN TOÀN: Tuyệt đối không chuyển khoản trước, gửi tiền cọc giữ chỗ hoặc giao dịch tài chính gấp trước khi xem phòng trực tiếp và ký hợp đồng thuê/ở ghép rõ ràng để tránh bị lừa đảo.';
+BEGIN
+    lower_text := lower(NEW.text);
+    
+    -- Kiểm tra nếu không phải tin nhắn hệ thống và chứa từ khóa nhạy cảm
+    IF (NEW.is_system = false OR NEW.is_system IS NULL) AND (
+        lower_text LIKE '%chuyển khoản trước%' OR
+        lower_text LIKE '%gửi cọc giữ chỗ%' OR
+        lower_text LIKE '%chuyển tiền gấp%' OR
+        lower_text LIKE '%đặt cọc%' OR
+        lower_text LIKE '%tiền cọc%' OR
+        lower_text LIKE '%gửi cọc%' OR
+        lower_text LIKE '%chuyển khoản%' OR
+        lower_text LIKE '%chuyển tiền%'
+    ) THEN
+        -- Tự động sinh thêm một tin nhắn hệ thống cảnh báo cho khung chat này
+        INSERT INTO public.messages (chat_id, sender_id, text, is_system)
+        VALUES (NEW.chat_id, 'system', warning_text, true);
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_detect_suspicious_message ON public.messages;
+CREATE TRIGGER trg_detect_suspicious_message
+    AFTER INSERT ON public.messages
+    FOR EACH ROW
+    EXECUTE FUNCTION public.detect_suspicious_message();
+
 -- 2. Các bản ghi roommate cũ (không phải profile) cần is_listing = true
 -- Profile là bản ghi có is_listing = false được set rõ ràng
 -- Bản ghi cũ có is_listing = null => đây là listing, set = true
