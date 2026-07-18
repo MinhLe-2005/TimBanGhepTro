@@ -484,10 +484,36 @@ export default function ChatView({
   
   const rawActiveMessages = activeRoommate ? (chats[activeRoommateId!] || chats[activeRoommate.id] || []) : [];
   const activeMessages = useMemo(() => {
-    return rawActiveMessages.filter(msg => {
-      // Nếu là tin nhắn hệ thống giới hạn người nhận, chỉ hiển thị cho đúng người đó
+    return rawActiveMessages.filter((msg, idx) => {
+      // 1. Kiểm tra visibleTo từ Database Trigger
       if (msg.visibleTo && msg.visibleTo !== myChatId) {
         return false;
+      }
+      
+      // 2. Dự phòng (Fail-safe): Nếu tin nhắn này là tin nhắn hệ thống (isSystem)
+      if (msg.isSystem) {
+        // Tìm tin nhắn gần nhất phía trước nó (bỏ qua các tin nhắn hệ thống khác)
+        let prevUserMsg = null;
+        for (let i = idx - 1; i >= 0; i--) {
+          if (!rawActiveMessages[i].isSystem && rawActiveMessages[i].text !== "[SYSTEM_BLOCK]" && rawActiveMessages[i].text !== "[SYSTEM_UNBLOCK]") {
+            prevUserMsg = rawActiveMessages[i];
+            break;
+          }
+        }
+        
+        // Nếu tin nhắn gần nhất phía trước được gửi bởi chính mình ("me" hoặc myChatId)
+        if (prevUserMsg) {
+          const isSenderMe = prevUserMsg.senderId === "me" || prevUserMsg.senderId === myChatId;
+          if (isSenderMe) {
+            // Kiểm tra xem tin nhắn đó có chứa từ khóa nhạy cảm hay không
+            const suspiciousKeywords = ["đặt cọc", "chuyển tiền", "chuyển khoản", "tiền cọc", "cọc giữ chỗ", "gửi cọc", "chuyển khoản trước", "gửi cọc giữ chỗ", "chuyển tiền gấp"];
+            const textLower = (prevUserMsg.text || "").toLowerCase();
+            const isSuspicious = suspiciousKeywords.some(kw => textLower.includes(kw));
+            if (isSuspicious) {
+              return false; // Ẩn cảnh báo đối với người gửi
+            }
+          }
+        }
       }
       return true;
     });
@@ -810,7 +836,53 @@ export default function ChatView({
         .limit(500);
 
       if (!error && data) {
-        const inboxMessages = data.filter(msg => !isSystemChannel(msg.chat_id));
+        // Phân loại tin nhắn theo chat_id để lọc fail-safe trước
+        const messagesByChat: Record<string, any[]> = {};
+        data.forEach(msg => {
+          if (isSystemChannel(msg.chat_id)) return;
+          if (!messagesByChat[msg.chat_id]) {
+            messagesByChat[msg.chat_id] = [];
+          }
+          messagesByChat[msg.chat_id].push(msg);
+        });
+
+        const filteredList: any[] = [];
+        Object.keys(messagesByChat).forEach(cId => {
+          // Sắp xếp thời gian tăng dần để áp dụng bộ lọc fail-safe
+          const msgs = messagesByChat[cId].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+          const filtered = msgs.filter((msg, idx) => {
+            // 1. Kiểm tra visible_to
+            if (msg.is_system && msg.visible_to && msg.visible_to !== myAuthId && msg.visible_to !== myProfileId) {
+              return false;
+            }
+            // 2. Dự phòng (Fail-safe): Nếu tin nhắn này là tin nhắn hệ thống (is_system)
+            if (msg.is_system) {
+              let prevUserMsg = null;
+              for (let i = idx - 1; i >= 0; i--) {
+                if (!msgs[i].is_system && msgs[i].text !== "[SYSTEM_BLOCK]" && msgs[i].text !== "[SYSTEM_UNBLOCK]") {
+                  prevUserMsg = msgs[i];
+                  break;
+                }
+              }
+              if (prevUserMsg) {
+                const isSenderMe = prevUserMsg.sender_id === myAuthId || prevUserMsg.sender_id === myProfileId;
+                if (isSenderMe) {
+                  const suspiciousKeywords = ["đặt cọc", "chuyển tiền", "chuyển khoản", "tiền cọc", "cọc giữ chỗ", "gửi cọc", "chuyển khoản trước", "gửi cọc giữ chỗ", "chuyển tiền gấp"];
+                  const textLower = (prevUserMsg.text || "").toLowerCase();
+                  const isSuspicious = suspiciousKeywords.some(kw => textLower.includes(kw));
+                  if (isSuspicious) {
+                    return false;
+                  }
+                }
+              }
+            }
+            return true;
+          });
+          filteredList.push(...filtered);
+        });
+
+        // Sắp xếp lại theo thời gian giảm dần (newest first) cho inbox
+        const inboxMessages = filteredList.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         const conversationMap = new Map();
 
         // Collect all unique partner IDs
