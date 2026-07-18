@@ -476,7 +476,16 @@ export default function ChatView({
     : [];
   const isActiveUserBanned = activeUserIds.some((id) => bannedUserIds.includes(String(id)));
   
-  const activeMessages = activeRoommate ? (chats[activeRoommateId!] || chats[activeRoommate.id] || []) : [];
+  const rawActiveMessages = activeRoommate ? (chats[activeRoommateId!] || chats[activeRoommate.id] || []) : [];
+  const activeMessages = useMemo(() => {
+    return rawActiveMessages.filter(msg => {
+      // Nếu là tin nhắn hệ thống giới hạn người nhận, chỉ hiển thị cho đúng người đó
+      if (msg.visibleTo && msg.visibleTo !== myChatId) {
+        return false;
+      }
+      return true;
+    });
+  }, [rawActiveMessages, myChatId]);
   const activeAgreementState = useMemo(() => {
     const latestAgreementMessage = [...activeMessages]
       .reverse()
@@ -689,7 +698,8 @@ export default function ChatView({
             id: d.id, chatId: d.chat_id, senderId: d.sender_id,
             text: d.text, imageUrl: d.image_url, timestamp: d.timestamp,
             reactions: d.reactions || {}, // ✅ Include reactions
-            isSystem: d.is_system || false
+            isSystem: d.is_system || false,
+            visibleTo: d.visible_to || undefined
           }))
         }));
       }
@@ -720,7 +730,8 @@ export default function ChatView({
               imageUrl: newMsg.image_url, 
               timestamp: newMsg.timestamp, 
               reactions: newMsg.reactions || {},
-              isSystem: newMsg.is_system || false
+              isSystem: newMsg.is_system || false,
+              visibleTo: newMsg.visible_to || undefined
             }];
             return { ...prev, [activeRoommateId]: updated.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()) };
           });

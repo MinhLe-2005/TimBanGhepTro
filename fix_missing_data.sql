@@ -24,9 +24,10 @@ ALTER TABLE public.rooms
   ADD COLUMN IF NOT EXISTS "createdAt" timestamptz DEFAULT now(),
   ADD COLUMN IF NOT EXISTS "rejectReason" text;
 
--- Đảm bảo cột is_system tồn tại trong bảng messages
+-- Đảm bảo cột is_system và visible_to tồn tại trong bảng messages
 ALTER TABLE public.messages
-  ADD COLUMN IF NOT EXISTS is_system boolean DEFAULT false;
+  ADD COLUMN IF NOT EXISTS is_system boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS visible_to text;
 
 -- Đảm bảo Trigger tự động cảnh báo tin nhắn nhạy cảm tồn tại
 CREATE OR REPLACE FUNCTION public.detect_suspicious_message()
@@ -34,6 +35,9 @@ RETURNS TRIGGER AS $$
 DECLARE
     lower_text TEXT;
     warning_text TEXT := '⚠️ CẢNH BÁO AN TOÀN: Tuyệt đối không chuyển khoản trước, gửi tiền cọc giữ chỗ hoặc giao dịch tài chính gấp trước khi xem phòng trực tiếp và ký hợp đồng thuê/ở ghép rõ ràng để tránh bị lừa đảo.';
+    partner_id TEXT;
+    part1 TEXT;
+    part2 TEXT;
 BEGIN
     lower_text := lower(NEW.text);
     
@@ -48,9 +52,21 @@ BEGIN
         lower_text LIKE '%chuyển khoản%' OR
         lower_text LIKE '%chuyển tiền%'
     ) THEN
-        -- Tự động sinh thêm một tin nhắn hệ thống cảnh báo cho khung chat này
-        INSERT INTO public.messages (chat_id, sender_id, text, is_system)
-        VALUES (NEW.chat_id, 'system', warning_text, true);
+        -- Tách chat_id (định dạng user1_user2) để tìm partner_id (người nhận tin nhắn)
+        IF NEW.chat_id LIKE '%_%' THEN
+            part1 := split_part(NEW.chat_id, '_', 1);
+            part2 := split_part(NEW.chat_id, '_', 2);
+            
+            IF NEW.sender_id = part1 THEN
+                partner_id := part2;
+            ELSE
+                partner_id := part1;
+            END IF;
+            
+            -- Tự động sinh thêm một tin nhắn hệ thống cảnh báo, chỉ hiển thị cho partner_id
+            INSERT INTO public.messages (chat_id, sender_id, text, is_system, visible_to)
+            VALUES (NEW.chat_id, 'system', warning_text, true, partner_id);
+        END IF;
     END IF;
     
     RETURN NEW;
