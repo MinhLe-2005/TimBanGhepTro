@@ -40,6 +40,12 @@ export default function ChatView({
   onStartAgreement,
   onViewProfile,
 }: ChatViewProps) {
+  // Auth UUID = ID cố định từ Google, không thay đổi dù đăng nhập máy nào
+  const myAuthId = currentUser?.id;
+  const myProfileId = currentUserProfile?.id;
+  // Luôn dùng Auth UUID cho chat_id để đồng bộ mọi thiết bị
+  const myChatId = myAuthId || myProfileId;
+
   // Confirm Dialog Hook
   const { confirm, Dialog: ConfirmDialogComponent } = useConfirmDialog();
   const { toast, previewImage } = useDialog();
@@ -599,15 +605,9 @@ export default function ChatView({
   }, [activeRoommateId]);
 
   // Check if partner has blocked us via system message
-  const myTempId = currentUser?.id || currentUserProfile?.id;
-  const partnerBlockMsgs = activeMessages.filter(m => m.senderId !== "me" && m.senderId !== myTempId && (m.text === "[SYSTEM_BLOCK]" || m.text === "[SYSTEM_UNBLOCK]"));
+  const partnerBlockMsgs = activeMessages.filter(m => m.senderId !== "me" && m.senderId !== myChatId && (m.text === "[SYSTEM_BLOCK]" || m.text === "[SYSTEM_UNBLOCK]"));
   const lastPartnerBlockMsg = partnerBlockMsgs[partnerBlockMsgs.length - 1];
   const isBlockedByPartner = lastPartnerBlockMsg?.text === "[SYSTEM_BLOCK]";  
-  // Auth UUID = ID cố định từ Google, không thay đổi dù đăng nhập máy nào
-  const myAuthId = currentUser?.id;
-  const myProfileId = currentUserProfile?.id;
-  // Luôn dùng Auth UUID cho chat_id để đồng bộ mọi thiết bị
-  const myChatId = myAuthId || myProfileId;
   
   // CRITICAL FIX: Đảm bảo luôn dùng AUTH UUID của partner, KHÔNG PHẢI listing ID
   const partnerChatId = useMemo(() => {
