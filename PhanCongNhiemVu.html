@@ -15,6 +15,27 @@
             --text-main: #1F2937;
             --text-muted: #6B7280;
         }
+        .tag-done {
+            display: inline-block;
+            background: #D1FAE5;
+            color: #065F46;
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-left: 5px;
+        }
+        .sync-note {
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: #FFF7ED;
+            border-left: 4px solid #F97316;
+            border-radius: 6px;
+            font-size: 0.88rem;
+            color: #92400E;
+        }
+        .sync-note strong { color: #C2410C; }
+        .sync-note code { background: #FEF3C7; padding: 1px 5px; border-radius: 3px; font-size: 0.82rem; }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -210,8 +231,14 @@
                         <div class="task-desc">
                             <ul>
                                 <li>Cài đặt <strong>Cron Job (pg_cron)</strong> chạy ngầm trên Supabase mỗi ngày.</li>
-                                <li><strong>Logic:</strong> Tự động quét bảng <code>rooms</code> / <code>roommates</code>, hễ bài nào quá 14 (hoặc 30) ngày thì tự động update <code>status = 'expired'</code>. </li>
+                                <li><strong>Logic:</strong> Tự động quét bảng <code>rooms</code> / <code>roommates</code>, hễ bài nào có <code>created_at</code> quá <strong>30 ngày</strong> thì tự động update <code>status = 'expired'</code>.</li>
                             </ul>
+                            <div class="sync-note">
+                                ⚠️ <strong>Sync với Minh (Frontend):</strong> Minh đã làm nút <strong>"Gia hạn bài đăng"</strong> ở trang Lịch Sử.<br>
+                                Khi user bấm nút đó, frontend gọi Supabase update <code>created_at = NOW()</code> về ngày hôm nay → đồng hồ 30 ngày reset lại từ đầu.<br>
+                                👉 Nhựt cần đảm bảo cron job dùng đúng field <code>created_at</code> để tính ngày hết hạn (không dùng field khác).<br>
+                                👉 Sau khi cron update <code>status = 'expired'</code>, bài sẽ bị ẩn khỏi danh sách tìm kiếm (Frontend đã filter theo status).
+                            </div>
                         </div>
                     </div>
 
@@ -222,6 +249,10 @@
                                 <li>Bảng <code>rooms</code>: Thêm cột <code>bill_image</code> (lưu ảnh hóa đơn) và đổi mặc định <code>status = 'pending'</code>. Tạo bucket Storage cho bill.</li>
                                 <li>Dọn dẹp (Xóa) sạch toàn bộ dữ liệu mẫu do AI/Clone tạo ra bằng script SQL.</li>
                             </ul>
+                            <div class="sync-note">
+                                ⚠️ <strong>Sync với Minh (Frontend):</strong> Minh đã làm form upload ảnh hóa đơn và lưu URL vào field <code>utilityImage</code> trong bảng <code>rooms</code>.<br>
+                                👉 Nhựt cần tạo bucket Storage tên <strong>"utility-bills"</strong> (hoặc dùng chung bucket ảnh hiện tại) và cấp quyền public read cho bucket đó để ảnh hiển thị được trong Admin Dashboard.
+                            </div>
                         </div>
                     </div>
 
@@ -237,7 +268,7 @@
                 <div class="task-list">
 
                     <div class="task-item">
-                        <div class="task-title"><span>#7</span> Xuất PDF Thỏa thuận <span class="tag-logic">Chính</span></div>
+                        <div class="task-title"><span>#7</span> Xuất PDF Thỏa thuận <span class="tag-logic">Chính</span> <span class="tag-done">✅ Xong</span></div>
                         <div class="task-desc">
                             <ul>
                                 <li>Sử dụng thư viện <code>html2pdf.js</code>.</li>
@@ -247,31 +278,32 @@
                     </div>
 
                     <div class="task-item">
-                        <div class="task-title"><span>#4</span> Form Đăng tin & Luồng Kiểm duyệt <span class="tag-logic">Chính</span></div>
+                        <div class="task-title"><span>#4</span> Form Đăng tin & Luồng Kiểm duyệt <span class="tag-logic">Chính</span> <span class="tag-done">✅ Xong</span></div>
                         <div class="task-desc">
                             <ul>
-                                <li>Cập nhật form Đăng phòng: Thêm input tải ảnh Hóa đơn (Upload lên bucket Nhựt tạo) và Checkbox cam kết.</li>
-                                <li>Xây dựng trang <strong>Admin Dashboard</strong>: Hiện danh sách bài đang <code>pending</code>. Hiển thị ảnh Hóa đơn + Nút Search Google Image (kiểm tra ảnh mạng) + Nút <strong>Approve</strong> / <strong>Reject</strong>.</li>
+                                <li>Cập nhật form Đăng phòng: Thêm input tải ảnh Hóa đơn (upload lên Supabase Storage, lưu URL vào field <code>utilityImage</code>) và Checkbox cam kết bắt buộc tích trước khi đăng.</li>
+                                <li>Xây dựng trang <strong>Admin Dashboard</strong>: Hiện danh sách bài đang <code>pending</code>. Hiển thị ảnh Hóa đơn + Nút <strong>Check ảnh mạng (Google Lens)</strong> + Nút <strong>Approve</strong> / <strong>Reject</strong>.</li>
                             </ul>
                         </div>
                     </div>
 
                     <div class="task-item">
-                        <div class="task-title"><span>#2 & #5</span> Giao diện Report & Cảnh báo hạn</div>
+                        <div class="task-title"><span>#2 & #5</span> Giao diện Report & Cảnh báo hạn <span class="tag-done">✅ Xong</span></div>
                         <div class="task-desc">
                             <ul>
-                                <li>Gắn nút <strong>Report</strong> vào Profile và làm Modal nhập lý do.</li>
-                                <li>Tại trang Quản lý bài đăng cá nhân: Viết logic tính toán xem bài đăng sắp tới 14 ngày chưa. Nếu còn cách &lt; 2 ngày &rarr; Hiển thị cảnh báo "Sắp hết hạn" + Nút <strong>Gia hạn</strong>.</li>
+                                <li>Gắn nút <strong>Report</strong> vào từng card hồ sơ (Tìm Bạn) và card phòng (Phòng Trọ). Báo cáo lưu vào bảng <code>user_reports</code> trong Supabase. Admin xem được trong Dashboard.</li>
+                                <li>Tại tab <strong>"Bài đăng của tôi"</strong> trong Lịch Sử: Tính ngày hết hạn từ <code>created_at + 30 ngày</code>. Hiển thị badge màu (🟢 còn nhiều / 🟡 sắp hết ≤3 ngày / 🔴 đã hết hạn) + Nút <strong>"Gia hạn bài đăng"</strong>.</li>
+                                <li>Khi bấm Gia hạn: Frontend update <code>created_at = NOW()</code> trên Supabase → reset đồng hồ 30 ngày.</li>
                             </ul>
                         </div>
                     </div>
 
                     <div class="task-item">
-                        <div class="task-title"><span>#1 & #3</span> Render UI Chat & Bộ lọc</div>
+                        <div class="task-title"><span>#1 & #3</span> Render UI Chat & Bộ lọc <span class="tag-done">✅ Xong</span></div>
                         <div class="task-desc">
                             <ul>
-                                <li><strong>Trang chủ tìm kiếm:</strong> Lọc bỏ (Filter) các hồ sơ có <code>status = 'Đã có phòng'</code>.</li>
-                                <li><strong>Khung Chat:</strong> Style riêng biệt (màu đỏ, icon alert) cho các tin nhắn được hệ thống (Nhựt setup) tự động bắn vào cảnh báo chuyển khoản.</li>
+                                <li><strong>Trang chủ tìm kiếm:</strong> Lọc bỏ (Filter) các hồ sơ có <code>status = 'Đã có phòng'</code> khỏi danh sách Tìm Bạn.</li>
+                                <li><strong>Khung Chat:</strong> Tin nhắn nào có <code>is_system = true</code> sẽ tự động hiển thị style riêng (nền đỏ nhạt, icon ⚠️, chữ đậm) — chờ Nhựt setup Trigger bắn tin nhắn hệ thống vào bảng <code>messages</code> với flag <code>is_system = true</code>.</li>
                             </ul>
                         </div>
                     </div>
