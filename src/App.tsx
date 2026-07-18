@@ -1946,7 +1946,7 @@ export default function App() {
             setCurrentUser(null);
             setCurrentUserProfile(null);
             localStorage.removeItem("roomiematch_user_profile");
-            alert("Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.");
+            toast("Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.", "error", 6000);
             return;
           }
         }

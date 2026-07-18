@@ -42,7 +42,7 @@ export default function PostListingModal({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert("Dung lượng ảnh tối đa là 5MB để đảm bảo hiệu suất lưu trữ và tải trang tốt nhất!");
+        toast("Dung lượng ảnh tối đa là 5MB để đảm bảo hiệu suất lưu trữ và tải trang tốt nhất!", "warning", 4000);
         return;
       }
       const reader = new FileReader();
@@ -64,7 +64,7 @@ export default function PostListingModal({
     const userImagesCount = rImages.filter(p => !ROOM_IMAGE_PRESETS.includes(p.preview)).length;
     
     if (userImagesCount + files.length > 5) {
-      alert("Bạn chỉ có thể tải lên tối đa 5 ảnh cho mỗi phòng!");
+      toast("Bạn chỉ có thể tải lên tối đa 5 ảnh cho mỗi phòng!", "warning", 4000);
       return;
     }
 
@@ -74,7 +74,7 @@ export default function PostListingModal({
     const filePromises = files.map(file => {
       return new Promise<void>((resolve) => {
         if (file.size > 10 * 1024 * 1024) {
-          alert(`Ảnh ${file.name} vượt quá 10MB và sẽ bị bỏ qua.`);
+          toast(`Ảnh ${file.name} vượt quá 10MB và sẽ bị bỏ qua.`, "warning", 4000);
           resolve();
           return;
         }
@@ -156,6 +156,7 @@ export default function PostListingModal({
   // Form State: SEEKING ROOMMATE (TÌM BẠN Ở GHÉP)
   // ==========================================
   const [rmName, setRmName] = useState("");
+  const [rmFieldErrors, setRmFieldErrors] = useState<{name?:string; budget?:string}>({});
   const [rmAge, setRmAge] = useState(21);
   const [rmGender, setRmGender] = useState<"Nam" | "Nữ" | "Khác">("Nữ");
   const [rmRole, setRmRole] = useState("Sinh viên");
@@ -316,10 +317,14 @@ export default function PostListingModal({
 
   const handleRoommateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rmName.trim() || !rmBudget) {
-      alert("Vui lòng nhập tên và ngân sách dự kiến!");
+    const errors: {name?:string; budget?:string} = {};
+    if (!rmName.trim()) errors.name = "Vui lòng nhập họ & tên của bạn";
+    if (!rmBudget) errors.budget = "Vui lòng nhập ngân sách dự kiến";
+    if (Object.keys(errors).length > 0) {
+      setRmFieldErrors(errors);
       return;
     }
+    setRmFieldErrors({});
 
     const processedTags = customTags
       .split(",")
@@ -619,8 +624,9 @@ export default function PostListingModal({
                     </div>
                     <div className="space-y-1.5">
                       <label className="block text-[13px] font-semibold text-slate-700">Ngân sách tối đa / tháng <span className="text-rose-500">*</span></label>
-                      <input type="number" value={rmBudget} onChange={(e) => setRmBudget(e.target.value)} placeholder="VD: 2500000"
-                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] font-bold text-[#006590] outline-none transition-all placeholder:text-slate-300 placeholder:font-normal" />
+                      <input type="number" value={rmBudget} onChange={(e) => { setRmBudget(e.target.value); if(e.target.value) setRmFieldErrors(p=>({...p,budget:undefined})); }} placeholder="VD: 2500000"
+                        className={`w-full bg-slate-50 border hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] font-bold text-[#006590] outline-none transition-all placeholder:text-slate-300 placeholder:font-normal ${rmFieldErrors.budget ? 'border-rose-400 bg-rose-50/30' : 'border-slate-200'}`} />
+                      {rmFieldErrors.budget && <p className="text-rose-500 text-[12px] font-semibold mt-1 flex items-center gap-1"><span>⚠️</span>{rmFieldErrors.budget}</p>}
                     </div>
                   </div>
 
@@ -664,10 +670,11 @@ export default function PostListingModal({
                     <div className="space-y-1.5">
                       <label className="block text-[13px] font-semibold text-slate-700">Họ &amp; Tên <span className="text-rose-500">*</span></label>
                       <input
-                        type="text" value={rmName} onChange={(e) => setRmName(e.target.value)}
+                        type="text" value={rmName} onChange={(e) => { setRmName(e.target.value); if(e.target.value.trim()) setRmFieldErrors(p=>({...p,name:undefined})); }}
                         placeholder="Ví dụ: Nguyễn Minh Thảo"
-                        className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300"
+                        className={`w-full bg-slate-50 border hover:border-slate-300 focus:border-[#006590] focus:ring-2 focus:ring-[#006590]/10 rounded-xl px-4 py-3 text-[14px] outline-none text-slate-800 transition-all placeholder:text-slate-300 ${rmFieldErrors.name ? 'border-rose-400 bg-rose-50/30' : 'border-slate-200'}`}
                       />
+                      {rmFieldErrors.name && <p className="text-rose-500 text-[12px] font-semibold mt-1 flex items-center gap-1"><span>⚠️</span>{rmFieldErrors.name}</p>}
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
