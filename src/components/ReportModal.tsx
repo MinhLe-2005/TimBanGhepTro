@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertCircle, X } from 'lucide-react';
 
 interface ReportModalProps {
@@ -32,11 +33,11 @@ export default function ReportModal({ isOpen, onClose, onSubmit, targetName }: R
     setReason("");
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in">
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
       
-      <div className="relative bg-white rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden animate-slide-up border border-slate-100">
+      <div className="relative bg-white rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden border border-slate-100">
         <div className="p-6 sm:p-8">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -90,6 +91,7 @@ export default function ReportModal({ isOpen, onClose, onSubmit, targetName }: R
           </form>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
