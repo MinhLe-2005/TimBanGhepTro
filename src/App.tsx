@@ -31,14 +31,14 @@ const ROOM_DB_KEYS = [
   'isHot', 'status', 'isVerifiedRoom', 'bedrooms', 'wc', 'kitchen', 'hostName',
   'hostAvatar', 'hostRole', 'description', 'phoneNumber', 'pets', 'gender',
   'electricity', 'water', 'parking', 'proximity', 'roommateInfo', 'habits',
-  'postedBy', 'user_id', 'createdAt'
+  'postedBy', 'user_id', 'createdAt', 'rejectReason'
 ] as const;
 
 const ROOMMATE_DB_KEYS = [
   'id', 'name', 'age', 'role', 'school', 'phoneNumber', 'avatar', 'status',
   'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags',
   'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id',
-  'is_listing', 'createdAt'
+  'is_listing', 'createdAt', 'rejectReason'
 ] as const;
 
 const withoutExtendedRoomFields = (room: Record<string, any>) => {
@@ -1920,7 +1920,7 @@ export default function App() {
        // Also sync to Supabase so avatar + changes persist on reload
        if (import.meta.env.VITE_SUPABASE_URL) {
          try {
-           const validRoommateKeys = ['id', 'name', 'age', 'role', 'phoneNumber', 'email', 'avatar', 'status', 'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags', 'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id', 'is_listing', 'createdAt'];
+           const validRoommateKeys = ['id', 'name', 'age', 'role', 'phoneNumber', 'email', 'avatar', 'status', 'location', 'district', 'type', 'matchScore', 'reputationScore', 'tags', 'isVerified', 'bio', 'budget', 'gender', 'lifestyle', 'postedBy', 'user_id', 'is_listing', 'createdAt', 'rejectReason'];
            const upsertData: any = {};
            for (const key of validRoommateKeys) {
              if (profile[key as keyof Roommate] !== undefined) {

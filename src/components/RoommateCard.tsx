@@ -89,9 +89,19 @@ export default function RoommateCard({
             </span>
           </div>
           {roommate.isVerified === false && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/95 backdrop-blur-md border border-amber-400 text-white shadow-sm self-start">
-              <span className="text-[10px] font-black uppercase tracking-wide">Chờ duyệt</span>
-            </div>
+            roommate.rejectReason ? (
+              <div 
+                onClick={(e) => { e.stopPropagation(); alert(`Lý do từ chối duyệt:\n${roommate.rejectReason}\n\nVui lòng sửa lại bài viết của bạn.`); }}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/95 backdrop-blur-md border border-rose-400 text-white shadow-sm self-start cursor-pointer hover:bg-rose-600 transition-colors"
+                title="Bấm để xem lý do từ chối"
+              >
+                <span className="text-[10px] font-black uppercase tracking-wide">Không duyệt</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/95 backdrop-blur-md border border-amber-400 text-white shadow-sm self-start">
+                <span className="text-[10px] font-black uppercase tracking-wide">Chờ duyệt</span>
+              </div>
+            )
           )}
         </div>
 

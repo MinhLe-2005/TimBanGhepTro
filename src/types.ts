@@ -42,6 +42,7 @@ export interface Roommate {
   auth_id?: string;
   is_listing?: boolean;
   created_at?: string;
+  rejectReason?: string; // reason if the listing was rejected by admin
   lifestyle: {
     sleep: "Cú đêm" | "Ngủ sớm" | "Bình thường";
     pets: "Yêu mèo" | "Yêu chó" | "Không tiện nuôi" | "Thoải mái";

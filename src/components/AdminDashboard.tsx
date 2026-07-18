@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, AlertTriangle, Shield, Trash2, Ban, ShieldCheck, FileText, UserCheck, Flag, Check, Star, RefreshCw, Search, Image as ImageIcon } from "lucide-react";
+import { Users, AlertTriangle, Shield, Trash2, Ban, ShieldCheck, FileText, UserCheck, Flag, Check, Star, RefreshCw, Search, Image as ImageIcon, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { Roommate, Room } from "../types";
 import { useDialog } from "./ui/DialogProvider";
@@ -208,8 +208,8 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   // Listings = is_listing is not false; Profiles = is_listing is false
   const listings = allSupabaseRoommates.filter(r => r.is_listing !== false && r.is_listing !== 'false');
   const profiles = allSupabaseRoommates.filter(r => r.is_listing === false || r.is_listing === 'false');
-  const pendingListings = listings.filter(r => r.isVerified === false);
-  const pendingRooms = rooms.filter(r => r.isVerifiedRoom === false);
+  const pendingListings = listings.filter(r => r.isVerified === false && !r.rejectReason);
+  const pendingRooms = rooms.filter(r => r.isVerifiedRoom === false && !r.rejectReason);
 
   const handleBanUser = async (userId: string) => {
     const ok = await confirm({ title: 'Khóa tài khoản', message: 'Bạn có chắc muốn khóa vĩnh viễn tài khoản này?', confirmText: 'Khóa ngay', type: 'error' });
@@ -473,6 +473,19 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
       return;
     }
     toast('✅ Đã duyệt bài viết thành công!', 'success');
+    fetchAdminData(false);
+  };
+
+  const handleRejectListing = async (table: 'roommates' | 'rooms', id: string) => {
+    const reason = prompt('Vui lòng nhập lý do từ chối:');
+    if (!reason || !reason.trim()) return;
+    
+    const { error } = await supabase.from(table).update({ rejectReason: reason.trim() }).eq('id', id);
+    if (error) {
+      toast('Không thể từ chối bài viết.', 'error');
+      return;
+    }
+    toast('Đã từ chối bài viết thành công.', 'success');
     fetchAdminData(false);
   };
 
@@ -814,9 +827,14 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                     {pendingListings.map(rm => (
                       <div key={rm.id} className="relative">
                         <UserCard rm={rm} isBanned={rm.user_id ? bannedUsers.includes(rm.user_id) : bannedUsers.includes(rm.id)} itemType="bài đăng tìm bạn" />
-                        <button onClick={() => handleApproveListing('roommates', rm.id)} className="absolute bottom-2 right-12 p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors shadow-sm" title="Duyệt bài">
-                          <Check className="w-4 h-4" />
-                        </button>
+                        <div className="absolute bottom-2 right-12 flex gap-2">
+                          <button onClick={() => handleApproveListing('roommates', rm.id)} className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors shadow-sm" title="Duyệt bài">
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleRejectListing('roommates', rm.id)} className="p-2 bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white rounded-xl transition-colors shadow-sm" title="Từ chối">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                     {pendingRooms.map(room => (
@@ -866,6 +884,9 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                         <div className="absolute bottom-2 right-2 flex gap-2">
                           <button onClick={(e) => { e.stopPropagation(); handleApproveListing('rooms', room.id); }} className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors shadow-sm" title="Duyệt bài">
                             <Check className="w-4 h-4" />
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); handleRejectListing('rooms', room.id); }} className="p-2 bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white rounded-xl transition-colors shadow-sm" title="Từ chối">
+                            <X className="w-4 h-4" />
                           </button>
                           <button onClick={(e) => { e.stopPropagation(); handleDeleteListing('rooms', room.id, 'tin đăng phòng'); }} className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl transition-colors shadow-sm" title="Xóa">
                             <Trash2 className="w-4 h-4" />
