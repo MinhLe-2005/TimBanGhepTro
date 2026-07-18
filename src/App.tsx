@@ -863,6 +863,14 @@ export default function App() {
       });
     }
 
+    // Filter out unapproved posts (unless Admin or Post Owner)
+    result = result.filter(r => {
+      if (r.isVerified === true || r.isVerified === undefined) return true; // Approved or legacy dummy data
+      if (isAdmin) return true; // Admins see everything
+      if (currentUser && (r.user_id === currentUser.id || r.postedBy === currentUser.id)) return true; // Owner sees their own pending post
+      return false; // Hide pending posts from public
+    });
+
     // Sort: newest listings on top. Sample data (fixed IDs) gets timestamp 0 → goes to bottom
     result.sort((a, b) => {
       const getTs = (r: any): number => {
@@ -971,6 +979,14 @@ export default function App() {
         };
       });
     }
+
+    // Filter out unapproved rooms (unless Admin or Post Owner)
+    result = result.filter(r => {
+      if (r.isVerifiedRoom === true || r.isVerifiedRoom === undefined) return true; // Approved or legacy dummy data
+      if (isAdmin) return true; // Admins see everything
+      if (currentUser && (r.user_id === currentUser.id || r.postedBy === currentUser.id)) return true; // Owner sees their own pending post
+      return false; // Hide pending posts from public
+    });
 
     // Sort: newest first by createdAt
     result.sort((a, b) => {
