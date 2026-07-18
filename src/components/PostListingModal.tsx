@@ -369,7 +369,12 @@ export default function PostListingModal({
       setIsSubmitting(false);
     }
     if (!submitted) return;
-    toast(editingData ? `Đã cập nhật bài tìm bạn ở ghép cho ${rmName} thành công!` : `Đã đăng bài tìm bạn ở ghép cho ${rmName} thành công!`, "success");
+    toast(
+      editingData 
+        ? `Đã cập nhật bài tìm bạn ở ghép cho ${rmName} thành công!` 
+        : `Đã đăng bài thành công! Bài viết của bạn đang chờ Admin duyệt.`, 
+      "success"
+    );
     if (onSuccess) onSuccess('roommate');
     onClose();
   };
@@ -491,7 +496,12 @@ export default function PostListingModal({
       }
       return;
     }
-    toast(editingData ? `Cập nhật tin đăng phòng "${rTitle}" thành công!` : `Đã đăng tin phòng "${rTitle}" thành công!`, "success");
+    toast(
+      editingData 
+        ? `Cập nhật tin đăng phòng "${rTitle}" thành công!` 
+        : `Đã đăng tin phòng "${rTitle}" thành công! Bài viết đang chờ Admin duyệt.`, 
+      "success"
+    );
     if (onSuccess) onSuccess('room');
     onClose();
   };

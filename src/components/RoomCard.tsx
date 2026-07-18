@@ -121,6 +121,11 @@ export default function RoomCard({
               )}
             </div>
           )}
+          {room.isVerifiedRoom === false && (
+            <div className="bg-amber-500/95 text-white backdrop-blur-sm px-2.5 py-1 rounded-full text-[10px] font-black shadow-sm flex items-center gap-1.5 border border-amber-400 self-start">
+              <span className="uppercase tracking-wide">Chờ duyệt</span>
+            </div>
+          )}
         </div>
 
         {/* Bottom Left Badges: Hot / Full / Rating */}

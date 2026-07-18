@@ -88,6 +88,11 @@ export default function RoommateCard({
               {reputationScore !== null ? `Uy tín ${reputationScore}%` : "Chưa có điểm"}
             </span>
           </div>
+          {roommate.isVerified === false && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/95 backdrop-blur-md border border-amber-400 text-white shadow-sm self-start">
+              <span className="text-[10px] font-black uppercase tracking-wide">Chờ duyệt</span>
+            </div>
+          )}
         </div>
 
         {/* Action buttons: Like + Report grouped */}
