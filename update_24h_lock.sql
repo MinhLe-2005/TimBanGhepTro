@@ -16,8 +16,8 @@ BEGIN
     FROM public.user_reports
     WHERE reported_id = NEW.reported_id;
 
-    -- Nếu tài khoản bị > 3 người dùng khác nhau report (tức là từ 4 người trở lên)
-    IF report_count > 3 THEN
+    -- Nếu tài khoản bị từ 3 người dùng khác nhau report trở lên
+    IF report_count >= 3 THEN
         -- Tìm user_id/auth_id liên kết từ roommates
         SELECT user_id INTO v_user_id
         FROM public.roommates
