@@ -649,6 +649,8 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                       const review = report.review;
                       const reviewerId = review?.reviewer_id;
                       const isReviewerBanned = reviewerId ? bannedUsers.includes(reviewerId) : false;
+                      const reporterUser = allSupabaseRoommates.find(r => r.id === report.reporter_id || r.user_id === report.reporter_id);
+                      const reporterName = reporterUser?.name || report.reporter_id;
                       return (
                         <div key={`${report.source}-${report.id}`} className="border border-amber-200 bg-amber-50/30 p-5 rounded-2xl">
                           <div className="flex flex-col lg:flex-row gap-5">
@@ -681,7 +683,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                               </blockquote>
                               <div className="mt-3 text-xs text-slate-500 space-y-1">
                                 <p><span className="font-bold">Lý do báo cáo:</span> {report.reason}</p>
-                                <p><span className="font-bold">Người báo cáo:</span> {report.reporter_id}</p>
+                                <p><span className="font-bold">Người báo cáo:</span> <span className="font-semibold text-emerald-700">{reporterName}</span></p>
                                 <p><span className="font-bold">Tài khoản người viết:</span> {reviewerId || 'Legacy, chưa xác định'}</p>
                               </div>
                             </div>
@@ -737,6 +739,8 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                     {reports.map(report => {
                       const targetUser = allSupabaseRoommates.find(r => r.id === report.target_id || r.user_id === report.target_id);
                       const targetAccountId = targetUser?.user_id || targetUser?.auth_id || report.target_id;
+                      const reporterUser = allSupabaseRoommates.find(r => r.id === report.sender_id || r.user_id === report.sender_id);
+                      const reporterName = reporterUser?.name || report.sender_id;
                       const isBanned = bannedUsers.includes(targetAccountId);
                       const reportedMessages = Array.isArray(report.reported_messages)
                         ? report.reported_messages
@@ -756,7 +760,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                               <span className="text-xs text-slate-500">{new Date(report.created_at).toLocaleString('vi-VN')}</span>
                             </div>
                             <p className="text-sm"><span className="font-bold text-slate-700">Người bị report: </span><span className="text-rose-600 font-black">{targetUser?.name || report.target_id}</span></p>
-                            <p className="text-xs text-slate-500"><span className="font-bold">Người báo cáo: </span>{report.sender_id}</p>
+                            <p className="text-xs text-slate-500"><span className="font-bold">Người báo cáo: </span><span className="font-semibold text-emerald-700">{reporterName}</span></p>
                             <p className="text-sm"><span className="font-bold text-slate-700">Lý do: </span>{report.reason}</p>
                             {reportedMessages.length > 0 && (
                               <div className="rounded-xl border border-rose-200 bg-white p-4">
