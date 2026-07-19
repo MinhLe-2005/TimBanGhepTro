@@ -517,7 +517,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   };
 
   const handlePromoteAdmin = async (userId: string, userName: string) => {
-    const ok = await confirm(`Bạn có chắc muốn cấp quyền Admin cho "${userName}" không?\nHọ sẽ có toàn quyền quản trị hệ thống.`);
+    const ok = await confirm({ title: 'Cấp quyền Admin', message: `Bạn có chắc muốn cấp quyền Admin cho "${userName}" không?\nHọ sẽ có toàn quyền quản trị hệ thống.`, confirmText: 'Cấp quyền', type: 'warning' });
     if (!ok) return;
     const { error } = await supabase.from('admin_roles').insert({ user_id: userId });
     if (error) { toast('Lỗi: ' + error.message, 'error'); return; }
@@ -526,7 +526,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   };
 
   const handleDemoteAdmin = async (userId: string, userName: string) => {
-    const ok = await confirm(`Bạn có chắc muốn thu hồi quyền Admin của "${userName}" không?`);
+    const ok = await confirm({ title: 'Thu hồi quyền Admin', message: `Bạn có chắc muốn thu hồi quyền Admin của "${userName}" không?`, confirmText: 'Thu hồi', type: 'error' });
     if (!ok) return;
     const { error } = await supabase.from('admin_roles').delete().eq('user_id', userId);
     if (error) { toast('Lỗi: ' + error.message, 'error'); return; }

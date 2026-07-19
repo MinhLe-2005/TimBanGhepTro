@@ -88,6 +88,7 @@ export interface Room {
   postedBy?: string; // user ID who posted this listing
   user_id?: string;
   created_at?: string;
+  rejectReason?: string;
 }
 
 export interface RoomReview {
@@ -110,6 +111,7 @@ export interface Message {
   imageUrl?: string; // Optional image URL
   reactions?: Record<string, string[]>; // { "❤️": ["user1", "user2"], "😂": ["user3"] }
   isSystem?: boolean;
+  visibleTo?: string;
 }
 
 export interface Agreement {

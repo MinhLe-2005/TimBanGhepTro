@@ -2132,10 +2132,10 @@ export default function App() {
       
       if (type === 'room') {
         const { data } = await supabase.from('rooms').select('*').order('created_at', { ascending: false });
-        if (data) setAllRooms(data as Room[]);
+        if (data) setSupabaseRooms(data);
       } else {
         const { data } = await supabase.from('roommates').select('*').order('created_at', { ascending: false });
-        if (data) setAllRoommates(data as Roommate[]);
+        if (data) setSupabaseRoommates(data);
       }
     } catch (err) {
       console.error('Error extending post:', err);

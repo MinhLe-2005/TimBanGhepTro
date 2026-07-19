@@ -496,12 +496,10 @@ export default function RoomsView({
               onViewDetails={onViewRoom}
               onLikeChange={isAdmin ? undefined : onLikeRoom}
               isInitiallyLiked={likedRoomIds.includes(room.id)}
-              onContact={() => onContact(room)}
               onReport={() => handleReportRoomClick(room)}
               onEdit={isAdmin || currentUserId === room.user_id || currentUserId === room.postedBy ? onEditRoom : undefined}
               onDelete={isAdmin || currentUserId === room.user_id || currentUserId === room.postedBy ? onDeleteRoom : undefined}
               currentUserId={currentUserId}
-              hideContact={showMyPostsOnly}
             />
           ))}
         </div>

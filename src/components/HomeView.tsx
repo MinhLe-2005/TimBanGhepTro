@@ -21,6 +21,7 @@ interface HomeViewProps {
   onStartChat: (id: string) => void;
   currentUserProfile?: any;
   onRequireAuth?: () => void;
+  onOpenCreateProfile?: () => void;
   isAdmin?: boolean;
   hideInactiveRoommates?: boolean;
 }
