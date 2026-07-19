@@ -1,5 +1,5 @@
 -- ============================================================
--- FIX: DETECT SUSPICIOUS MESSAGE TRIGGER
+-- FIX: TYPE-SAFE DETECT SUSPICIOUS MESSAGE TRIGGER
 -- Run this script in the Supabase SQL Editor
 -- ============================================================
 
@@ -35,11 +35,11 @@ BEGIN
             IF part1 = NEW.sender_id THEN
                 is_part1_sender := true;
             ELSE
-                -- Kiểm tra liên kết profiles
+                -- Kiểm tra liên kết profiles (Ép kiểu ::text cho các trường UUID)
                 IF EXISTS (
                     SELECT 1 FROM public.profiles 
-                    WHERE (id = part1 AND auth_id::text = NEW.sender_id)
-                       OR (auth_id::text = part1 AND id = NEW.sender_id)
+                    WHERE (id::text = part1 AND auth_id::text = NEW.sender_id)
+                       OR (auth_id::text = part1 AND id::text = NEW.sender_id)
                 ) THEN
                     is_part1_sender := true;
                 -- Kiểm tra liên kết roommates

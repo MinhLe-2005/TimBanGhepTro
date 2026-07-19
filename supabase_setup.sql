@@ -77,8 +77,8 @@ BEGIN
                 -- Kiểm tra liên kết profiles
                 IF EXISTS (
                     SELECT 1 FROM public.profiles 
-                    WHERE (id = part1 AND auth_id::text = NEW.sender_id)
-                       OR (auth_id::text = part1 AND id = NEW.sender_id)
+                    WHERE (id::text = part1 AND auth_id::text = NEW.sender_id)
+                       OR (auth_id::text = part1 AND id::text = NEW.sender_id)
                 ) THEN
                     is_part1_sender := true;
                 -- Kiểm tra liên kết roommates
