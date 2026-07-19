@@ -1231,7 +1231,8 @@ export default function ChatView({
     setInputText("");
     setAttachedImage(null);
 
-    const newMsgId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString();
+    const generateUUID = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8); return v.toString(16); });
+    const newMsgId = generateUUID();
     const newMsg: Message = {
       id: newMsgId,
       chatId: activeRoommateId,
@@ -1262,7 +1263,6 @@ export default function ChatView({
         id: newMsg.id,
         chat_id: chatId,
         sender_id: myChatId,
-        sender_name: currentUserProfile?.name || currentUser?.user_metadata?.full_name || "Unknown",
         text: userMessageText,
         image_url: sentImage || undefined,
       });
