@@ -143,7 +143,13 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
 
       // Fetch Bans
       const { data: banMsgs } = await supabase.from('messages').select('*').eq('chat_id', 'SYSTEM_BANS');
-      if (banMsgs) setBannedUsers(banMsgs.map(m => m.text.replace('[BAN]', '').trim()));
+      const legacyBannedIds = banMsgs ? banMsgs.map(m => m.text.replace('[BAN]', '').trim()) : [];
+      
+      const { data: lockedRoommates } = await supabase.from('roommates').select('id, user_id').eq('is_locked', true);
+      const dbLockedIds = lockedRoommates ? lockedRoommates.map(r => r.user_id || r.id).filter(Boolean) : [];
+      
+      const combinedBannedUsers = [...new Set([...legacyBannedIds, ...dbLockedIds])];
+      setBannedUsers(combinedBannedUsers);
 
       // Fetch Agreements
       const { data: agreementMsgs } = await supabase
@@ -214,6 +220,15 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   const handleBanUser = async (userId: string) => {
     const ok = await confirm({ title: 'Khóa tài khoản', message: 'Bạn có chắc muốn khóa vĩnh viễn tài khoản này?', confirmText: 'Khóa ngay', type: 'error' });
     if (!ok) return false;
+
+    // 1. Lock in profiles
+    await supabase.from('profiles').update({ is_locked: true }).eq('id', userId);
+    await supabase.from('profiles').update({ is_locked: true }).eq('auth_id', userId);
+
+    // 2. Lock in roommates
+    await supabase.from('roommates').update({ is_locked: true }).eq('id', userId);
+    await supabase.from('roommates').update({ is_locked: true }).eq('user_id', userId);
+
     const { error } = await supabase.from('messages').insert({
       chat_id: 'SYSTEM_BANS', sender_id: currentUser.id, text: `[BAN] ${userId}`
     });
@@ -415,6 +430,18 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   const handleUnbanUser = async (userId: string) => {
     const ok = await confirm({ title: 'Mở khóa tài khoản', message: 'Bạn có chắc muốn mở khóa tài khoản này?', confirmText: 'Mở khóa', type: 'success' });
     if (!ok) return;
+
+    // 1. Unlock in profiles
+    await supabase.from('profiles').update({ is_locked: false }).eq('id', userId);
+    await supabase.from('profiles').update({ is_locked: false }).eq('auth_id', userId);
+
+    // 2. Unlock in roommates
+    await supabase.from('roommates').update({ is_locked: false }).eq('id', userId);
+    await supabase.from('roommates').update({ is_locked: false }).eq('user_id', userId);
+
+    // 3. Clear report history in user_reports to reset report count
+    await supabase.from('user_reports').delete().eq('reported_id', userId);
+
     const { data: banMsgs } = await supabase.from('messages').select('id, text').eq('chat_id', 'SYSTEM_BANS');
     if (banMsgs) {
        const msgsToDelete = banMsgs

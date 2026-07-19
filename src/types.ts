@@ -41,6 +41,7 @@ export interface Roommate {
   user_id?: string;
   auth_id?: string;
   is_listing?: boolean;
+  is_locked?: boolean;
   created_at?: string;
   rejectReason?: string; // reason if the listing was rejected by admin
   lifestyle: {

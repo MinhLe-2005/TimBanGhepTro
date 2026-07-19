@@ -182,6 +182,10 @@ export default function ChatView({
       return;
     }
     const myId = currentUser?.id || currentUserProfile?.id;
+    const activeRoommate = roommates.find(r => r.id === activeRoommateId);
+    const activeMessages = chats[activeRoommateId || ""] || [];
+    const chatId = [myId, activeRoommateId].sort().join('_');
+
     if (myId && activeRoommateId && import.meta.env.VITE_SUPABASE_URL) {
        const targetAccountId =
          activeRoommate?.user_id ||
@@ -189,7 +193,13 @@ export default function ChatView({
          activeRoommate?.id ||
          activeRoommateId;
 
-       // Check if already reported
+       // Check if already reported in user_reports or legacy messages
+       const { data: existingTableReports } = await supabase
+         .from('user_reports')
+         .select('id')
+         .eq('reporter_id', myId)
+         .eq('reported_id', targetAccountId);
+
        const { data: existingReports } = await supabase
          .from('messages')
          .select('id')
@@ -198,7 +208,7 @@ export default function ChatView({
          .like('text', `%[REPORT]%`)
          .like('text', `%"target_id":"${targetAccountId}"%`);
 
-       if (existingReports && existingReports.length > 0) {
+       if ((existingTableReports && existingTableReports.length > 0) || (existingReports && existingReports.length > 0)) {
          toast("Bạn đã báo cáo người dùng này rồi. Quản trị viên đang xem xét.", "warning", 5000);
          closeReportModal();
          return;
@@ -265,6 +275,14 @@ export default function ChatView({
          setIsUploadingReport(false);
          return;
        }
+
+       // Also insert into user_reports
+       await supabase.from('user_reports').insert({
+         reporter_id: myId,
+         reported_id: targetAccountId,
+         reason: reportReason
+       });
+
        closeReportModal();
        toast("Đã gửi báo cáo đến ban quản trị.", "success", 4000);
     } else {
@@ -765,7 +783,15 @@ export default function ChatView({
               isSystem: newMsg.is_system || false,
               visibleTo: newMsg.visible_to || undefined
             }];
-            return { ...prev, [activeRoommateId]: updated.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()) };
+            return { ...prev, [activeRoommateId]: updated.sort((a, b) => {
+               const timeDiff = new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+               if (timeDiff !== 0) return timeDiff;
+               const aIsSystem = a.isSystem || a.senderId === 'system';
+               const bIsSystem = b.isSystem || b.senderId === 'system';
+               if (aIsSystem && !bIsSystem) return 1;
+               if (!aIsSystem && bIsSystem) return -1;
+               return 0;
+             }) };
           });
         })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `chat_id=eq.${id}` }, (payload) => {
@@ -855,7 +881,15 @@ export default function ChatView({
         const filteredList: any[] = [];
         Object.keys(messagesByChat).forEach(cId => {
           // Sắp xếp thời gian tăng dần để áp dụng bộ lọc fail-safe
-          const msgs = messagesByChat[cId].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+          const msgs = messagesByChat[cId].sort((a, b) => {
+            const timeDiff = new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+            if (timeDiff !== 0) return timeDiff;
+            const aIsSystem = a.is_system || a.isSystem || a.sender_id === 'system' || a.senderId === 'system';
+            const bIsSystem = b.is_system || b.isSystem || b.sender_id === 'system' || b.senderId === 'system';
+            if (aIsSystem && !bIsSystem) return 1;
+            if (!aIsSystem && bIsSystem) return -1;
+            return 0;
+          });
           const filtered = msgs.filter((msg, idx) => {
             // 1. Kiểm tra visible_to
             if (msg.is_system && msg.visible_to && msg.visible_to !== myAuthId && msg.visible_to !== myProfileId) {

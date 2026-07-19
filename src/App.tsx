@@ -12,7 +12,7 @@ import AgreementView from "./components/AgreementView";
 import HistoryView from "./components/HistoryView";
 import InfoView from "./components/InfoView";
 import AdminDashboard from "./components/AdminDashboard";
-import { getModerationChannel, isSystemChannel, REVIEW_REPORT_PREFIX } from "./lib/moderation";
+import { CHAT_REPORT_PREFIX, getModerationChannel, isSystemChannel, REVIEW_REPORT_PREFIX } from "./lib/moderation";
 import { isInlineImage, removePublicStorageUrls, uploadInlineImage } from "./lib/storage";
 import { useDialog } from "./components/ui/DialogProvider";
 
@@ -22,6 +22,7 @@ import CreateProfileModal from "./components/CreateProfileModal";
 import LoginModal from "./components/LoginModal";
 import PostListingModal from "./components/PostListingModal";
 import ChangePasswordModal from "./components/ChangePasswordModal";
+import ReportModal from "./components/ReportModal";
 
 type ListingKind = "room" | "roommate";
 type ListingAction = "create" | "update";
@@ -132,24 +133,32 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true); // Add loading state
   const [isBanned, setIsBanned] = useState(false);
   const [supabaseBannedIds, setSupabaseBannedIds] = useState<string[]>([]);
+  const [reportingProfileFromModal, setReportingProfileFromModal] = useState<Roommate | null>(null);
 
   useEffect(() => {
     // Failsafe timeout to prevent infinite loading
     const authTimeout = setTimeout(() => setAuthLoading(false), 5000);
 
-    const checkBanStatus = (userId: string) => {
-      supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS')
-        .then(({ data: banMsgs }) => {
-          if (banMsgs && banMsgs.some((m: any) => m.text.includes(userId))) {
-            supabase.auth.signOut().then(() => {
-              setCurrentUser(null);
-              setCurrentUserProfile(null);
-              localStorage.removeItem("roomiematch_user_profile");
-              toast('Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.', 'error', 8000);
-            });
-          }
-        })
-        .catch(e => console.error("Error checking ban status", e));
+    const checkBanStatus = async (userId: string) => {
+      try {
+        const { data: profileData } = await supabase.from('profiles').select('is_locked').eq('auth_id', userId).maybeSingle();
+        const { data: roommateData } = await supabase.from('roommates').select('is_locked').eq('user_id', userId).eq('is_listing', false).maybeSingle();
+        const { data: banMsgs } = await supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS');
+        
+        const isProfileLocked = profileData?.is_locked === true || profileData?.is_locked === 'true';
+        const isRoommateLocked = roommateData?.is_locked === true || roommateData?.is_locked === 'true';
+        const isLegacyBanned = banMsgs && banMsgs.some((m: any) => m.text.includes(userId));
+
+        if (isProfileLocked || isRoommateLocked || isLegacyBanned) {
+          await supabase.auth.signOut();
+          setCurrentUser(null);
+          setCurrentUserProfile(null);
+          localStorage.removeItem("roomiematch_user_profile");
+          toast('Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.', 'error', 8000);
+        }
+      } catch (e) {
+        console.error("Error checking ban status", e);
+      }
     };
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -617,14 +626,25 @@ export default function App() {
     if (!import.meta.env.VITE_SUPABASE_URL) return;
 
     const refreshBannedUsers = async () => {
+      // 1. Fetch legacy bans
       const { data } = await supabase
         .from("messages")
         .select("text")
         .eq("chat_id", "SYSTEM_BANS");
-      const bannedIds: string[] = (data || [])
+      const legacyBannedIds: string[] = (data || [])
         .filter((message: any) => String(message.text || "").startsWith("[BAN]"))
         .map((message: any) => String(message.text).replace("[BAN]", "").trim());
-      const uniqueBannedIds = [...new Set<string>(bannedIds)];
+
+      // 2. Fetch new database locked users
+      const { data: lockedRoommates } = await supabase
+        .from("roommates")
+        .select("id, user_id, is_locked")
+        .eq("is_locked", true);
+      const dbLockedIds: string[] = (lockedRoommates || [])
+        .map(r => r.user_id || r.id)
+        .filter(Boolean);
+
+      const uniqueBannedIds = [...new Set<string>([...legacyBannedIds, ...dbLockedIds])];
       setSupabaseBannedIds(uniqueBannedIds);
     };
 
@@ -983,6 +1003,11 @@ export default function App() {
 
     // Filter out unapproved rooms (unless Admin or Post Owner)
     result = result.filter(r => {
+      const ownerId = r.postedBy || r.user_id;
+      const isHostBanned = ownerId && supabaseBannedIds.includes(String(ownerId));
+      if (isHostBanned && !isAdmin && (!currentUser || ownerId !== currentUser.id)) {
+        return false;
+      }
       if (r.isVerifiedRoom === true || r.isVerifiedRoom === undefined) return true; // Approved or legacy dummy data
       if (isAdmin) return true; // Admins see everything
       if (currentUser && (r.user_id === currentUser.id || r.postedBy === currentUser.id)) return true; // Owner sees their own pending post
@@ -1002,7 +1027,7 @@ export default function App() {
     });
 
     return result;
-  }, [supabaseRooms, supabaseRoomReviews, rooms, currentUserProfile, currentUser]);
+  }, [supabaseRooms, supabaseRoomReviews, rooms, currentUserProfile, currentUser, supabaseBannedIds]);
 
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [postModalInitialTab, setPostModalInitialTab] = useState<"roommate" | "room">("roommate");
@@ -1901,9 +1926,14 @@ export default function App() {
         name: isOwner && !r.is_listing ? currentUserProfile.name : r.name,
         postedBy: isOwner && currentUser ? currentUser.id : r.postedBy,
       };
+    }).filter((r) => {
+      const ownerId = r.user_id || r.auth_id || r.postedBy || r.id;
+      const isOwner = currentUser?.id && ownerId === currentUser.id;
+      const isBanned = supabaseBannedIds.includes(String(ownerId)) || r.is_locked === true || r.is_locked === 'true';
+      return !isBanned || isOwner;
     });
     setRoommates(updated);
-  }, [currentUserProfile, supabaseReviews, currentUser, supabaseRoommates]);
+  }, [currentUserProfile, supabaseReviews, currentUser, supabaseRoommates, supabaseBannedIds]);
 
   const handleSaveProfile = async (profile: any) => {
     setCurrentUserProfile(profile);
@@ -1954,19 +1984,23 @@ export default function App() {
     
     let hasProfile = false;
     if (user && user.id) {
-      // 0. Check if user is banned
+      // 0. Check if user is banned or locked
       try {
+        const { data: profileData } = await supabase.from('profiles').select('is_locked').eq('auth_id', user.id).maybeSingle();
+        const { data: roommateData } = await supabase.from('roommates').select('is_locked').eq('user_id', user.id).eq('is_listing', false).maybeSingle();
         const { data: banMsgs } = await supabase.from('messages').select('text').eq('chat_id', 'SYSTEM_BANS');
-        if (banMsgs) {
-          const isBanned = banMsgs.some((m: any) => m.text.includes(user.id));
-          if (isBanned) {
-            await supabase.auth.signOut();
-            setCurrentUser(null);
-            setCurrentUserProfile(null);
-            localStorage.removeItem("roomiematch_user_profile");
-            toast("Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.", "error", 6000);
-            return;
-          }
+        
+        const isProfileLocked = profileData?.is_locked === true || profileData?.is_locked === 'true';
+        const isRoommateLocked = roommateData?.is_locked === true || roommateData?.is_locked === 'true';
+        const isLegacyBanned = banMsgs && banMsgs.some((m: any) => m.text.includes(user.id));
+
+        if (isProfileLocked || isRoommateLocked || isLegacyBanned) {
+          await supabase.auth.signOut();
+          setCurrentUser(null);
+          setCurrentUserProfile(null);
+          localStorage.removeItem("roomiematch_user_profile");
+          toast("Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.", "error", 6000);
+          return;
         }
       } catch(e) {}
 
@@ -2720,6 +2754,13 @@ export default function App() {
             toast('✅ Đã xóa hồ sơ thành công!', 'success');
           }}
           isAdmin={isAdmin}
+          onReportProfile={(rm) => {
+            if (!currentUser) {
+              setIsLoginModalOpen(true);
+              return;
+            }
+            setReportingProfileFromModal(rm);
+          }}
         />
       )}
 
@@ -2822,6 +2863,61 @@ export default function App() {
       {isChangePasswordOpen && (
         <ChangePasswordModal
           onClose={() => setIsChangePasswordOpen(false)}
+        />
+      )}
+
+      {reportingProfileFromModal && (
+        <ReportModal
+          isOpen={true}
+          onClose={() => setReportingProfileFromModal(null)}
+          onSubmit={async (reason) => {
+            if (!currentUser?.id) return;
+            const targetId = reportingProfileFromModal.user_id || reportingProfileFromModal.postedBy || reportingProfileFromModal.id;
+            
+            // Check if already reported
+            const { data: existingReports } = await supabase
+              .from('user_reports')
+              .select('id')
+              .eq('reporter_id', currentUser.id)
+              .eq('reported_id', targetId);
+
+            if (existingReports && existingReports.length > 0) {
+              toast("Bạn đã báo cáo người dùng này rồi.", "warning");
+              setReportingProfileFromModal(null);
+              return;
+            }
+
+            const payload = {
+              target_id: targetId,
+              reason: reason,
+              source: 'roommate_profile_modal',
+              roommate_id: reportingProfileFromModal.id,
+              roommate_name: reportingProfileFromModal.name
+            };
+
+            // Write to messages for legacy Admin view
+            const reportChannel = getModerationChannel(CHAT_REPORT_PREFIX, currentUser.id);
+            await supabase.from('messages').insert({
+              chat_id: reportChannel,
+              sender_id: currentUser.id,
+              text: `[REPORT] ${JSON.stringify(payload)}`
+            });
+
+            // Write to new user_reports table
+            const { error } = await supabase.from('user_reports').insert({
+              reporter_id: currentUser.id,
+              reported_id: targetId,
+              reason: reason
+            });
+
+            if (error) {
+              toast("Không thể gửi báo cáo, vui lòng thử lại sau.", "error");
+            } else {
+              toast("Cảm ơn bạn đã báo cáo. Quản trị viên sẽ xem xét.", "success");
+            }
+            setReportingProfileFromModal(null);
+          }}
+          targetName={reportingProfileFromModal.name}
         />
       )}
 

@@ -49,6 +49,7 @@ interface RoommateModalProps {
   hasChatWithRoommate?: boolean;
   hasTwoWayMessages?: boolean;
   isAdmin?: boolean;
+  onReportProfile?: (roommate: Roommate) => void;
 }
 
 export default function RoommateModal({
@@ -68,6 +69,7 @@ export default function RoommateModal({
   hasChatWithRoommate = false,
   hasTwoWayMessages = false,
   isAdmin = false,
+  onReportProfile,
 }: RoommateModalProps) {
   if (!roommate) return null;
   const { confirm, toast, previewImage } = useDialog();
@@ -324,6 +326,18 @@ export default function RoommateModal({
         >
           <X className="h-5 w-5" />
         </button>
+
+        {/* Báo cáo sai phạm Button */}
+        {!isOwnProfile && !isAdmin && onReportProfile && (
+          <button
+            onClick={() => onReportProfile(roommate)}
+            className="absolute top-3 right-14 w-10 h-10 rounded-xl bg-white/90 shadow-md border border-slate-200 flex items-center justify-center text-rose-500 hover:text-rose-700 hover:bg-rose-50 active:scale-95 duration-200 cursor-pointer z-50"
+            title="Báo cáo tài khoản"
+            aria-label="Báo cáo tài khoản"
+          >
+            <Flag className="h-5 w-5 fill-rose-100" />
+          </button>
+        )}
 
         {/* Scrollable Container */}
         <div className="bg-[#fbfdff] rounded-[32px] shadow-2xl border border-white/80 w-full max-h-[90vh] flex flex-col overflow-hidden">

@@ -105,7 +105,13 @@ export default function RoomsView({
 
     const targetId = reportingRoom.user_id || reportingRoom.postedBy || reportingRoom.id;
 
-    // Check if already reported
+    // Check if already reported in user_reports or legacy messages
+    const { data: existingTableReports } = await supabase
+      .from('user_reports')
+      .select('id')
+      .eq('reporter_id', currentUserId)
+      .eq('reported_id', targetId);
+
     const { data: existingReports } = await supabase
       .from('messages')
       .select('id')
@@ -114,7 +120,7 @@ export default function RoomsView({
       .like('text', `%[REPORT]%`)
       .like('text', `%"target_id":"${targetId}"%`);
       
-    if (existingReports && existingReports.length > 0) {
+    if ((existingTableReports && existingTableReports.length > 0) || (existingReports && existingReports.length > 0)) {
       toast("Bạn đã báo cáo nội dung này rồi.", "warning");
       setReportingRoom(null);
       return;
@@ -128,10 +134,18 @@ export default function RoomsView({
       room_title: reportingRoom.title
     };
 
-    const { error } = await supabase.from('messages').insert({
+    // 1. Insert into legacy messages channel
+    await supabase.from('messages').insert({
       chat_id: CHAT_REPORT_PREFIX + currentUserId,
       sender_id: currentUserId,
       text: `[REPORT] ${JSON.stringify(payload)}`
+    });
+
+    // 2. Insert into new user_reports table
+    const { error } = await supabase.from('user_reports').insert({
+      reporter_id: currentUserId,
+      reported_id: targetId,
+      reason: reason
     });
 
     if (error) {

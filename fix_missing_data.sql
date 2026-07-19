@@ -38,6 +38,7 @@ DECLARE
     partner_id TEXT;
     part1 TEXT;
     part2 TEXT;
+    is_part1_sender BOOLEAN := false;
 BEGIN
     lower_text := lower(NEW.text);
     
@@ -57,15 +58,29 @@ BEGIN
             part1 := split_part(NEW.chat_id, '_', 1);
             part2 := split_part(NEW.chat_id, '_', 2);
             
-            IF NEW.sender_id = part1 OR EXISTS (
-                SELECT 1 FROM public.roommates 
-                WHERE (id = part1 OR user_id = part1 OR auth_id = part1) 
-                  AND (id = NEW.sender_id OR user_id = NEW.sender_id OR auth_id = NEW.sender_id)
-            ) OR EXISTS (
-                SELECT 1 FROM public.profiles 
-                WHERE (id = part1 OR auth_id = part1) 
-                  AND (id = NEW.sender_id OR auth_id = NEW.sender_id)
-            ) THEN
+            -- Kiểm tra xem part1 có phải là sender không
+            IF part1 = NEW.sender_id THEN
+                is_part1_sender := true;
+            ELSE
+                -- Kiểm tra liên kết profiles
+                IF EXISTS (
+                    SELECT 1 FROM public.profiles 
+                    WHERE (id = part1 AND auth_id::text = NEW.sender_id)
+                       OR (auth_id::text = part1 AND id = NEW.sender_id)
+                ) THEN
+                    is_part1_sender := true;
+                -- Kiểm tra liên kết roommates
+                ELSIF EXISTS (
+                    SELECT 1 FROM public.roommates 
+                    WHERE (id = part1 AND user_id = NEW.sender_id)
+                       OR (user_id = part1 AND id = NEW.sender_id)
+                ) THEN
+                    is_part1_sender := true;
+                END IF;
+            END IF;
+            
+            -- Nếu part1 là sender thì người nhận (partner_id) là part2, ngược lại là part1
+            IF is_part1_sender THEN
                 partner_id := part2;
             ELSE
                 partner_id := part1;
