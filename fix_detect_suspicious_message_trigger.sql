@@ -1,8 +1,13 @@
 -- ============================================================
--- FIX: TYPE-SAFE DETECT SUSPICIOUS MESSAGE TRIGGER
+-- FIX: COMPLETE TYPE-SAFE DETECT SUSPICIOUS MESSAGE TRIGGER
 -- Run this script in the Supabase SQL Editor
 -- ============================================================
 
+-- 1. Đảm bảo các cột hệ thống tồn tại trong bảng messages
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS is_system BOOLEAN DEFAULT false;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS visible_to TEXT;
+
+-- 2. Tạo/Cập nhật hàm trigger cảnh báo nhạy cảm
 CREATE OR REPLACE FUNCTION public.detect_suspicious_message()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -69,7 +74,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Recreate trigger
+-- 3. Tạo lại trigger
 DROP TRIGGER IF EXISTS trg_detect_suspicious_message ON public.messages;
 CREATE TRIGGER trg_detect_suspicious_message
     AFTER INSERT ON public.messages
