@@ -145,7 +145,8 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
       const { data: banMsgs } = await supabase.from('messages').select('*').eq('chat_id', 'SYSTEM_BANS');
       const legacyBannedIds = banMsgs ? banMsgs.map(m => m.text.replace('[BAN]', '').trim()) : [];
       
-      const { data: lockedRoommates } = await supabase.from('roommates').select('id, user_id').eq('is_locked', true);
+      const nowIso = new Date().toISOString();
+      const { data: lockedRoommates } = await supabase.from('roommates').select('id, user_id, locked_until').or(`is_locked.eq.true,locked_until.gt.${nowIso}`);
       const dbLockedIds = lockedRoommates ? lockedRoommates.map(r => r.user_id || r.id).filter(Boolean) : [];
       
       const combinedBannedUsers = [...new Set([...legacyBannedIds, ...dbLockedIds])];
@@ -432,14 +433,18 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     if (!ok) return;
 
     // 1. Unlock in profiles
-    await supabase.from('profiles').update({ is_locked: false }).eq('id', userId);
-    await supabase.from('profiles').update({ is_locked: false }).eq('auth_id', userId);
+    await supabase.from('profiles').update({ is_locked: false, locked_until: null }).eq('id', userId);
+    await supabase.from('profiles').update({ is_locked: false, locked_until: null }).eq('auth_id', userId);
 
     // 2. Unlock in roommates
-    await supabase.from('roommates').update({ is_locked: false }).eq('id', userId);
-    await supabase.from('roommates').update({ is_locked: false }).eq('user_id', userId);
+    await supabase.from('roommates').update({ is_locked: false, locked_until: null }).eq('id', userId);
+    await supabase.from('roommates').update({ is_locked: false, locked_until: null }).eq('user_id', userId);
 
-    // 3. Clear report history in user_reports to reset report count
+    // 3. Unlock in rooms
+    await supabase.from('rooms').update({ locked_until: null }).eq('postedBy', userId);
+    await supabase.from('rooms').update({ locked_until: null }).eq('user_id', userId);
+
+    // 4. Clear report history in user_reports to reset report count
     await supabase.from('user_reports').delete().eq('reported_id', userId);
 
     const { data: banMsgs } = await supabase.from('messages').select('id, text').eq('chat_id', 'SYSTEM_BANS');

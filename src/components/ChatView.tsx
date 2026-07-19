@@ -1218,6 +1218,11 @@ export default function ChatView({
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!inputText.trim() && !attachedImage) || !activeRoommateId || !currentUserProfile) return;
+    const isMeLocked = currentUserProfile?.locked_until && new Date(currentUserProfile.locked_until).getTime() > Date.now();
+    if (isMeLocked) {
+      toast("Tài khoản của bạn đã bị vô hiệu hóa vì nghi ngờ vi phạm", "error", 5000);
+      return;
+    }
     if (isActiveUserBlocked || isBlockedByPartner || isActiveUserBanned) return;
 
     const userMessageText = inputText.trim();

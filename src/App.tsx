@@ -396,12 +396,18 @@ export default function App() {
           supabase.from('rooms').select('*').order('createdAt', { ascending: false }),
         ]);
 
+        const nowMs = Date.now();
+        const currentUserId = currentUser?.id;
+
         if (roommatesResult.error) {
           console.error("[Profiles] Failed to fetch roommates:", roommatesResult.error);
         }
         const roommatesData = roommatesResult.data;
         if (!roommatesResult.error && roommatesData?.length) {
-          const freshRoommates = roommatesData.map(unpackRoommate);
+          const validRoommatesData = roommatesData.filter((r: any) => 
+            !r.locked_until || new Date(r.locked_until).getTime() <= nowMs || r.user_id === currentUserId || r.auth_id === currentUserId || r.postedBy === currentUserId
+          );
+          const freshRoommates = validRoommatesData.map(unpackRoommate);
           const enhancedRoommates = freshRoommates.map((rm: any) => ({
             ...rm,
             reviews: []
@@ -419,7 +425,10 @@ export default function App() {
           setIsRoomsLoading(false); // Stop skeleton even on error
         }
         if (!roomsResult.error && roomsResult.data?.length) {
-          const freshRooms = roomsResult.data.map(unpackRoom);
+          const validRoomsData = roomsResult.data.filter((r: any) => 
+            !r.locked_until || new Date(r.locked_until).getTime() <= nowMs || r.user_id === currentUserId || r.postedBy === currentUserId
+          );
+          const freshRooms = validRoomsData.map(unpackRoom);
           setSupabaseRooms(freshRooms);
           try {
             localStorage.setItem('roomiematch_cached_rooms', JSON.stringify(freshRooms));
@@ -1050,18 +1059,36 @@ export default function App() {
       setIsRequireProfileAlertOpen(true);
       return;
     }
+    
+    // Kiểm tra nếu tài khoản bị khóa tạm thời 24h
+    const isMeLocked = currentUserProfile?.locked_until && new Date(currentUserProfile.locked_until).getTime() > Date.now();
+    if (isMeLocked) {
+      toast("Tài khoản của bạn đã bị vô hiệu hóa vì nghi ngờ vi phạm", "error", 5000);
+      return;
+    }
+    
     setEditingListingData(null);
     setPostModalInitialTab(tab);
     setIsPostModalOpen(true);
   };
 
   const handleEditRoommate = (roommate: Roommate) => {
+    const isMeLocked = currentUserProfile?.locked_until && new Date(currentUserProfile.locked_until).getTime() > Date.now();
+    if (isMeLocked) {
+      toast("Tài khoản của bạn đã bị vô hiệu hóa vì nghi ngờ vi phạm", "error", 5000);
+      return;
+    }
     setEditingListingData(roommate);
     setPostModalInitialTab("roommate");
     setIsPostModalOpen(true);
   };
 
   const handleEditRoom = (room: Room) => {
+    const isMeLocked = currentUserProfile?.locked_until && new Date(currentUserProfile.locked_until).getTime() > Date.now();
+    if (isMeLocked) {
+      toast("Tài khoản của bạn đã bị vô hiệu hóa vì nghi ngờ vi phạm", "error", 5000);
+      return;
+    }
     setEditingListingData(room);
     setPostModalInitialTab("room");
     setIsPostModalOpen(true);
@@ -1936,6 +1963,12 @@ export default function App() {
   }, [currentUserProfile, supabaseReviews, currentUser, supabaseRoommates, supabaseBannedIds]);
 
   const handleSaveProfile = async (profile: any) => {
+    const isMeLocked = currentUserProfile?.locked_until && new Date(currentUserProfile.locked_until).getTime() > Date.now();
+    if (isMeLocked) {
+      toast("Tài khoản của bạn đã bị vô hiệu hóa vì nghi ngờ vi phạm", "error", 5000);
+      return;
+    }
+    
     setCurrentUserProfile(profile);
     localStorage.setItem("roomiematch_user_profile", JSON.stringify(profile));
     
