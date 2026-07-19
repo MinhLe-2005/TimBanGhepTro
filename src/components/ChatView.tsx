@@ -1220,8 +1220,10 @@ export default function ChatView({
     if ((!inputText.trim() && !attachedImage) || !activeRoommateId || !currentUserProfile) return;
     // Kiểm tra trực tiếp Database để tránh trường hợp user chưa F5 trang web
     if (currentUser?.id) {
-      const { data: dbCheck } = await supabase.from('profiles').select('locked_until').eq('auth_id', currentUser.id).maybeSingle();
-      if (dbCheck?.locked_until && new Date(dbCheck.locked_until).getTime() > Date.now()) {
+      const { data: dbCheck } = await supabase.from('profiles').select('locked_until, is_locked').eq('auth_id', currentUser.id).maybeSingle();
+      const isLocked24h = dbCheck?.locked_until && new Date(dbCheck.locked_until).getTime() > Date.now();
+      const isLockedPerm = dbCheck?.is_locked === true || dbCheck?.is_locked === 'true';
+      if (isLocked24h || isLockedPerm) {
         toast("Tài khoản của bạn đã bị vô hiệu hóa vì nghi ngờ vi phạm", "error", 5000);
         return;
       }
