@@ -43,6 +43,8 @@ export default function ChatView({
   // Auth UUID = ID cố định từ Google, không thay đổi dù đăng nhập máy nào
   const myAuthId = currentUser?.id;
   const myProfileId = currentUserProfile?.id;
+  const myRoommateId = roommates?.find(r => r.user_id === myAuthId || r.auth_id === myAuthId)?.id;
+  
   // Luôn dùng Auth UUID cho chat_id để đồng bộ mọi thiết bị
   const myChatId = myAuthId || myProfileId;
 
@@ -504,8 +506,8 @@ export default function ChatView({
   const activeMessages = useMemo(() => {
     return rawActiveMessages.filter((msg, idx) => {
       // 1. Kiểm tra visibleTo từ Database Trigger
-      if (msg.visibleTo && msg.visibleTo !== myChatId) {
-        console.log('[ChatFilter] Hiding message (visibleTo mismatch):', msg.text, 'visibleTo:', msg.visibleTo, 'myChatId:', myChatId);
+      if (msg.visibleTo && msg.visibleTo !== myChatId && msg.visibleTo !== myAuthId && msg.visibleTo !== myProfileId && msg.visibleTo !== myRoommateId) {
+        console.log('[ChatFilter] Hiding message (visibleTo mismatch):', msg.text, 'visibleTo:', msg.visibleTo, 'myIds:', [myChatId, myAuthId, myProfileId, myRoommateId]);
         return false;
       }
       
@@ -892,7 +894,7 @@ export default function ChatView({
           });
           const filtered = msgs.filter((msg, idx) => {
             // 1. Kiểm tra visible_to
-            if (msg.is_system && msg.visible_to && msg.visible_to !== myAuthId && msg.visible_to !== myProfileId) {
+            if (msg.is_system && msg.visible_to && msg.visible_to !== myAuthId && msg.visible_to !== myProfileId && msg.visible_to !== myRoommateId) {
               return false;
             }
             // 2. Dự phòng (Fail-safe): Nếu tin nhắn này là tin nhắn hệ thống (is_system)
