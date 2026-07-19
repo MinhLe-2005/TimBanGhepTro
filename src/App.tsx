@@ -1060,11 +1060,13 @@ export default function App() {
       return;
     }
     
-    // Kiểm tra nếu tài khoản bị khóa tạm thời 24h
-    const isMeLocked = currentUserProfile?.locked_until && new Date(currentUserProfile.locked_until).getTime() > Date.now();
-    if (isMeLocked) {
-      toast("Tài khoản của bạn đã bị vô hiệu hóa vì nghi ngờ vi phạm", "error", 5000);
-      return;
+    // Kiểm tra trực tiếp từ Database
+    if (user?.id) {
+      const { data: dbCheck } = await supabase.from('profiles').select('locked_until').eq('auth_id', user.id).maybeSingle();
+      if (dbCheck?.locked_until && new Date(dbCheck.locked_until).getTime() > Date.now()) {
+        toast("Tài khoản của bạn đã bị vô hiệu hóa vì nghi ngờ vi phạm", "error", 5000);
+        return;
+      }
     }
     
     setEditingListingData(null);
@@ -1072,22 +1074,28 @@ export default function App() {
     setIsPostModalOpen(true);
   };
 
-  const handleEditRoommate = (roommate: Roommate) => {
-    const isMeLocked = currentUserProfile?.locked_until && new Date(currentUserProfile.locked_until).getTime() > Date.now();
-    if (isMeLocked) {
-      toast("Tài khoản của bạn đã bị vô hiệu hóa vì nghi ngờ vi phạm", "error", 5000);
-      return;
+  const handleEditRoommate = async (roommate: Roommate) => {
+    // Kiểm tra trực tiếp từ Database
+    if (currentUser?.id) {
+      const { data: dbCheck } = await supabase.from('profiles').select('locked_until').eq('auth_id', currentUser.id).maybeSingle();
+      if (dbCheck?.locked_until && new Date(dbCheck.locked_until).getTime() > Date.now()) {
+        toast("Tài khoản của bạn đã bị vô hiệu hóa vì nghi ngờ vi phạm", "error", 5000);
+        return;
+      }
     }
     setEditingListingData(roommate);
     setPostModalInitialTab("roommate");
     setIsPostModalOpen(true);
   };
 
-  const handleEditRoom = (room: Room) => {
-    const isMeLocked = currentUserProfile?.locked_until && new Date(currentUserProfile.locked_until).getTime() > Date.now();
-    if (isMeLocked) {
-      toast("Tài khoản của bạn đã bị vô hiệu hóa vì nghi ngờ vi phạm", "error", 5000);
-      return;
+  const handleEditRoom = async (room: Room) => {
+    // Kiểm tra trực tiếp từ Database
+    if (currentUser?.id) {
+      const { data: dbCheck } = await supabase.from('profiles').select('locked_until').eq('auth_id', currentUser.id).maybeSingle();
+      if (dbCheck?.locked_until && new Date(dbCheck.locked_until).getTime() > Date.now()) {
+        toast("Tài khoản của bạn đã bị vô hiệu hóa vì nghi ngờ vi phạm", "error", 5000);
+        return;
+      }
     }
     setEditingListingData(room);
     setPostModalInitialTab("room");
@@ -1963,10 +1971,13 @@ export default function App() {
   }, [currentUserProfile, supabaseReviews, currentUser, supabaseRoommates, supabaseBannedIds]);
 
   const handleSaveProfile = async (profile: any) => {
-    const isMeLocked = currentUserProfile?.locked_until && new Date(currentUserProfile.locked_until).getTime() > Date.now();
-    if (isMeLocked) {
-      toast("Tài khoản của bạn đã bị vô hiệu hóa vì nghi ngờ vi phạm", "error", 5000);
-      return;
+    // Kiểm tra trực tiếp từ Database
+    if (currentUser?.id) {
+      const { data: dbCheck } = await supabase.from('profiles').select('locked_until').eq('auth_id', currentUser.id).maybeSingle();
+      if (dbCheck?.locked_until && new Date(dbCheck.locked_until).getTime() > Date.now()) {
+        toast("Tài khoản của bạn đã bị vô hiệu hóa vì nghi ngờ vi phạm", "error", 5000);
+        return;
+      }
     }
     
     setCurrentUserProfile(profile);

@@ -1218,10 +1218,13 @@ export default function ChatView({
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!inputText.trim() && !attachedImage) || !activeRoommateId || !currentUserProfile) return;
-    const isMeLocked = currentUserProfile?.locked_until && new Date(currentUserProfile.locked_until).getTime() > Date.now();
-    if (isMeLocked) {
-      toast("Tài khoản của bạn đã bị vô hiệu hóa vì nghi ngờ vi phạm", "error", 5000);
-      return;
+    // Kiểm tra trực tiếp Database để tránh trường hợp user chưa F5 trang web
+    if (currentUser?.id) {
+      const { data: dbCheck } = await supabase.from('profiles').select('locked_until').eq('auth_id', currentUser.id).maybeSingle();
+      if (dbCheck?.locked_until && new Date(dbCheck.locked_until).getTime() > Date.now()) {
+        toast("Tài khoản của bạn đã bị vô hiệu hóa vì nghi ngờ vi phạm", "error", 5000);
+        return;
+      }
     }
     if (isActiveUserBlocked || isBlockedByPartner || isActiveUserBanned) return;
 
