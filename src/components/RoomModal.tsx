@@ -361,7 +361,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
             )}
             
             {/* Expiration Badge */}
-            {!isExpired && (
+            {(isOwnProfile || isAdmin) && !isExpired && (
               <span className={`text-[12px] uppercase tracking-wider font-black px-4 py-2 rounded-xl shadow-md flex items-center gap-2 border-2 ${
                 daysLeft <= 3 
                   ? "bg-amber-50 text-amber-600 border-amber-200" 

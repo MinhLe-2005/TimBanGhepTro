@@ -399,7 +399,7 @@ export default function RoommateModal({
                       : isExpired ? "Đã hết hạn" : "Đang tìm roommate"}
                   </span>
                   
-                  {roommate.is_listing !== false && (
+                  {(isOwnProfile || isAdmin) && roommate.is_listing !== false && (
                     <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold shadow-sm backdrop-blur-sm ${
                       isExpired
                         ? "border-slate-200 bg-slate-50/90 text-slate-600"
