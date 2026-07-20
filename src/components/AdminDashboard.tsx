@@ -716,10 +716,10 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
             {/* TAB: REPORTS */}
             {activeTab === "reports" && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h3 className="text-lg font-black text-slate-800">Danh sách báo cáo</h3>
-                    <p className="mt-1 text-xs text-slate-500">Tự động cập nhật khi có báo cáo mới.</p>
+                    <h3 className="text-lg font-black text-slate-800">Lịch sử Báo Cáo</h3>
+                    <p className="text-sm text-slate-500 mt-1">Quản lý và xử lý các báo cáo vi phạm tiêu chuẩn cộng đồng.</p>
                   </div>
                   <button
                     onClick={() => fetchAdminData(true)}
@@ -729,6 +729,39 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                     <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                     Tải lại
                   </button>
+                </div>
+
+                {/* DEBUG PANEL */}
+                <div className="mb-6 p-4 border border-rose-300 bg-rose-50 rounded-xl">
+                  <h4 className="font-bold text-rose-700 mb-2">Công cụ nội soi Database (Dành cho Developer)</h4>
+                  <button 
+                    onClick={async () => {
+                      try {
+                        const name = "Sơn Tùng MTP";
+                        const p = await supabase.from('profiles').select('*').ilike('name', `%${name}%`);
+                        const r = await supabase.from('roommates').select('*').ilike('name', `%${name}%`);
+                        const targetIds = [...(r.data||[]).map((x:any)=>x.id), ...(r.data||[]).map((x:any)=>x.user_id), ...(r.data||[]).map((x:any)=>x.postedBy)].filter(Boolean);
+                        let u = { data: [] };
+                        if (targetIds.length > 0) {
+                          u = await supabase.from('user_reports').select('*').in('reported_id', targetIds);
+                        }
+                        const m = await supabase.from('messages').select('*').eq('chat_id', 'SYSTEM_REPORTS');
+                        
+                        alert(JSON.stringify({ 
+                          profiles: p.data, 
+                          roommates: r.data, 
+                          user_reports: u.data,
+                          msg_reports: m.data?.filter(x => x.text.includes(name) || x.text.includes(targetIds[0]))
+                        }, null, 2));
+                      } catch (err: any) {
+                        alert("Lỗi nội soi: " + err.message);
+                      }
+                    }}
+                    className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded text-sm font-bold transition-colors"
+                  >
+                    Nội soi dữ liệu "Sơn Tùng MTP"
+                  </button>
+                  <p className="text-xs text-rose-600 mt-2">Bấm nút này, copy toàn bộ chữ hiện ra trong bảng thông báo (hoặc chụp ảnh) gửi cho AI để tìm nguyên nhân gốc rễ vì sao tài khoản này có thể lách luật.</p>
                 </div>
                 {reports.length === 0 ? (
                   <div className="text-center py-10 bg-slate-50 rounded-2xl">
