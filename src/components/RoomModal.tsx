@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Flame, ChevronLeft, ChevronRight, Shield, Zap, Droplet, Building, MapPin, Bed, Bath, User, MessageSquare, Handshake, Check, Info, Star, Upload, Trash2, Moon, Dog, ChefHat, Compass, Sparkles, Heart, Smile, FileText, Phone, Ban, Users, LayoutGrid, Image as ImageIcon } from "lucide-react";
+import { X, Flame, ChevronLeft, ChevronRight, Shield, Zap, Droplet, Building, MapPin, Bed, Bath, User, MessageSquare, Handshake, Check, Info, Star, Upload, Trash2, Moon, Dog, ChefHat, Compass, Sparkles, Heart, Smile, FileText, Phone, Ban, Users, LayoutGrid, Image as ImageIcon, Cigarette, Utensils, Clock } from "lucide-react";
 import { Room, Roommate } from "../types";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { calculateReputationScore, getReputationLabel } from "../utils/scoring";
@@ -236,6 +236,11 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
     return price.toLocaleString("vi-VN") + "đ";
   };
 
+  const createdAt = new Date(room.created_at || room.createdAt || Date.now());
+  const expiresAt = new Date(createdAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const daysLeft = Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const isExpired = room.status === "Hết hạn" || daysLeft <= 0;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -341,13 +346,29 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
           {/* Badges for Gender & Pets */}
           <div className="flex flex-wrap gap-2.5">
             {/* Availability Status */}
-            {room.status === "hết phòng" || (targetTenants > 0 && currentTenants >= targetTenants) ? (
+            {isExpired ? (
+              <span className="text-[12px] uppercase tracking-wider font-black bg-slate-200 text-slate-700 px-4 py-2 rounded-xl shadow-md flex items-center gap-2">
+                <Ban className="h-4 w-4" /> Đã hết hạn
+              </span>
+            ) : room.status === "hết phòng" || (targetTenants > 0 && currentTenants >= targetTenants) ? (
               <span className="text-[12px] uppercase tracking-wider font-black bg-slate-800 text-white px-4 py-2 rounded-xl shadow-md flex items-center gap-2">
                 <Ban className="h-4 w-4" /> Đã hết phòng
               </span>
             ) : (
               <span className="text-[12px] uppercase tracking-wider font-black bg-emerald-500 text-white px-4 py-2 rounded-xl shadow-md flex items-center gap-2">
                 Còn phòng sẵn sàng
+              </span>
+            )}
+            
+            {/* Expiration Badge */}
+            {!isExpired && (
+              <span className={`text-[12px] uppercase tracking-wider font-black px-4 py-2 rounded-xl shadow-md flex items-center gap-2 border-2 ${
+                daysLeft <= 3 
+                  ? "bg-amber-50 text-amber-600 border-amber-200" 
+                  : "bg-sky-50 text-sky-600 border-sky-200"
+              }`}>
+                {daysLeft <= 3 ? <Moon className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                Còn {daysLeft} ngày
               </span>
             )}
             

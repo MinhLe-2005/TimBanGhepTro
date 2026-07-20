@@ -26,6 +26,7 @@ import {
   Users,
   Pencil,
   Trash2,
+  Clock,
 } from "lucide-react";
 import { Roommate } from "../types";
 import { supabase } from "../lib/supabase";
@@ -311,6 +312,11 @@ export default function RoommateModal({
               style: { '--glow-color': 'rgba(244, 63, 94, 0.3)', '--glow-color-strong': 'rgba(244, 63, 94, 0.5)', '--star-glow': 'rgba(244, 63, 94, 0.6)', '--star-glow-strong': 'rgba(244, 63, 94, 1)' } as React.CSSProperties
             };
 
+  const createdAt = new Date(roommate.created_at || Date.now());
+  const expiresAt = new Date(createdAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const daysLeft = Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const isExpired = roommate.status === "Hết hạn" || daysLeft <= 0;
+  
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -390,8 +396,27 @@ export default function RoommateModal({
                     }`} />
                     {roommate.status === "Đã tìm được"
                       ? "Đã tìm được roommate"
-                      : "Đang tìm roommate"}
+                      : isExpired ? "Đã hết hạn" : "Đang tìm roommate"}
                   </span>
+                  
+                  {roommate.is_listing !== false && (
+                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold shadow-sm backdrop-blur-sm ${
+                      isExpired
+                        ? "border-slate-200 bg-slate-50/90 text-slate-600"
+                        : daysLeft <= 3
+                          ? "border-amber-200 bg-amber-50/90 text-amber-700"
+                          : "border-sky-200 bg-sky-50/90 text-sky-700"
+                    }`}>
+                      {isExpired ? (
+                        <Ban className="w-3.5 h-3.5" />
+                      ) : daysLeft <= 3 ? (
+                        <Moon className="w-3.5 h-3.5" />
+                      ) : (
+                        <Clock className="w-3.5 h-3.5" />
+                      )}
+                      {isExpired ? "Đã hết hạn" : `Còn ${daysLeft} ngày`}
+                    </span>
+                  )}
                 </div>
 
                 <div className="mt-3 flex flex-col items-center gap-2 text-sm text-slate-700 sm:items-start">

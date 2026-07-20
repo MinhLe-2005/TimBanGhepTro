@@ -44,6 +44,7 @@ export interface Roommate {
   is_locked?: boolean;
   locked_until?: string;
   created_at?: string;
+  createdAt?: string;
   rejectReason?: string; // reason if the listing was rejected by admin
   lifestyle: {
     sleep: "Cú đêm" | "Ngủ sớm" | "Bình thường";
@@ -89,6 +90,7 @@ export interface Room {
   postedBy?: string; // user ID who posted this listing
   user_id?: string;
   created_at?: string;
+  createdAt?: string;
   rejectReason?: string;
   is_locked?: boolean;
   locked_until?: string;
