@@ -222,13 +222,14 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     const ok = await confirm({ title: 'Khóa tài khoản', message: 'Bạn có chắc muốn khóa vĩnh viễn tài khoản này?', confirmText: 'Khóa ngay', type: 'error' });
     if (!ok) return false;
 
-    // 1. Lock in profiles
-    await supabase.from('profiles').update({ is_locked: true }).eq('id', userId);
-    await supabase.from('profiles').update({ is_locked: true }).eq('auth_id', userId);
-
-    // 2. Lock in roommates
-    await supabase.from('roommates').update({ is_locked: true }).eq('id', userId);
-    await supabase.from('roommates').update({ is_locked: true }).eq('user_id', userId);
+    // Gọi hàm RPC bỏ qua RLS để ép khóa tài khoản
+    const { error: rpcError } = await supabase.rpc('admin_ban_user', { target_user_id: userId });
+    if (rpcError) {
+      console.error("Error calling admin_ban_user RPC:", rpcError);
+      // Fallback nếu người dùng chưa kịp chạy file SQL
+      await supabase.from('profiles').update({ is_locked: true }).eq('auth_id', userId);
+      await supabase.from('roommates').update({ is_locked: true }).eq('user_id', userId);
+    }
 
     const { error } = await supabase.from('messages').insert({
       chat_id: 'SYSTEM_BANS', sender_id: currentUser.id, text: `[BAN] ${userId}`
