@@ -893,11 +893,17 @@ export default function App() {
       });
     }
 
-    // Filter out unapproved posts (unless Admin or Post Owner)
+    // Filter out unapproved posts or expired posts (unless Admin or Post Owner)
     result = result.filter(r => {
+      const isOwner = currentUser && (r.user_id === currentUser.id || r.postedBy === currentUser.id);
+      
+      const createdDate = new Date(r.created_at || r.createdAt || Date.now());
+      const daysElapsed = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
+      if ((r.status === "Hết hạn" || daysElapsed > 30) && !isAdmin && !isOwner) return false;
+      
       if (r.isVerified === true || r.isVerified === undefined) return true; // Approved or legacy dummy data
       if (isAdmin) return true; // Admins see everything
-      if (currentUser && (r.user_id === currentUser.id || r.postedBy === currentUser.id)) return true; // Owner sees their own pending post
+      if (isOwner) return true; // Owner sees their own pending post
       return false; // Hide pending posts from public
     });
 
@@ -1010,16 +1016,23 @@ export default function App() {
       });
     }
 
-    // Filter out unapproved rooms (unless Admin or Post Owner)
+    // Filter out unapproved rooms or expired rooms (unless Admin or Post Owner)
     result = result.filter(r => {
       const ownerId = r.postedBy || r.user_id;
+      const isOwner = currentUser && (r.user_id === currentUser.id || r.postedBy === currentUser.id);
+      
       const isHostBanned = ownerId && supabaseBannedIds.includes(String(ownerId));
-      if (isHostBanned && !isAdmin && (!currentUser || ownerId !== currentUser.id)) {
+      if (isHostBanned && !isAdmin && !isOwner) {
         return false;
       }
+      
+      const createdDate = new Date(r.created_at || r.createdAt || Date.now());
+      const daysElapsed = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
+      if ((r.status === "Hết hạn" || daysElapsed > 30) && !isAdmin && !isOwner) return false;
+
       if (r.isVerifiedRoom === true || r.isVerifiedRoom === undefined) return true; // Approved or legacy dummy data
       if (isAdmin) return true; // Admins see everything
-      if (currentUser && (r.user_id === currentUser.id || r.postedBy === currentUser.id)) return true; // Owner sees their own pending post
+      if (isOwner) return true; // Owner sees their own pending post
       return false; // Hide pending posts from public
     });
 

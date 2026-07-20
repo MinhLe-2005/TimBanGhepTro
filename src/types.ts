@@ -30,7 +30,7 @@ export interface Roommate {
   reputationScore: number;
   tags: string[];
   isVerified: boolean;
-  status?: "Đang tìm" | "Đã tìm được" | "Đã có phòng" | "Chưa có phòng";
+  status?: "Đang tìm" | "Đã tìm được" | "Đã có phòng" | "Chưa có phòng" | "Hết hạn";
   bio: string;
   budget: number;
   gender: "Nam" | "Nữ" | "Khác";
@@ -66,7 +66,7 @@ export interface Room {
   images: string[];
   features: string[];
   isHot: boolean;
-  status?: "còn phòng" | "hết phòng";
+  status?: "còn phòng" | "hết phòng" | "Hết hạn";
   isVerifiedRoom?: boolean;
   bedrooms: number;
   wc: string;
