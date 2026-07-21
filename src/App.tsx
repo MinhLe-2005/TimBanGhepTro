@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { AlertTriangle, X } from "lucide-react";
 import { INITIAL_ROOMMATES, INITIAL_ROOMS, SUGGGESTED_CHATS } from "./data";
 import { Roommate, Room } from "./types";
 import { supabase } from "./lib/supabase";
@@ -103,6 +104,41 @@ const getListingErrorMessage = (
   return `Chưa thể ${actionText} ${subject} lúc này. Vui lòng thử lại sau.`;
 };
 
+const getDaysLeft = (item: any) => {
+  const now = new Date();
+  let createdAtTs = now.getTime();
+  let hasValidDate = false;
+
+  if (item.created_at) {
+    const d = new Date(item.created_at);
+    if (!isNaN(d.getTime())) {
+      createdAtTs = d.getTime();
+      hasValidDate = true;
+    }
+  } else if (item.createdAt) {
+    const d = new Date(item.createdAt);
+    if (!isNaN(d.getTime())) {
+      createdAtTs = d.getTime();
+      hasValidDate = true;
+    }
+  }
+  
+  if (!hasValidDate) {
+    const match = String(item.id).match(/(?:rm|room)-(\d+)/);
+    if (match) {
+      createdAtTs = parseInt(match[1], 10);
+    }
+  }
+
+  const createdMidnight = new Date(createdAtTs);
+  createdMidnight.setHours(0, 0, 0, 0);
+  const todayMidnight = new Date();
+  todayMidnight.setHours(0, 0, 0, 0);
+  
+  const daysElapsed = Math.floor((todayMidnight.getTime() - createdMidnight.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.max(0, 30 - daysElapsed);
+};
+
 export default function App() {
   const { toast } = useDialog();
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -134,6 +170,7 @@ export default function App() {
   const [isBanned, setIsBanned] = useState(false);
   const [supabaseBannedIds, setSupabaseBannedIds] = useState<string[]>([]);
   const [reportingProfileFromModal, setReportingProfileFromModal] = useState<Roommate | null>(null);
+  const [isExpiryBannerDismissed, setIsExpiryBannerDismissed] = useState(false);
 
   useEffect(() => {
     // Failsafe timeout to prevent infinite loading
@@ -897,9 +934,8 @@ export default function App() {
     result = result.filter(r => {
       const isOwner = currentUser && (r.user_id === currentUser.id || r.postedBy === currentUser.id);
       
-      const createdDate = new Date(r.created_at || r.createdAt || Date.now());
-      const daysElapsed = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
-      if ((r.status === "Hết hạn" || daysElapsed > 30) && !isAdmin && !isOwner) return false;
+      const daysLeft = getDaysLeft(r);
+      if ((r.status === "Hết hạn" || daysLeft <= 0) && !isAdmin && !isOwner) return false;
       
       if (r.isVerified === true || r.isVerified === undefined) return true; // Approved or legacy dummy data
       if (isAdmin) return true; // Admins see everything
@@ -1026,9 +1062,8 @@ export default function App() {
         return false;
       }
       
-      const createdDate = new Date(r.created_at || r.createdAt || Date.now());
-      const daysElapsed = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
-      if ((r.status === "Hết hạn" || daysElapsed > 30) && !isAdmin && !isOwner) return false;
+      const daysLeft = getDaysLeft(r);
+      if ((r.status === "Hết hạn" || daysLeft <= 0) && !isAdmin && !isOwner) return false;
 
       if (r.isVerifiedRoom === true || r.isVerifiedRoom === undefined) return true; // Approved or legacy dummy data
       if (isAdmin) return true; // Admins see everything
@@ -1050,6 +1085,18 @@ export default function App() {
 
     return result;
   }, [supabaseRooms, supabaseRoomReviews, rooms, currentUserProfile, currentUser, supabaseBannedIds]);
+
+  const hasExpiringPost = useMemo(() => {
+    if (!currentUser) return false;
+    const userPosts = [...allRoommates, ...allRooms].filter(
+      p => p.postedBy === currentUser.id || p.user_id === currentUser.id
+    );
+    return userPosts.some(p => {
+      if (p.status === "Hết hạn" || p.is_listing === false) return false;
+      const daysLeft = getDaysLeft(p);
+      return daysLeft > 0 && daysLeft <= 2;
+    });
+  }, [currentUser, allRoommates, allRooms]);
 
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [postModalInitialTab, setPostModalInitialTab] = useState<"roommate" | "room">("roommate");
@@ -2629,8 +2676,39 @@ export default function App() {
         hasPendingAgreement={hasPendingAgreement}
       />
 
+      {/* Expiry Notification Banner */}
+      {!isExpiryBannerDismissed && hasExpiringPost && (
+        <div className="bg-amber-500 text-white px-4 py-3 relative shadow-md z-40 mt-16 sm:mt-20">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-2 font-medium">
+              <AlertTriangle className="h-5 w-5 shrink-0" />
+              <p>Bài đăng của bạn sắp hết hạn hiển thị.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setActiveTab("history");
+                  setIsExpiryBannerDismissed(true);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="bg-white text-amber-600 px-4 py-1.5 rounded-full text-sm font-bold hover:bg-amber-50 transition-colors shadow-sm whitespace-nowrap"
+              >
+                Nhấn vào đây để Gia hạn
+              </button>
+              <button
+                onClick={() => setIsExpiryBannerDismissed(true)}
+                className="text-amber-100 hover:text-white p-1 rounded-full hover:bg-amber-600 transition-colors"
+                title="Đóng thông báo"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 2. Primary Tab Contents Display Body */}
-      <main className="max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 pt-28 pb-12 flex-grow">
+      <main className={`max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 ${(!isExpiryBannerDismissed && hasExpiringPost) ? 'pt-6' : 'pt-28'} pb-12 flex-grow`}>
         {activeTab === "home" && (
           <HomeView
             roommates={allRoommates}
