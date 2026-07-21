@@ -189,7 +189,7 @@ export default function HistoryView({
                   agreement.creator_id === myAuthId
                     ? agreement.partner_id
                     : agreement.creator_id;
-                const partner = findRoommateByIdentity(roommates, partnerId);
+                const partner = findRoommateByIdentity(roommates, partnerId, rooms);
                 const isCreator = agreement.creator_id === myAuthId;
                 
                 // ✅ Ưu tiên profile HIỆN TẠI, fallback về cached data từ agreement
@@ -339,10 +339,10 @@ function AgreementDetailModal({
 }) {
   const partnerId =
     agreement.creator_id === currentUserId ? agreement.partner_id : agreement.creator_id;
-  const partner = findRoommateByIdentity(roommates, partnerId);
+  const partner = findRoommateByIdentity(roommates, partnerId, rooms);
   
   // ✅ Ưu tiên tên và avatar từ profile HIỆN TẠI, fallback về cached name
-  const creatorProfile = findRoommateByIdentity(roommates, agreement.creator_id);
+  const creatorProfile = findRoommateByIdentity(roommates, agreement.creator_id, rooms);
   const creatorName =
     agreement.creator_id === currentUserId
       ? currentUserName
@@ -356,7 +356,7 @@ function AgreementDetailModal({
     agreement.signed_by_name ||
     (agreement.signed_by === currentUserId
       ? currentUserName
-      : findRoommateByIdentity(roommates, agreement.signed_by)?.name);
+      : findRoommateByIdentity(roommates, agreement.signed_by, rooms)?.name);
   const populatedRules = ruleLabels.filter(([key]) => agreement.rules?.[key]?.trim());
 
   useEffect(() => {

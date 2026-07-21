@@ -39,6 +39,7 @@ interface AgreementViewProps {
   onRequireAuth?: () => void;
   onRequireProfile?: () => void;
   pendingAgreementPayload?: any;
+  rooms?: any[];
 }
 
 export const QUIET_OPTIONS = [
@@ -85,7 +86,8 @@ export default function AgreementView({
   currentUser,
   onRequireAuth,
   onRequireProfile,
-  pendingAgreementPayload
+  pendingAgreementPayload,
+  rooms
 }: AgreementViewProps) {
   const { confirm, toast } = useDialog();
   const [roommateName, setRoommateName] = useState("");
@@ -336,8 +338,20 @@ export default function AgreementView({
     }
   };
 
-  const matchedRoommate = roommateName ? (roommates.find((r) => r.name.toLowerCase() === roommateName.toLowerCase()) || 
-                          roommates.find((r) => r.name.toLowerCase().includes(roommateName.toLowerCase()))) : null;
+  const matchedRoommate = roommateName ? (() => {
+    const exactRm = roommates.find((r) => r.name.toLowerCase() === roommateName.toLowerCase());
+    if (exactRm) return exactRm;
+    const partialRm = roommates.find((r) => r.name.toLowerCase().includes(roommateName.toLowerCase()));
+    if (partialRm) return partialRm;
+    
+    if (rooms) {
+      const exactRoom = rooms.find((r: any) => (r.contactName || "Chủ phòng").toLowerCase() === roommateName.toLowerCase());
+      if (exactRoom) return findRoommateByIdentity(roommates, exactRoom.user_id || exactRoom.postedBy || exactRoom.auth_id, rooms);
+      const partialRoom = rooms.find((r: any) => (r.contactName || "Chủ phòng").toLowerCase().includes(roommateName.toLowerCase()));
+      if (partialRoom) return findRoommateByIdentity(roommates, partialRoom.user_id || partialRoom.postedBy || partialRoom.auth_id, rooms);
+    }
+    return null;
+  })() : null;
   const partnerAuthId = getRoommateAuthId(matchedRoommate);
 
   const latestAgreementInDb = agreements.find(
@@ -351,7 +365,7 @@ export default function AgreementView({
   useEffect(() => {
     let idealId = preSelectedRoommateId;
     
-    let targetRoommate = findRoommateByIdentity(roommates, idealId || undefined);
+    let targetRoommate = findRoommateByIdentity(roommates, idealId || undefined, rooms);
 
     if (targetRoommate) {
       setRoommateName(targetRoommate.name);
@@ -731,7 +745,7 @@ export default function AgreementView({
 
             <div className="grid gap-3">
               {pendingToSign.map((agreement, idx) => {
-                const partner = findRoommateByIdentity(roommates, agreement.creator_id);
+                const partner = findRoommateByIdentity(roommates, agreement.creator_id, rooms);
                 return (
                   <button
                     key={idx}

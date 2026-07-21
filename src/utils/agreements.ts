@@ -53,11 +53,27 @@ const getChatParticipants = (chatId = "") => chatId.split("_").filter(Boolean);
 export const getRoommateAuthId = (roommate?: Partial<Roommate> | null) =>
   roommate?.user_id || roommate?.auth_id || roommate?.postedBy || roommate?.id || "";
 
-export const findRoommateByIdentity = (roommates: Roommate[], identity?: string) => {
+export const findRoommateByIdentity = (roommates: Roommate[], identity?: string, rooms?: any[]) => {
   if (!identity) return undefined;
-  return roommates.find((roommate) =>
+  const roommate = roommates.find((roommate) =>
     [roommate.id, roommate.user_id, roommate.auth_id, roommate.postedBy].includes(identity)
   );
+  if (roommate) return roommate;
+
+  if (rooms) {
+    const room = rooms.find((r: any) => [r.id, r.user_id, r.auth_id, r.postedBy].includes(identity));
+    if (room) {
+      return {
+        id: room.id,
+        name: room.contactName || "Chủ phòng",
+        avatar: (room.images && room.images.length > 0) ? room.images[0] : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop",
+        role: "Chủ phòng",
+        user_id: room.user_id || room.postedBy || room.auth_id,
+        auth_id: room.user_id || room.postedBy || room.auth_id
+      } as any as Roommate;
+    }
+  }
+  return undefined;
 };
 
 export function buildAgreementHistory(messages: AgreementMessage[], currentUserId: string): AgreementRecord[] {
