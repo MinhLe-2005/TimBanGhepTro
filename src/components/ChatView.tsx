@@ -1762,6 +1762,31 @@ export default function ChatView({
                     !isEffectiveSigned &&
                     (isAgreementCancelled || statusFromId === "cancelled");
 
+                  // Hide old draft messages once signed or cancelled so only 1 card displays
+                  if (isAgreementDraft && (isEffectiveSigned || isEffectiveCancelled)) {
+                    return null;
+                  }
+
+                  // Hide duplicate signed messages if multiple exist
+                  if (isAgreementSigned) {
+                    const latestSignedMsg = [...activeMessages]
+                      .reverse()
+                      .find((m) => m.text?.startsWith("[AGREEMENT_SIGNED]"));
+                    if (latestSignedMsg && latestSignedMsg.id !== msg.id) {
+                      return null;
+                    }
+                  }
+
+                  // Hide duplicate cancelled messages if multiple exist
+                  if (isAgreementCancelled) {
+                    const latestCancelledMsg = [...activeMessages]
+                      .reverse()
+                      .find((m) => m.text?.startsWith("[AGREEMENT_CANCELLED]"));
+                    if (latestCancelledMsg && latestCancelledMsg.id !== msg.id) {
+                      return null;
+                    }
+                  }
+
                   return (
                     <div
                       key={msg.id}
