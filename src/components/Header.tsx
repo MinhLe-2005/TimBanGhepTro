@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Menu, X, Sparkles, MessageSquare, FileText, Users, Home, Building, LogIn, LogOut, ChevronDown, Chrome, User, Mail, Info, Shield, KeyRound, Settings, Bell } from "lucide-react";
+import { Menu, X, Sparkles, MessageSquare, FileText, Users, Home, Building, LogIn, LogOut, ChevronDown, Chrome, User, Mail, Info, Shield, KeyRound, Settings } from "lucide-react";
 
 const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className={className}>
@@ -28,7 +28,6 @@ interface HeaderProps {
   onLogout: () => void;
   hasUnreadMessages?: boolean;
   hasPendingAgreement?: boolean;
-  hasExpiringPost?: boolean;
 }
 
 export default function Header({
@@ -42,7 +41,6 @@ export default function Header({
   onLogout,
   hasUnreadMessages = false,
   hasPendingAgreement = false,
-  hasExpiringPost = false,
 }: HeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -67,16 +65,6 @@ export default function Header({
     { id: "agreement", label: "Thỏa Thuận", icon: FileText },
     { id: "history", label: "Lịch Sử Thỏa Thuận", icon: FileText },
     ...(isAdmin ? [{ id: "admin", label: "Quản Trị (Admin)", icon: Shield }] : []),
-    {
-      id: "notifications",
-      label: "Thông báo",
-      icon: Bell,
-      subItems: hasExpiringPost ? [
-        { id: "expiry", label: "⚠️ Bài đăng sắp hết hạn. Nhấn vào đây để gia hạn", action: () => { setActiveTab("history"); window.scrollTo({ top: 0, behavior: "smooth" }); } }
-      ] : [
-        { id: "empty", label: "Bạn không có thông báo nào mới." }
-      ]
-    },
     { 
       id: "info", 
       label: "Hỗ Trợ", 
@@ -92,7 +80,7 @@ export default function Header({
   ];
 
   const navItems = baseNavItems.filter(item => {
-    const isRestrictedTab = item.id === "chat" || item.id === "agreement" || item.id === "history" || item.id === "notifications";
+    const isRestrictedTab = item.id === "chat" || item.id === "agreement" || item.id === "history";
     if (isRestrictedTab && (!currentUser || isAdmin)) {
       return false;
     }
@@ -199,9 +187,6 @@ export default function Header({
                   <div className="relative">
                     {item.label}
                     {item.id === "chat" && hasUnreadMessages && (
-                      <span className="absolute -top-1 -right-2.5 w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
-                    )}
-                    {item.id === "notifications" && hasExpiringPost && (
                       <span className="absolute -top-1 -right-2.5 w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
                     )}
                     {item.id === "agreement" && hasPendingAgreement && (
@@ -417,9 +402,6 @@ export default function Header({
                 <div className="relative">
                   <item.icon className="h-5 w-5" />
                   {item.id === "chat" && hasUnreadMessages && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full" />
-                  )}
-                  {item.id === "notifications" && hasExpiringPost && (
                     <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full" />
                   )}
                   {item.id === "agreement" && hasPendingAgreement && (
