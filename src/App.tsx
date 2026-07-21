@@ -2674,6 +2674,7 @@ export default function App() {
         onLogout={handleLogout}
         hasUnreadMessages={hasUnreadMessages}
         hasPendingAgreement={hasPendingAgreement}
+        hasExpiringPost={hasExpiringPost}
       />
 
       {/* Expiry Notification Banner */}

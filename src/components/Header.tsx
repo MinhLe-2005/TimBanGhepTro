@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Menu, X, Sparkles, MessageSquare, FileText, Users, Home, Building, LogIn, LogOut, ChevronDown, Chrome, User, Mail, Info, Shield, KeyRound, Settings } from "lucide-react";
+import { Menu, X, Sparkles, MessageSquare, FileText, Users, Home, Building, LogIn, LogOut, ChevronDown, Chrome, User, Mail, Info, Shield, KeyRound, Settings, Bell } from "lucide-react";
 
 const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className={className}>
@@ -28,6 +28,7 @@ interface HeaderProps {
   onLogout: () => void;
   hasUnreadMessages?: boolean;
   hasPendingAgreement?: boolean;
+  hasExpiringPost?: boolean;
 }
 
 export default function Header({
@@ -41,6 +42,7 @@ export default function Header({
   onLogout,
   hasUnreadMessages = false,
   hasPendingAgreement = false,
+  hasExpiringPost = false,
 }: HeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -65,6 +67,16 @@ export default function Header({
     { id: "agreement", label: "Thỏa Thuận", icon: FileText },
     { id: "history", label: "Lịch Sử Thỏa Thuận", icon: FileText },
     ...(isAdmin ? [{ id: "admin", label: "Quản Trị (Admin)", icon: Shield }] : []),
+    {
+      id: "notifications",
+      label: "Thông báo",
+      icon: Bell,
+      subItems: hasExpiringPost ? [
+        { id: "expiry", label: "⚠️ Bài đăng sắp hết hạn. Nhấn vào đây để gia hạn", action: () => { setActiveTab("history"); window.scrollTo({ top: 0, behavior: "smooth" }); } }
+      ] : [
+        { id: "empty", label: "Bạn không có thông báo nào mới." }
+      ]
+    },
     { 
       id: "info", 
       label: "Hỗ Trợ", 
@@ -80,7 +92,7 @@ export default function Header({
   ];
 
   const navItems = baseNavItems.filter(item => {
-    const isRestrictedTab = item.id === "chat" || item.id === "agreement" || item.id === "history";
+    const isRestrictedTab = item.id === "chat" || item.id === "agreement" || item.id === "history" || item.id === "notifications";
     if (isRestrictedTab && (!currentUser || isAdmin)) {
       return false;
     }
@@ -145,15 +157,31 @@ export default function Header({
                     </button>
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pt-2 z-50">
                       <div className="bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-slate-100 overflow-hidden flex flex-col py-2">
-                        {item.subItems.map(subItem => (
-                          <a
-                            key={subItem.id}
-                            href={`#info?tab=${subItem.id}`}
-                            className="px-5 py-3 text-sm font-semibold text-slate-600 hover:text-[#004e70] hover:bg-slate-50 transition-colors text-left flex items-center"
-                          >
-                            {subItem.label}
-                          </a>
-                        ))}
+                        {item.subItems.map((subItem: any) => {
+                          if (subItem.action) {
+                            return (
+                              <button
+                                key={subItem.id}
+                                onClick={() => {
+                                  subItem.action();
+                                  setIsOpen(false);
+                                }}
+                                className="px-5 py-3 text-sm font-semibold text-slate-600 hover:text-[#004e70] hover:bg-slate-50 transition-colors text-left flex items-center w-full"
+                              >
+                                {subItem.label}
+                              </button>
+                            );
+                          }
+                          return (
+                            <a
+                              key={subItem.id}
+                              href={`#info?tab=${subItem.id}`}
+                              className="px-5 py-3 text-sm font-semibold text-slate-600 hover:text-[#004e70] hover:bg-slate-50 transition-colors text-left flex items-center"
+                            >
+                              {subItem.label}
+                            </a>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -171,6 +199,9 @@ export default function Header({
                   <div className="relative">
                     {item.label}
                     {item.id === "chat" && hasUnreadMessages && (
+                      <span className="absolute -top-1 -right-2.5 w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
+                    )}
+                    {item.id === "notifications" && hasExpiringPost && (
                       <span className="absolute -top-1 -right-2.5 w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
                     )}
                     {item.id === "agreement" && hasPendingAgreement && (
@@ -343,16 +374,32 @@ export default function Header({
                   </button>
                   {isActive && (
                     <div className="pl-6 pr-4 py-2 space-y-1">
-                      {item.subItems.map(subItem => (
-                        <a
-                          key={subItem.id}
-                          href={`#info?tab=${subItem.id}`}
-                          onClick={() => setIsOpen(false)}
-                          className="block px-4 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:text-[#004e70] hover:bg-slate-50 transition-colors"
-                        >
-                          {subItem.label}
-                        </a>
-                      ))}
+                      {item.subItems.map((subItem: any) => {
+                        if (subItem.action) {
+                          return (
+                            <button
+                              key={subItem.id}
+                              onClick={() => {
+                                subItem.action();
+                                setIsOpen(false);
+                              }}
+                              className="block w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:text-[#004e70] hover:bg-slate-50 transition-colors"
+                            >
+                              {subItem.label}
+                            </button>
+                          );
+                        }
+                        return (
+                          <a
+                            key={subItem.id}
+                            href={`#info?tab=${subItem.id}`}
+                            onClick={() => setIsOpen(false)}
+                            className="block px-4 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:text-[#004e70] hover:bg-slate-50 transition-colors"
+                          >
+                            {subItem.label}
+                          </a>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -370,6 +417,9 @@ export default function Header({
                 <div className="relative">
                   <item.icon className="h-5 w-5" />
                   {item.id === "chat" && hasUnreadMessages && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full" />
+                  )}
+                  {item.id === "notifications" && hasExpiringPost && (
                     <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full" />
                   )}
                   {item.id === "agreement" && hasPendingAgreement && (
