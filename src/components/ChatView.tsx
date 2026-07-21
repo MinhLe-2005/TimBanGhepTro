@@ -1887,6 +1887,8 @@ export default function ChatView({
                                 ? "Thỏa thuận đã được ký"
                                 : isEffectiveCancelled
                                 ? "Tạo thỏa thuận mới"
+                                : isMe
+                                ? "Xem & Chỉnh sửa thỏa thuận"
                                 : "Xem & Ký Thỏa Thuận"}
                             </button>
                           </div>
