@@ -582,6 +582,35 @@ export default function ChatView({
       return { status, payload: null };
     }
   }, [activeMessages]);
+  const agreementStatusById = useMemo(() => {
+    const map: Record<string, "pending" | "signed" | "cancelled"> = {};
+    activeMessages.forEach((message) => {
+      if (!message.text) return;
+      let prefix = "";
+      if (message.text.startsWith("[AGREEMENT_DRAFT]")) prefix = "[AGREEMENT_DRAFT]";
+      else if (message.text.startsWith("[AGREEMENT_SIGNED]")) prefix = "[AGREEMENT_SIGNED]";
+      else if (message.text.startsWith("[AGREEMENT_CANCELLED]")) prefix = "[AGREEMENT_CANCELLED]";
+
+      if (prefix) {
+        try {
+          const payload = JSON.parse(message.text.replace(prefix, "").trim());
+          if (payload?.id) {
+            const status =
+              prefix === "[AGREEMENT_SIGNED]"
+                ? "signed"
+                : prefix === "[AGREEMENT_CANCELLED]"
+                  ? "cancelled"
+                  : "pending";
+            map[payload.id] = status;
+          }
+        } catch {
+          // ignore
+        }
+      }
+    });
+    return map;
+  }, [activeMessages]);
+
   const chatImages = useMemo(
     () => activeMessages.filter((message) => Boolean(message.imageUrl)),
     [activeMessages]
@@ -1752,42 +1781,87 @@ export default function ChatView({
                           </button>
                         )}
                         {isSpecialMessage && agreementPayload ? (
-                          <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-2 font-bold mb-1">
-                              {isAgreementSigned ? <BadgeCheck className="w-5 h-5 text-emerald-600" /> : isAgreementCancelled ? <X className="w-5 h-5 text-red-600" /> : <FileText className="w-5 h-5 text-sky-600" />}
-                              <span>
-                                {isAgreementSigned ? "Bản cam kết đã được ký" : isAgreementCancelled ? "Thỏa thuận đã bị từ chối" : isMe ? "Bạn đã gửi bản thỏa thuận" : "Đối tác đã gửi thỏa thuận"}
-                              </span>
-                            </div>
-                            <div className={`p-3 rounded-xl text-sm font-medium ${isAgreementSigned ? "bg-emerald-100/50" : isAgreementCancelled ? "bg-red-100/50" : "bg-white/60"}`}>
-                              {isAgreementSigned ? "Hợp đồng sống chung đã có hiệu lực. Bạn có thể xem lại chi tiết trong phần Thỏa Thuận." : isAgreementCancelled ? "Thỏa thuận này đã bị vô hiệu hóa. Bạn có thể tạo thỏa thuận mới để thương lượng lại." : "Hãy xem qua các điều khoản và ký xác nhận nếu bạn đồng ý."}
-                            </div>
-                            <button
-                              onClick={() => {
-                                // Mark agreement as read for this partner
-                                const partnerId = activeRoommate.user_id || activeRoommate.id;
-                                setConversationsWithAgreements(prev => ({ ...prev, [partnerId]: false }));
-                                
-                                if (isAgreementCancelled) {
-                                  // For cancelled agreements, navigate to agreement tab to create new one
-                                  onNavigateToTab && onNavigateToTab('agreement');
-                                } else {
-                                  // Open agreement modal with payload
-                                  setAgreementModalPayload(agreementPayload);
-                                  setIsAgreementModalOpen(true);
-                                }
-                              }}
-                              className={`mt-2 py-2.5 px-4 w-full rounded-xl text-sm font-bold flex justify-center items-center gap-2 transition-all ${
-                                isAgreementSigned 
-                                  ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
-                                  : isAgreementCancelled
-                                    ? "bg-amber-600 hover:bg-amber-700 text-white shadow-md"
-                                    : "bg-sky-600 hover:bg-sky-700 text-white shadow-md"
-                              }`}
-                            >
-                              {isAgreementSigned ? "Xem bản ký kết" : isAgreementCancelled ? "Tạo thỏa thuận mới" : "Xem & Ký Thỏa Thuận"}
-                            </button>
-                          </div>
+                          (() => {
+                            const payloadId = agreementPayload.id;
+                            const statusFromId = payloadId ? agreementStatusById[payloadId] : null;
+                            const isEffectiveSigned =
+                              isAgreementSigned ||
+                              statusFromId === "signed" ||
+                              (isAgreementDraft && activeAgreementState.status === "signed");
+                            const isEffectiveCancelled =
+                              !isEffectiveSigned &&
+                              (isAgreementCancelled || statusFromId === "cancelled");
+
+                            return (
+                              <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-2 font-bold mb-1">
+                                  {isEffectiveSigned ? (
+                                    <BadgeCheck className="w-5 h-5 text-emerald-600" />
+                                  ) : isEffectiveCancelled ? (
+                                    <X className="w-5 h-5 text-red-600" />
+                                  ) : (
+                                    <FileText className="w-5 h-5 text-sky-600" />
+                                  )}
+                                  <span>
+                                    {isEffectiveSigned
+                                      ? "Bản cam kết đã được ký"
+                                      : isEffectiveCancelled
+                                      ? "Thỏa thuận đã bị từ chối"
+                                      : isMe
+                                      ? "Bạn đã gửi bản thỏa thuận"
+                                      : "Đối tác đã gửi thỏa thuận"}
+                                  </span>
+                                </div>
+                                <div
+                                  className={`p-3 rounded-xl text-sm font-medium ${
+                                    isEffectiveSigned
+                                      ? "bg-emerald-100/50"
+                                      : isEffectiveCancelled
+                                      ? "bg-red-100/50"
+                                      : "bg-white/60"
+                                  }`}
+                                >
+                                  {isEffectiveSigned
+                                    ? "Hợp đồng sống chung đã có hiệu lực. Bạn có thể xem lại chi tiết trong phần Thỏa Thuận."
+                                    : isEffectiveCancelled
+                                    ? "Thỏa thuận này đã bị vô hiệu hóa. Bạn có thể tạo thỏa thuận mới để thương lượng lại."
+                                    : "Hãy xem qua các điều khoản và ký xác nhận nếu bạn đồng ý."}
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    const partnerId = activeRoommate.user_id || activeRoommate.id;
+                                    setConversationsWithAgreements((prev) => ({
+                                      ...prev,
+                                      [partnerId]: false,
+                                    }));
+
+                                    if (isEffectiveCancelled) {
+                                      onNavigateToTab && onNavigateToTab("agreement");
+                                    } else {
+                                      const modalPayload = isEffectiveSigned
+                                        ? { ...agreementPayload, status: "signed" }
+                                        : agreementPayload;
+                                      setAgreementModalPayload(modalPayload);
+                                      setIsAgreementModalOpen(true);
+                                    }
+                                  }}
+                                  className={`mt-2 py-2.5 px-4 w-full rounded-xl text-sm font-bold flex justify-center items-center gap-2 transition-all ${
+                                    isEffectiveSigned
+                                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                      : isEffectiveCancelled
+                                      ? "bg-amber-600 hover:bg-amber-700 text-white shadow-md"
+                                      : "bg-sky-600 hover:bg-sky-700 text-white shadow-md"
+                                  }`}
+                                >
+                                  {isEffectiveSigned
+                                    ? "Xem bản ký kết"
+                                    : isEffectiveCancelled
+                                    ? "Tạo thỏa thuận mới"
+                                    : "Xem & Ký Thỏa Thuận"}
+                                </button>
+                              </div>
+                            );
+                          })()
                         ) : (
                           msg.text && <p className="whitespace-pre-wrap">{msg.text}</p>
                         )}
@@ -2608,7 +2682,7 @@ export default function ChatView({
                           Hủy
                         </button>
                       </>
-                    ) : agreementModalPayload.status === 'pending' && agreementModalPayload.sender_id !== currentUser.id ? (
+                    ) : agreementModalPayload.status === 'pending' && activeAgreementState.status !== 'signed' && (agreementModalPayload.id ? agreementStatusById[agreementModalPayload.id] !== 'signed' : true) && agreementModalPayload.sender_id !== currentUser.id ? (
                       <>
                         {/* Received pending agreement - can accept, edit, or reject */}
                         <button
@@ -2681,7 +2755,7 @@ export default function ChatView({
                           Từ chối
                         </button>
                       </>
-                    ) : agreementModalPayload.status === 'pending' && agreementModalPayload.sender_id === currentUser.id ? (
+                    ) : agreementModalPayload.status === 'pending' && activeAgreementState.status !== 'signed' && (agreementModalPayload.id ? agreementStatusById[agreementModalPayload.id] !== 'signed' : true) && agreementModalPayload.sender_id === currentUser.id ? (
                       <>
                         {/* Sent draft - can also edit (counter-counter-offer) or cancel */}
                         <div className="bg-sky-50 border border-sky-200 rounded-xl p-4 mb-4 text-center">
@@ -2760,7 +2834,7 @@ export default function ChatView({
                           Đóng
                         </button>
                       </>
-                    ) : agreementModalPayload.status === 'signed' ? (
+                    ) : (agreementModalPayload.status === 'signed' || activeAgreementState.status === 'signed' || (agreementModalPayload.id && agreementStatusById[agreementModalPayload.id] === 'signed')) ? (
                       <button
                         onClick={() => {
                           setIsAgreementModalOpen(false);
@@ -2878,6 +2952,17 @@ export default function ChatView({
                   }
 
                   // All validation passed - proceed with signing
+                  if (
+                    activeAgreementState.status === 'signed' ||
+                    agreementModalPayload?.status === 'signed' ||
+                    (agreementModalPayload?.id && agreementStatusById[agreementModalPayload.id] === 'signed')
+                  ) {
+                    toast('Thỏa thuận này đã được ký kết trước đó!', 'warning');
+                    setIsSignatureModalOpen(false);
+                    setIsAgreementModalOpen(false);
+                    return;
+                  }
+
                   try {
                     setIsSigningAgreement(true);
                     const signedPayload = {

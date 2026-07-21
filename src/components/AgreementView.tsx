@@ -454,6 +454,10 @@ export default function AgreementView({
 
   const handleSignAgreement = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSigned || activeAgreement?.status === 'signed' || localPendingPayload?.status === 'signed') {
+      toast('Thỏa thuận này đã được ký kết trước đó!', 'warning');
+      return;
+    }
     if (!isAgreed) { toast('Vui lòng tích chọn đồng ý với các quy định sống chung!', 'warning'); return; }
     if (!fullName.trim()) { toast('Vui lòng nhập họ và tên đầy đủ để tiến hành ký kết!', 'warning'); return; }
     if (!matchedRoommate) return;
