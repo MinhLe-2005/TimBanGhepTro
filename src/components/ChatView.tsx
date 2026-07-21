@@ -2780,6 +2780,9 @@ export default function ChatView({
                   <p className="text-sm">Vui lòng chuyển sang tab "Thỏa Thuận" để tạo thỏa thuận mới</p>
                   <button
                     onClick={() => {
+                      if (activeRoommate) {
+                        sessionStorage.setItem('roomiematch_preselected_partner_profile', JSON.stringify(activeRoommate));
+                      }
                       setIsAgreementModalOpen(false);
                       onNavigateToTab && onNavigateToTab('agreement');
                     }}

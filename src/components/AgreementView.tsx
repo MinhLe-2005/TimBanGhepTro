@@ -350,6 +350,27 @@ export default function AgreementView({
       const partialRoom = rooms.find((r: any) => (r.contactName || "Chủ phòng").toLowerCase().includes(roommateName.toLowerCase()));
       if (partialRoom) return findRoommateByIdentity(roommates, partialRoom.user_id || partialRoom.postedBy || partialRoom.auth_id, rooms);
     }
+
+    try {
+      const savedProfileStr = sessionStorage.getItem('roomiematch_preselected_partner_profile');
+      if (savedProfileStr) {
+        const savedProfile = JSON.parse(savedProfileStr);
+        const savedName = (savedProfile.name || "Người dùng").toLowerCase();
+        if (savedName === roommateName.toLowerCase() || savedName.includes(roommateName.toLowerCase())) {
+          return {
+            id: savedProfile.id,
+            name: savedProfile.name || "Người dùng",
+            avatar: savedProfile.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop",
+            role: savedProfile.role || "Bạn cùng phòng",
+            user_id: savedProfile.user_id || savedProfile.auth_id,
+            auth_id: savedProfile.user_id || savedProfile.auth_id
+          } as any as Roommate;
+        }
+      }
+    } catch (e) {
+      // Ignore
+    }
+    
     return null;
   })() : null;
   const partnerAuthId = getRoommateAuthId(matchedRoommate);

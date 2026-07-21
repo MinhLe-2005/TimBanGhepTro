@@ -73,6 +73,26 @@ export const findRoommateByIdentity = (roommates: Roommate[], identity?: string,
       } as any as Roommate;
     }
   }
+
+  try {
+    const savedProfileStr = sessionStorage.getItem('roomiematch_preselected_partner_profile');
+    if (savedProfileStr) {
+      const savedProfile = JSON.parse(savedProfileStr);
+      if ([savedProfile.id, savedProfile.user_id, savedProfile.auth_id].includes(identity)) {
+        return {
+          id: savedProfile.id,
+          name: savedProfile.name || "Người dùng",
+          avatar: savedProfile.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop",
+          role: savedProfile.role || "Bạn cùng phòng",
+          user_id: savedProfile.user_id || savedProfile.auth_id,
+          auth_id: savedProfile.user_id || savedProfile.auth_id
+        } as any as Roommate;
+      }
+    }
+  } catch (e) {
+    // Ignore
+  }
+
   return undefined;
 };
 
