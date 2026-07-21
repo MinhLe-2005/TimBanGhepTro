@@ -1855,42 +1855,36 @@ export default function ChatView({
                               {isEffectiveSigned
                                 ? "Hợp đồng sống chung đã có hiệu lực. Bạn có thể xem lại chi tiết trong phần Thỏa Thuận."
                                 : isEffectiveCancelled
-                                ? "Thỏa thuận này đã bị vô hiệu hóa. Bạn có thể tạo thỏa thuận mới để thương lượng lại."
+                                ? "Thỏa thuận này đã bị vô hiệu hóa."
                                 : "Hãy xem qua các điều khoản và ký xác nhận nếu bạn đồng ý."}
                             </div>
-                            <button
-                              disabled={isEffectiveSigned}
-                              onClick={() => {
-                                if (isEffectiveSigned) return;
-                                const partnerId = activeRoommate.user_id || activeRoommate.id;
-                                setConversationsWithAgreements((prev) => ({
-                                  ...prev,
-                                  [partnerId]: false,
-                                }));
+                            {!isEffectiveCancelled && (
+                              <button
+                                disabled={isEffectiveSigned}
+                                onClick={() => {
+                                  if (isEffectiveSigned) return;
+                                  const partnerId = activeRoommate.user_id || activeRoommate.id;
+                                  setConversationsWithAgreements((prev) => ({
+                                    ...prev,
+                                    [partnerId]: false,
+                                  }));
 
-                                if (isEffectiveCancelled) {
-                                  onNavigateToTab && onNavigateToTab("agreement");
-                                } else {
                                   setAgreementModalPayload(agreementPayload);
                                   setIsAgreementModalOpen(true);
-                                }
-                              }}
-                              className={`mt-2 py-2.5 px-4 w-full rounded-xl text-sm font-bold flex justify-center items-center gap-2 transition-all ${
-                                isEffectiveSigned
-                                  ? "bg-emerald-600/70 text-white cursor-not-allowed opacity-80 shadow-none pointer-events-none"
-                                  : isEffectiveCancelled
-                                  ? "bg-amber-600 hover:bg-amber-700 text-white shadow-md"
-                                  : "bg-sky-600 hover:bg-sky-700 text-white shadow-md"
-                              }`}
-                            >
-                              {isEffectiveSigned
-                                ? "Thỏa thuận đã được ký"
-                                : isEffectiveCancelled
-                                ? "Tạo thỏa thuận mới"
-                                : isMe
-                                ? "Xem & Chỉnh sửa thỏa thuận"
-                                : "Xem & Ký Thỏa Thuận"}
-                            </button>
+                                }}
+                                className={`mt-2 py-2.5 px-4 w-full rounded-xl text-sm font-bold flex justify-center items-center gap-2 transition-all ${
+                                  isEffectiveSigned
+                                    ? "bg-emerald-600/70 text-white cursor-not-allowed opacity-80 shadow-none pointer-events-none"
+                                    : "bg-sky-600 hover:bg-sky-700 text-white shadow-md"
+                                }`}
+                              >
+                                {isEffectiveSigned
+                                  ? "Thỏa thuận đã được ký"
+                                  : isMe
+                                  ? "Xem & Chỉnh sửa thỏa thuận"
+                                  : "Xem & Ký Thỏa Thuận"}
+                              </button>
+                            )}
                           </div>
                         ) : (
                           msg.text && <p className="whitespace-pre-wrap">{msg.text}</p>
