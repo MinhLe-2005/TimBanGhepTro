@@ -1494,7 +1494,15 @@ export default function ChatView({
               .map((conv) => {
               const r = conv.partner;
               const isActive = r.id === activeRoommateId;
-              const lastMsg = conv.lastMessage;
+              const formatLastMessagePreview = (text?: string) => {
+                if (!text) return 'Đã gửi đính kèm';
+                if (text.startsWith('[AGREEMENT_SIGNED]')) return '📜 Bản cam kết đã được ký';
+                if (text.startsWith('[AGREEMENT_DRAFT]')) return '📝 Thỏa thuận sống chung';
+                if (text.startsWith('[AGREEMENT_CANCELLED]')) return '❌ Thỏa thuận đã bị từ chối';
+                if (text === '[SYSTEM_BLOCK]' || text === '[SYSTEM_UNBLOCK]') return 'Cảnh báo hệ thống';
+                return text;
+              };
+              const lastMsg = formatLastMessagePreview(conv.lastMessage);
               // Use canonical ID from conversation
               const partnerId = conv.partnerId || r.id;
               const hasAgreement = conversationsWithAgreements[partnerId];
