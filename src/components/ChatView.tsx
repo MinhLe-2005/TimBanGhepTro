@@ -2603,10 +2603,25 @@ export default function ChatView({
                         </p>
                       </div>
                     )}
+
+                    {agreementModalPayload.status === 'pending' &&
+                      activeAgreementState.status !== 'signed' &&
+                      (agreementModalPayload.id ? agreementStatusById[agreementModalPayload.id] !== 'signed' : true) &&
+                      agreementModalPayload.sender_id === currentUser.id &&
+                      !isEditingAgreement && (
+                        <div className="mt-4 bg-sky-50 border border-sky-200 rounded-xl p-3 text-center">
+                          <p className="text-sm font-bold text-sky-900">
+                            ⏳ Đang chờ đối tác phản hồi...
+                          </p>
+                          <p className="text-xs text-sky-700 mt-0.5">
+                            Bạn có thể chỉnh sửa lại đề xuất hoặc hủy thỏa thuận này
+                          </p>
+                        </div>
+                    )}
                   </div>
 
                   {/* Action buttons */}
-                  <div className="flex gap-3 pt-2">
+                  <div className="flex gap-2.5 pt-3">
                     {isEditingAgreement ? (
                       <>
                         {/* Save edited agreement as new counter-offer */}
@@ -2654,10 +2669,10 @@ export default function ChatView({
                             setIsAgreementModalOpen(false);
                             setAgreementModalPayload(null);
                           }}
-                          className="flex-1 py-3 bg-gradient-to-r from-[#006590] to-sky-600 hover:from-[#005176] hover:to-sky-700 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+                          className="flex-1 py-3 px-4 bg-gradient-to-r from-[#006590] to-sky-600 hover:from-[#005176] hover:to-sky-700 text-white font-bold rounded-xl text-sm transition-all shadow-lg flex items-center justify-center gap-2"
                         >
-                          <Send className="h-5 w-5" />
-                          Gửi đề xuất chỉnh sửa
+                          <Send className="h-4 w-4 shrink-0" />
+                          <span>Gửi đề xuất chỉnh sửa</span>
                         </button>
                         <button
                           onClick={() => {
@@ -2672,7 +2687,7 @@ export default function ChatView({
                               setEditOtherNotes(agreementModalPayload.rules.otherNotes || '');
                             }
                           }}
-                          className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                          className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-colors shrink-0"
                         >
                           Hủy
                         </button>
@@ -2686,10 +2701,10 @@ export default function ChatView({
                             setSignatureName(""); // Reset signature input
                             setIsSignatureModalOpen(true);
                           }}
-                          className="flex-1 py-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+                          className="flex-1 py-3 px-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold rounded-xl text-xs sm:text-sm transition-all shadow-lg flex items-center justify-center gap-1.5"
                         >
-                          <Check className="h-5 w-5" />
-                          Đồng ý & Ký kết
+                          <Check className="h-4 w-4 shrink-0" />
+                          <span>Đồng ý & Ký kết</span>
                         </button>
                         <button
                           onClick={() => {
@@ -2702,10 +2717,10 @@ export default function ChatView({
                             setEditPets(agreementModalPayload.rules?.pets || '');
                             setEditOtherNotes(agreementModalPayload.rules?.otherNotes || '');
                           }}
-                          className="px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors flex items-center gap-2"
+                          className="px-3.5 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs sm:text-sm transition-colors flex items-center gap-1.5 shrink-0"
                         >
-                          <PencilLine className="h-4 w-4" />
-                          Sửa lại
+                          <PencilLine className="h-4 w-4 shrink-0" />
+                          <span>Sửa lại</span>
                         </button>
                         <button
                           onClick={async () => {
@@ -2745,22 +2760,13 @@ export default function ChatView({
                               setAgreementModalPayload(null);
                             }
                           }}
-                          className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                          className="px-3.5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs sm:text-sm transition-colors shrink-0"
                         >
                           Từ chối
                         </button>
                       </>
                     ) : agreementModalPayload.status === 'pending' && activeAgreementState.status !== 'signed' && (agreementModalPayload.id ? agreementStatusById[agreementModalPayload.id] !== 'signed' : true) && agreementModalPayload.sender_id === currentUser.id ? (
                       <>
-                        {/* Sent draft - can also edit (counter-counter-offer) or cancel */}
-                        <div className="bg-sky-50 border border-sky-200 rounded-xl p-4 mb-4 text-center">
-                          <p className="text-sm font-bold text-sky-900">
-                            ⏳ Đang chờ đối tác phản hồi...
-                          </p>
-                          <p className="text-xs text-sky-700 mt-1">
-                            Bạn có thể chỉnh sửa lại đề xuất hoặc hủy thỏa thuận này
-                          </p>
-                        </div>
                         <button
                           onClick={() => {
                             // Allow sender to edit their own draft (useful for counter-counter-offer)
@@ -2772,10 +2778,10 @@ export default function ChatView({
                             setEditPets(agreementModalPayload.rules?.pets || '');
                             setEditOtherNotes(agreementModalPayload.rules?.otherNotes || '');
                           }}
-                          className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+                          className="flex-1 py-3 px-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs sm:text-sm leading-tight transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                         >
-                          <PencilLine className="h-4 w-4" />
-                          Chỉnh sửa lại đề xuất
+                          <PencilLine className="h-4 w-4 shrink-0" />
+                          <span>Chỉnh sửa đề xuất</span>
                         </button>
                         <button
                           onClick={async () => {
@@ -2815,7 +2821,7 @@ export default function ChatView({
                               setAgreementModalPayload(null);
                             }
                           }}
-                          className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                          className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs sm:text-sm leading-tight transition-colors shrink-0"
                         >
                           Hủy thỏa thuận
                         </button>
@@ -2824,7 +2830,7 @@ export default function ChatView({
                             setIsAgreementModalOpen(false);
                             setAgreementModalPayload(null);
                           }}
-                          className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors"
+                          className="py-3 px-4 bg-slate-600 hover:bg-slate-700 text-white font-bold rounded-xl text-xs sm:text-sm leading-tight transition-colors shrink-0"
                         >
                           Đóng
                         </button>
