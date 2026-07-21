@@ -1824,40 +1824,53 @@ export default function ChatView({
                           </button>
                         )}
                         {isSpecialMessage && agreementPayload ? (
-                          <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-2 font-bold mb-1">
-                              {isEffectiveSigned ? (
-                                <BadgeCheck className="w-5 h-5 text-emerald-600" />
-                              ) : isEffectiveCancelled ? (
-                                <X className="w-5 h-5 text-red-600" />
-                              ) : (
-                                <FileText className="w-5 h-5 text-sky-600" />
-                              )}
-                              <span>
-                                {isEffectiveSigned
-                                  ? "Thỏa thuận đã được ký"
-                                  : isEffectiveCancelled
-                                  ? "Thỏa thuận đã bị từ chối"
-                                  : isMe
-                                  ? "Bạn đã gửi bản thỏa thuận"
-                                  : "Đối tác đã gửi thỏa thuận"}
-                              </span>
-                            </div>
-                            <div
-                              className={`p-3 rounded-xl text-sm font-medium ${
-                                isEffectiveSigned
-                                  ? "bg-emerald-100/50"
-                                  : isEffectiveCancelled
-                                  ? "bg-red-100/50"
-                                  : "bg-white/60"
-                              }`}
-                            >
-                              {isEffectiveSigned
-                                ? "Hợp đồng sống chung đã có hiệu lực. Bạn có thể xem lại chi tiết trong phần Thỏa Thuận."
-                                : isEffectiveCancelled
-                                ? "Thỏa thuận này đã bị vô hiệu hóa."
-                                : "Hãy xem qua các điều khoản và ký xác nhận nếu bạn đồng ý."}
-                            </div>
+                          (() => {
+                            const isCancelledByMe =
+                              (agreementPayload?.cancelled_by &&
+                                (agreementPayload.cancelled_by === currentUser?.id ||
+                                  agreementPayload.cancelled_by === currentUserProfile?.id)) ||
+                              msg.senderId === "me" ||
+                              msg.senderId === myChatId;
+
+                            return (
+                              <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-2 font-bold mb-1">
+                                  {isEffectiveSigned ? (
+                                    <BadgeCheck className="w-5 h-5 text-emerald-600" />
+                                  ) : isEffectiveCancelled ? (
+                                    <X className="w-5 h-5 text-red-600" />
+                                  ) : (
+                                    <FileText className="w-5 h-5 text-sky-600" />
+                                  )}
+                                  <span>
+                                    {isEffectiveSigned
+                                      ? "Thỏa thuận đã được ký"
+                                      : isEffectiveCancelled
+                                      ? isCancelledByMe
+                                        ? "Bạn đã từ chối thỏa thuận"
+                                        : "Đối tác đã từ chối thỏa thuận"
+                                      : isMe
+                                      ? "Bạn đã gửi bản thỏa thuận"
+                                      : "Đối tác đã gửi thỏa thuận"}
+                                  </span>
+                                </div>
+                                <div
+                                  className={`p-3 rounded-xl text-sm font-medium ${
+                                    isEffectiveSigned
+                                      ? "bg-emerald-100/50"
+                                      : isEffectiveCancelled
+                                      ? "bg-red-100/50"
+                                      : "bg-white/60"
+                                  }`}
+                                >
+                                  {isEffectiveSigned
+                                    ? "Hợp đồng sống chung đã có hiệu lực. Bạn có thể xem lại chi tiết trong phần Thỏa Thuận."
+                                    : isEffectiveCancelled
+                                    ? isCancelledByMe
+                                      ? "Bạn đã từ chối bản thỏa thuận này."
+                                      : "Đối tác đã từ chối bản thỏa thuận này."
+                                    : "Hãy xem qua các điều khoản và ký xác nhận nếu bạn đồng ý."}
+                                </div>
                             {!isEffectiveCancelled && (
                               <button
                                 disabled={isEffectiveSigned}
@@ -1885,8 +1898,10 @@ export default function ChatView({
                                   : "Xem & Ký Thỏa Thuận"}
                               </button>
                             )}
-                          </div>
-                        ) : (
+                            </div>
+                          );
+                        })()
+                      ) : (
                           msg.text && <p className="whitespace-pre-wrap">{msg.text}</p>
                         )}
                         <span
