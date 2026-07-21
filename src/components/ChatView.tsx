@@ -1752,6 +1752,16 @@ export default function ChatView({
                   const suspiciousKeywords = ["đặt cọc", "chuyển tiền", "chuyển khoản", "tiền cọc"];
                   const containsSuspicious = !isMe && msg.text && suspiciousKeywords.some(kw => msg.text.toLowerCase().includes(kw));
 
+                  const payloadId = agreementPayload?.id;
+                  const statusFromId = payloadId ? agreementStatusById[payloadId] : null;
+                  const isEffectiveSigned =
+                    isAgreementSigned ||
+                    statusFromId === "signed" ||
+                    (isAgreementDraft && activeAgreementState.status === "signed");
+                  const isEffectiveCancelled =
+                    !isEffectiveSigned &&
+                    (isAgreementCancelled || statusFromId === "cancelled");
+
                   return (
                     <div
                       key={msg.id}
@@ -1761,7 +1771,7 @@ export default function ChatView({
                         <div
                           className={`w-fit min-w-[64px] max-w-[78%] sm:max-w-[68%] px-4 py-3 rounded-2xl text-[14.5px] leading-relaxed break-words [overflow-wrap:anywhere] shadow-[0_2px_4px_rgba(15,23,42,0.01)] ${
                             isSpecialMessage 
-                              ? (isAgreementSigned ? "bg-emerald-50 text-emerald-900 border border-emerald-200" : isAgreementCancelled ? "bg-red-50 text-red-900 border border-red-200" : "bg-sky-50 text-sky-900 border border-sky-200")
+                              ? (isEffectiveSigned ? "bg-emerald-50 text-emerald-900 border border-emerald-200" : isEffectiveCancelled ? "bg-red-50 text-red-900 border border-red-200" : "bg-sky-50 text-sky-900 border border-sky-200")
                               : (isMe
                                   ? "bg-[#006590] text-white rounded-br-none font-medium"
                                   : "bg-white text-slate-800 border border-slate-100 rounded-bl-none font-medium")
@@ -1781,87 +1791,72 @@ export default function ChatView({
                           </button>
                         )}
                         {isSpecialMessage && agreementPayload ? (
-                          (() => {
-                            const payloadId = agreementPayload.id;
-                            const statusFromId = payloadId ? agreementStatusById[payloadId] : null;
-                            const isEffectiveSigned =
-                              isAgreementSigned ||
-                              statusFromId === "signed" ||
-                              (isAgreementDraft && activeAgreementState.status === "signed");
-                            const isEffectiveCancelled =
-                              !isEffectiveSigned &&
-                              (isAgreementCancelled || statusFromId === "cancelled");
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2 font-bold mb-1">
+                              {isEffectiveSigned ? (
+                                <BadgeCheck className="w-5 h-5 text-emerald-600" />
+                              ) : isEffectiveCancelled ? (
+                                <X className="w-5 h-5 text-red-600" />
+                              ) : (
+                                <FileText className="w-5 h-5 text-sky-600" />
+                              )}
+                              <span>
+                                {isEffectiveSigned
+                                  ? "Thỏa thuận đã được ký"
+                                  : isEffectiveCancelled
+                                  ? "Thỏa thuận đã bị từ chối"
+                                  : isMe
+                                  ? "Bạn đã gửi bản thỏa thuận"
+                                  : "Đối tác đã gửi thỏa thuận"}
+                              </span>
+                            </div>
+                            <div
+                              className={`p-3 rounded-xl text-sm font-medium ${
+                                isEffectiveSigned
+                                  ? "bg-emerald-100/50"
+                                  : isEffectiveCancelled
+                                  ? "bg-red-100/50"
+                                  : "bg-white/60"
+                              }`}
+                            >
+                              {isEffectiveSigned
+                                ? "Hợp đồng sống chung đã có hiệu lực. Bạn có thể xem lại chi tiết trong phần Thỏa Thuận."
+                                : isEffectiveCancelled
+                                ? "Thỏa thuận này đã bị vô hiệu hóa. Bạn có thể tạo thỏa thuận mới để thương lượng lại."
+                                : "Hãy xem qua các điều khoản và ký xác nhận nếu bạn đồng ý."}
+                            </div>
+                            <button
+                              disabled={isEffectiveSigned}
+                              onClick={() => {
+                                if (isEffectiveSigned) return;
+                                const partnerId = activeRoommate.user_id || activeRoommate.id;
+                                setConversationsWithAgreements((prev) => ({
+                                  ...prev,
+                                  [partnerId]: false,
+                                }));
 
-                            return (
-                              <div className="flex flex-col gap-2">
-                                <div className="flex items-center gap-2 font-bold mb-1">
-                                  {isEffectiveSigned ? (
-                                    <BadgeCheck className="w-5 h-5 text-emerald-600" />
-                                  ) : isEffectiveCancelled ? (
-                                    <X className="w-5 h-5 text-red-600" />
-                                  ) : (
-                                    <FileText className="w-5 h-5 text-sky-600" />
-                                  )}
-                                  <span>
-                                    {isEffectiveSigned
-                                      ? "Bản cam kết đã được ký"
-                                      : isEffectiveCancelled
-                                      ? "Thỏa thuận đã bị từ chối"
-                                      : isMe
-                                      ? "Bạn đã gửi bản thỏa thuận"
-                                      : "Đối tác đã gửi thỏa thuận"}
-                                  </span>
-                                </div>
-                                <div
-                                  className={`p-3 rounded-xl text-sm font-medium ${
-                                    isEffectiveSigned
-                                      ? "bg-emerald-100/50"
-                                      : isEffectiveCancelled
-                                      ? "bg-red-100/50"
-                                      : "bg-white/60"
-                                  }`}
-                                >
-                                  {isEffectiveSigned
-                                    ? "Hợp đồng sống chung đã có hiệu lực. Bạn có thể xem lại chi tiết trong phần Thỏa Thuận."
-                                    : isEffectiveCancelled
-                                    ? "Thỏa thuận này đã bị vô hiệu hóa. Bạn có thể tạo thỏa thuận mới để thương lượng lại."
-                                    : "Hãy xem qua các điều khoản và ký xác nhận nếu bạn đồng ý."}
-                                </div>
-                                <button
-                                  onClick={() => {
-                                    const partnerId = activeRoommate.user_id || activeRoommate.id;
-                                    setConversationsWithAgreements((prev) => ({
-                                      ...prev,
-                                      [partnerId]: false,
-                                    }));
-
-                                    if (isEffectiveCancelled) {
-                                      onNavigateToTab && onNavigateToTab("agreement");
-                                    } else {
-                                      const modalPayload = isEffectiveSigned
-                                        ? { ...agreementPayload, status: "signed" }
-                                        : agreementPayload;
-                                      setAgreementModalPayload(modalPayload);
-                                      setIsAgreementModalOpen(true);
-                                    }
-                                  }}
-                                  className={`mt-2 py-2.5 px-4 w-full rounded-xl text-sm font-bold flex justify-center items-center gap-2 transition-all ${
-                                    isEffectiveSigned
-                                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                                      : isEffectiveCancelled
-                                      ? "bg-amber-600 hover:bg-amber-700 text-white shadow-md"
-                                      : "bg-sky-600 hover:bg-sky-700 text-white shadow-md"
-                                  }`}
-                                >
-                                  {isEffectiveSigned
-                                    ? "Xem bản ký kết"
-                                    : isEffectiveCancelled
-                                    ? "Tạo thỏa thuận mới"
-                                    : "Xem & Ký Thỏa Thuận"}
-                                </button>
-                              </div>
-                            );
-                          })()
+                                if (isEffectiveCancelled) {
+                                  onNavigateToTab && onNavigateToTab("agreement");
+                                } else {
+                                  setAgreementModalPayload(agreementPayload);
+                                  setIsAgreementModalOpen(true);
+                                }
+                              }}
+                              className={`mt-2 py-2.5 px-4 w-full rounded-xl text-sm font-bold flex justify-center items-center gap-2 transition-all ${
+                                isEffectiveSigned
+                                  ? "bg-emerald-600/70 text-white cursor-not-allowed opacity-80 shadow-none pointer-events-none"
+                                  : isEffectiveCancelled
+                                  ? "bg-amber-600 hover:bg-amber-700 text-white shadow-md"
+                                  : "bg-sky-600 hover:bg-sky-700 text-white shadow-md"
+                              }`}
+                            >
+                              {isEffectiveSigned
+                                ? "Thỏa thuận đã được ký"
+                                : isEffectiveCancelled
+                                ? "Tạo thỏa thuận mới"
+                                : "Xem & Ký Thỏa Thuận"}
+                            </button>
+                          </div>
                         ) : (
                           msg.text && <p className="whitespace-pre-wrap">{msg.text}</p>
                         )}
