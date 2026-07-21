@@ -286,6 +286,7 @@ export default function HistoryView({
           currentUserId={myAuthId}
           currentUserName={currentUserProfile?.name || "Bạn"}
           roommates={roommates}
+          rooms={rooms}
           onClose={() => setSelectedAgreement(null)}
         />
       )}
@@ -329,12 +330,14 @@ function AgreementDetailModal({
   currentUserId,
   currentUserName,
   roommates,
+  rooms,
   onClose,
 }: {
   agreement: AgreementRecord;
   currentUserId: string;
   currentUserName: string;
   roommates: Roommate[];
+  rooms?: any[];
   onClose: () => void;
 }) {
   const partnerId =
