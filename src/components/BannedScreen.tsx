@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ShieldAlert, LogOut, Upload, Send, CheckCircle2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { uploadInlineImage } from "../lib/storage";
+import { compressImageFile } from "../utils/cropImage";
 
 interface BannedScreenProps {
   currentUser: any;
@@ -51,9 +52,16 @@ export default function BannedScreen({ currentUser, onLogout }: BannedScreenProp
     try {
       let imageUrl = "";
       if (appealImage) {
-        // Upload image
+        // Nén ảnh trước khi tải lên (giảm dung lượng)
+        let fileToUpload = appealImage;
+        try {
+          fileToUpload = await compressImageFile(appealImage, 1000, 0.7);
+        } catch (e) {
+          console.error("Compression failed:", e);
+        }
+
         const reader = new FileReader();
-        reader.readAsDataURL(appealImage);
+        reader.readAsDataURL(fileToUpload);
         
         const base64Promise = new Promise<string>((resolve) => {
           reader.onloadend = () => {
