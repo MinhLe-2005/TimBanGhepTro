@@ -431,8 +431,26 @@ export default function App() {
         ]);
 
         try {
-          const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-          if (count !== null) setTotalUserCount(count);
+          const { data: rpcCount, error: rpcError } = await supabase.rpc('get_total_users');
+          if (!rpcError && typeof rpcCount === 'number') {
+            setTotalUserCount(rpcCount);
+          } else {
+            const uniqueUsers = new Set();
+            if (roommatesResult.data) {
+              roommatesResult.data.forEach((r: any) => {
+                if (r.user_id) uniqueUsers.add(r.user_id);
+                if (r.auth_id) uniqueUsers.add(r.auth_id);
+                if (r.postedBy) uniqueUsers.add(r.postedBy);
+              });
+            }
+            if (roomsResult.data) {
+              roomsResult.data.forEach((r: any) => {
+                if (r.user_id) uniqueUsers.add(r.user_id);
+                if (r.postedBy) uniqueUsers.add(r.postedBy);
+              });
+            }
+            setTotalUserCount(uniqueUsers.size > 0 ? uniqueUsers.size : roommatesResult.data?.length || 0);
+          }
         } catch(e) {}
 
         const nowMs = Date.now();

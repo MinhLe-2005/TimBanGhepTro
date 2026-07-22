@@ -13,7 +13,30 @@ export default function BannedScreen({ currentUser, onLogout }: BannedScreenProp
   const [appealImage, setAppealImage] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [appealSent, setAppealSent] = useState(false);
+  const [isCheckingAppeal, setIsCheckingAppeal] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    const checkAppeal = async () => {
+      if (!currentUser?.id) return;
+      try {
+        const { data, error } = await supabase
+          .from('messages')
+          .select('id')
+          .eq('chat_id', 'SYSTEM_APPEALS')
+          .eq('sender_id', currentUser.id)
+          .limit(1);
+        if (!error && data && data.length > 0) {
+          setAppealSent(true);
+        }
+      } catch (err) {
+        console.error("Error checking appeal:", err);
+      } finally {
+        setIsCheckingAppeal(false);
+      }
+    };
+    checkAppeal();
+  }, [currentUser?.id]);
 
   const handleAppeal = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,7 +105,11 @@ export default function BannedScreen({ currentUser, onLogout }: BannedScreenProp
           Bạn không thể tiếp tục sử dụng dịch vụ lúc này.
         </p>
 
-        {appealSent ? (
+        {isCheckingAppeal ? (
+          <div className="flex justify-center mb-8">
+            <div className="w-6 h-6 border-2 border-rose-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : appealSent ? (
           <div className="bg-emerald-50 rounded-2xl p-6 text-center border border-emerald-100 mb-8">
             <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
             <h3 className="text-emerald-700 font-bold text-lg mb-2">Đã gửi kháng cáo</h3>
