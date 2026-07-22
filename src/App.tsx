@@ -2831,21 +2831,51 @@ export default function App() {
               onDeleteRoom={handleDeleteRoom}
               onApproveListing={(table, id) => {
                 if (table === 'roommates') {
-                  setAllRoommates(prev => prev.map(r => r.id === id ? { ...r, isVerified: true, rejectReason: undefined } : r));
-                  setSupabaseRoommates(prev => prev.map(r => r.id === id ? { ...r, isVerified: true, rejectReason: undefined } : r));
+                  setRoommates(prev => prev.map(r => String(r.id) === String(id) ? { ...r, isVerified: true, rejectReason: undefined } : r));
+                  setSupabaseRoommates(prev => {
+                    const updated = prev.map(r => String(r.id) === String(id) ? { ...r, isVerified: true, rejectReason: undefined } : r);
+                    try { localStorage.setItem("roomiematch_cached_roommates", JSON.stringify(updated)); } catch (e) {}
+                    return updated;
+                  });
                 } else {
-                  setAllRooms(prev => prev.map(r => r.id === id ? { ...r, isVerifiedRoom: true, rejectReason: undefined } : r));
-                  setSupabaseRooms(prev => prev.map(r => r.id === id ? { ...r, isVerifiedRoom: true, rejectReason: undefined } : r));
+                  setRooms(prev => prev.map(r => String(r.id) === String(id) ? { ...r, isVerifiedRoom: true, rejectReason: undefined } : r));
+                  setSupabaseRooms(prev => {
+                    const updated = prev.map(r => String(r.id) === String(id) ? { ...r, isVerifiedRoom: true, rejectReason: undefined } : r);
+                    try { localStorage.setItem("roomiematch_cached_rooms", JSON.stringify(updated)); } catch (e) {}
+                    return updated;
+                  });
                 }
+                try {
+                  const postedRooms = JSON.parse(localStorage.getItem("roomiematch_posted_rooms") || "[]");
+                  if (postedRooms.length > 0) {
+                    const updatedPostedRooms = postedRooms.map((r: any) => String(r.id) === String(id) ? { ...r, isVerifiedRoom: true, rejectReason: undefined } : r);
+                    localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(updatedPostedRooms));
+                  }
+                } catch (e) {}
               }}
               onRejectListing={(table, id, reason) => {
                 if (table === 'roommates') {
-                  setAllRoommates(prev => prev.map(r => r.id === id ? { ...r, isVerified: false, rejectReason: reason } : r));
-                  setSupabaseRoommates(prev => prev.map(r => r.id === id ? { ...r, isVerified: false, rejectReason: reason } : r));
+                  setRoommates(prev => prev.map(r => String(r.id) === String(id) ? { ...r, isVerified: false, rejectReason: reason } : r));
+                  setSupabaseRoommates(prev => {
+                    const updated = prev.map(r => String(r.id) === String(id) ? { ...r, isVerified: false, rejectReason: reason } : r);
+                    try { localStorage.setItem("roomiematch_cached_roommates", JSON.stringify(updated)); } catch (e) {}
+                    return updated;
+                  });
                 } else {
-                  setAllRooms(prev => prev.map(r => r.id === id ? { ...r, isVerifiedRoom: false, rejectReason: reason } : r));
-                  setSupabaseRooms(prev => prev.map(r => r.id === id ? { ...r, isVerifiedRoom: false, rejectReason: reason } : r));
+                  setRooms(prev => prev.map(r => String(r.id) === String(id) ? { ...r, isVerifiedRoom: false, rejectReason: reason } : r));
+                  setSupabaseRooms(prev => {
+                    const updated = prev.map(r => String(r.id) === String(id) ? { ...r, isVerifiedRoom: false, rejectReason: reason } : r);
+                    try { localStorage.setItem("roomiematch_cached_rooms", JSON.stringify(updated)); } catch (e) {}
+                    return updated;
+                  });
                 }
+                try {
+                  const postedRooms = JSON.parse(localStorage.getItem("roomiematch_posted_rooms") || "[]");
+                  if (postedRooms.length > 0) {
+                    const updatedPostedRooms = postedRooms.map((r: any) => String(r.id) === String(id) ? { ...r, isVerifiedRoom: false, rejectReason: reason } : r);
+                    localStorage.setItem("roomiematch_posted_rooms", JSON.stringify(updatedPostedRooms));
+                  }
+                } catch (e) {}
               }}
               onReviewDeleted={handleAdminReviewDeleted}
               onViewRoommate={setSelectedRoommate}
