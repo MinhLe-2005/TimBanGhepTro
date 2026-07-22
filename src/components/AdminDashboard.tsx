@@ -31,6 +31,8 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   const [allSupabaseRoommates, setAllSupabaseRoommates] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [adminUserIds, setAdminUserIds] = useState<string[]>([]);
+  const [rejectingItem, setRejectingItem] = useState<{ table: 'roommates' | 'rooms'; item: any } | null>(null);
+  const [rejectReasonInput, setRejectReasonInput] = useState('');
 
   const fetchAdminData = async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
@@ -509,16 +511,42 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     fetchAdminData(false);
   };
 
-  const handleRejectListing = async (table: 'roommates' | 'rooms', id: string) => {
-    const reason = prompt('Vui lòng nhập lý do từ chối:');
-    if (!reason || !reason.trim()) return;
-    
-    const { error } = await supabase.from(table).update({ rejectReason: reason.trim() }).eq('id', id);
+  const handleRejectListing = (table: 'roommates' | 'rooms', item: any) => {
+    setRejectingItem({ table, item });
+    setRejectReasonInput('');
+  };
+
+  const confirmRejectListing = async () => {
+    if (!rejectingItem) return;
+    const { table, item } = rejectingItem;
+    const finalReason = rejectReasonInput.trim();
+    if (!finalReason) {
+      toast('Vui lòng nhập lý do từ chối.', 'warning');
+      return;
+    }
+
+    const { error } = await supabase.from(table).update({ rejectReason: finalReason }).eq('id', item.id);
     if (error) {
       toast('Không thể từ chối bài viết.', 'error');
       return;
     }
-    toast('Đã từ chối bài viết thành công.', 'success');
+
+    // Send notification message to user chat channel if owner userId exists
+    const ownerUserId = item.user_id || item.postedBy || item.auth_id;
+    const itemTitle = item.title || item.name || (table === 'roommates' ? 'Bài đăng tìm bạn ở ghép' : 'Tin đăng phòng trọ');
+
+    if (ownerUserId) {
+      const chatId = [ownerUserId, currentUser?.id || 'ADMIN'].sort().join('_');
+      await supabase.from('messages').insert({
+        chat_id: chatId,
+        sender_id: currentUser?.id || 'ADMIN',
+        text: `🔴 [HỆ THỐNG PHẢN HỒI] Bài viết "${itemTitle}" của bạn không được duyệt.\n\n📌 Lý do từ chối: "${finalReason}"\n\n💡 Hướng dẫn: Vui lòng vào trang quản lý bài viết của bạn để chỉnh sửa thông tin phù hợp và gửi duyệt lại.`
+      });
+    }
+
+    toast('✅ Đã từ chối bài viết và gửi thông báo phản hồi về cho người dùng!', 'success');
+    setRejectingItem(null);
+    setRejectReasonInput('');
     fetchAdminData(false);
   };
 
@@ -901,7 +929,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                           <button onClick={() => handleApproveListing('roommates', rm.id)} className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors shadow-sm" title="Duyệt bài">
                             <Check className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleRejectListing('roommates', rm.id)} className="p-2 bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white rounded-xl transition-colors shadow-sm" title="Từ chối">
+                          <button onClick={() => handleRejectListing('roommates', rm)} className="p-2 bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white rounded-xl transition-colors shadow-sm" title="Từ chối">
                             <X className="w-4 h-4" />
                           </button>
                         </div>
@@ -955,7 +983,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                           <button onClick={(e) => { e.stopPropagation(); handleApproveListing('rooms', room.id); }} className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors shadow-sm" title="Duyệt bài">
                             <Check className="w-4 h-4" />
                           </button>
-                          <button onClick={(e) => { e.stopPropagation(); handleRejectListing('rooms', room.id); }} className="p-2 bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white rounded-xl transition-colors shadow-sm" title="Từ chối">
+                          <button onClick={(e) => { e.stopPropagation(); handleRejectListing('rooms', room); }} className="p-2 bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white rounded-xl transition-colors shadow-sm" title="Từ chối">
                             <X className="w-4 h-4" />
                           </button>
                           <button onClick={(e) => { e.stopPropagation(); handleDeleteListing('rooms', room.id, 'tin đăng phòng'); }} className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl transition-colors shadow-sm" title="Xóa">
@@ -1058,6 +1086,90 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
           </>
         )}
       </div>
+
+      {/* Modal Nhập Lý Do Từ Chối */}
+      {rejectingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-slate-100 space-y-5 animate-scale-up">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-xl font-black text-rose-600 flex items-center gap-2">
+                  <X className="w-6 h-6 p-1 bg-rose-100 rounded-full text-rose-600" />
+                  Từ Chối Duyệt Bài Đăng
+                </h3>
+                <p className="text-xs text-slate-500 font-bold mt-1">
+                  Bài viết: <span className="text-slate-800 font-extrabold">{rejectingItem.item.title || rejectingItem.item.name || 'Bài đăng'}</span>
+                </p>
+              </div>
+              <button
+                onClick={() => setRejectingItem(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5">
+              <label className="block text-xs font-black uppercase tracking-wider text-slate-600">
+                Chọn nhanh lý do phổ biến:
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  "Thông tin không chính xác / thiếu chi tiết",
+                  "Hình ảnh không rõ ràng / vi phạm quy định",
+                  "Số điện thoại liên hệ không đúng",
+                  "Mức giá hoặc mô tả không khớp thực tế",
+                  "Nội dung vi phạm quy chuẩn cộng đồng / Spam"
+                ].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setRejectReasonInput(preset)}
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                      rejectReasonInput === preset
+                        ? "bg-rose-50 text-rose-700 border-rose-300 font-bold shadow-xs"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    + {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                Lý do từ chối cụ thể (Sẽ gửi phản hồi trực tiếp tới User):
+              </label>
+              <textarea
+                rows={4}
+                value={rejectReasonInput}
+                onChange={(e) => setRejectReasonInput(e.target.value)}
+                placeholder="Nhập lý do chi tiết để người dùng biết cần chỉnh sửa lại điều gì..."
+                className="w-full bg-slate-50 border-2 border-slate-200 focus:border-rose-500 focus:bg-white rounded-2xl p-4 text-sm font-medium outline-none transition-all placeholder:text-slate-400 resize-none"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setRejectingItem(null)}
+                className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-sm cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={confirmRejectListing}
+                className="px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+                Gửi từ chối &amp; Phản hồi User
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

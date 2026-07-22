@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Upload, Home, MapPin, Search, Users, User, Banknote, Shield, Check, FileText, Image as ImageIcon, Flame, LayoutGrid, HandCoins, Info, Plus } from "lucide-react";
+import { X, Upload, Home, MapPin, Search, Users, User, Banknote, Shield, Check, FileText, Image as ImageIcon, Flame, LayoutGrid, HandCoins, Info, Plus, AlertCircle } from "lucide-react";
 import { Roommate, Room } from "../types";
 import { SCHOOLS_BY_DISTRICT } from "../data";
 import { supabase } from "../lib/supabase";
@@ -589,6 +589,18 @@ export default function PostListingModal({
                 Có Phòng / Phòng Tìm Bạn
               </button>
             </div>
+
+            {/* Rejection Notice Banner if present */}
+            {editingData?.rejectReason && (
+              <div className="p-4 bg-rose-50 border-2 border-rose-200 rounded-2xl flex items-start gap-3 text-rose-800 shadow-sm">
+                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-xs font-black uppercase tracking-wider text-rose-700">Lý do từ chối duyệt bài từ Quản trị viên:</p>
+                  <p className="text-sm font-bold text-rose-900">"{editingData.rejectReason}"</p>
+                  <p className="text-xs text-rose-600 font-medium">Vui lòng điều chỉnh lại thông tin bài đăng bên dưới và bấm cập nhật để gửi xét duyệt lại.</p>
+                </div>
+              </div>
+            )}
 
             {/* TAB CONTENT: 1. SEEKING ROOMMATE FORM */}
             {activeTab === "roommate" && (
