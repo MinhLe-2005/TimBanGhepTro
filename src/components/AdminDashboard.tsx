@@ -25,10 +25,11 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({ currentUser, roommates, rooms, onDeleteRoommate, onDeleteRoom, onApproveListing, onRejectListing, onReviewDeleted, onViewRoommate, onViewRoom }: AdminDashboardProps) {
   const { confirm, toast, previewImage } = useDialog();
-  const [activeTab, setActiveTab] = useState<"reports" | "reviewReports" | "pendingListings" | "users" | "listings" | "rooms" | "agreements">("reviewReports");
+  const [activeTab, setActiveTab] = useState<"reports" | "reviewReports" | "pendingListings" | "users" | "listings" | "rooms" | "agreements" | "appeals">("reviewReports");
   const [reports, setReports] = useState<any[]>([]);
   const [reviewReports, setReviewReports] = useState<any[]>([]);
   const [bannedUsers, setBannedUsers] = useState<string[]>([]);
+  const [appeals, setAppeals] = useState<any[]>([]);
   const [agreements, setAgreements] = useState<any[]>([]);
   const [allSupabaseRoommates, setAllSupabaseRoommates] = useState<any[]>([]);
   const [allSupabaseRooms, setAllSupabaseRooms] = useState<any[]>(rooms || []);
@@ -169,6 +170,10 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
       
       const combinedBannedUsers = [...new Set([...legacyBannedIds, ...dbLockedIds])];
       setBannedUsers(combinedBannedUsers);
+
+      // Fetch Appeals
+      const { data: appealsData } = await supabase.from('messages').select('*').eq('chat_id', 'SYSTEM_APPEALS').order('created_at', { ascending: false });
+      setAppeals(appealsData || []);
 
       // Fetch Agreements
       const { data: agreementMsgs } = await supabase
@@ -724,6 +729,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
         {tabBtn("users", "Hồ sơ người dùng", profiles.length, <UserCheck className="w-5 h-5" />, "bg-purple-100 text-purple-700")}
         {tabBtn("rooms", "Tin đăng phòng", approvedRooms.length, <FileText className="w-5 h-5" />, "bg-emerald-100 text-emerald-700")}
         {tabBtn("agreements", "Hợp đồng", agreements.length, <FileText className="w-5 h-5" />, "bg-amber-100 text-amber-700")}
+        {tabBtn("appeals", "Đơn kháng cáo", appeals.length, <ShieldCheck className="w-5 h-5" />, "bg-teal-100 text-teal-700")}
       </div>
 
       <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
@@ -1180,6 +1186,62 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                         </button>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB: APPEALS */}
+            {activeTab === "appeals" && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-black text-slate-800">Đơn Kháng Cáo ({appeals.length})</h3>
+                {appeals.length === 0 ? (
+                  <div className="text-center py-10 bg-slate-50 rounded-2xl"><p className="text-slate-500 font-bold">Không có đơn kháng cáo nào.</p></div>
+                ) : (
+                  <div className="grid gap-4">
+                    {appeals.map(appeal => {
+                      const user = allSupabaseRoommates.find(r => r.id === appeal.sender_id || r.user_id === appeal.sender_id) || { name: 'Người dùng ẩn danh' };
+                      return (
+                        <div key={appeal.id} className="bg-white rounded-2xl p-5 border border-emerald-100 shadow-sm relative overflow-hidden">
+                          <div className="absolute top-0 left-0 w-1 h-full bg-emerald-400" />
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="font-black text-slate-800 text-base">{user.name}</span>
+                                <span className="text-xs text-slate-400 font-bold bg-slate-100 px-2 py-0.5 rounded-full">ID: {appeal.sender_id}</span>
+                              </div>
+                              <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed bg-slate-50 p-4 rounded-xl font-medium border border-slate-100">
+                                {appeal.text}
+                              </p>
+                              <div className="text-xs font-semibold text-slate-400 mt-3 flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5" />
+                                {new Date(appeal.created_at).toLocaleString('vi-VN')}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleUnbanUser(appeal.sender_id)}
+                                className="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold rounded-xl text-xs transition-colors"
+                              >
+                                Mở khóa
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  const ok = await confirm({ title: 'Xóa đơn', message: 'Bạn có chắc chắn muốn xóa đơn này?', confirmText: 'Xóa', type: 'error' });
+                                  if (!ok) return;
+                                  await supabase.from('messages').delete().eq('id', appeal.id);
+                                  toast('Đã xóa đơn kháng cáo.', 'success');
+                                  fetchAdminData(false);
+                                }}
+                                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-xs transition-colors"
+                              >
+                                Từ chối (Xóa đơn)
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

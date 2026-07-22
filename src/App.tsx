@@ -24,6 +24,7 @@ import LoginModal from "./components/LoginModal";
 import PostListingModal from "./components/PostListingModal";
 import ChangePasswordModal from "./components/ChangePasswordModal";
 import ReportModal from "./components/ReportModal";
+import BannedScreen from "./components/BannedScreen";
 
 type ListingKind = "room" | "roommate";
 type ListingAction = "create" | "update";
@@ -187,11 +188,7 @@ export default function App() {
         const isLegacyBanned = banMsgs && banMsgs.some((m: any) => m.text.includes(userId));
 
         if (isProfileLocked || isRoommateLocked || isLegacyBanned) {
-          await supabase.auth.signOut();
-          setCurrentUser(null);
-          setCurrentUserProfile(null);
-          localStorage.removeItem("roomiematch_user_profile");
-          toast('Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.', 'error', 8000);
+          setIsBanned(true);
         }
       } catch (e) {
         console.error("Error checking ban status", e);
@@ -2113,11 +2110,8 @@ export default function App() {
         const isLegacyBanned = banMsgs && banMsgs.some((m: any) => m.text.includes(user.id));
 
         if (isProfileLocked || isRoommateLocked || isLegacyBanned) {
-          await supabase.auth.signOut();
-          setCurrentUser(null);
-          setCurrentUserProfile(null);
-          localStorage.removeItem("roomiematch_user_profile");
-          toast("Tài khoản của bạn đã bị khóa do bị report vi phạm. Vui lòng liên hệ Admin để biết thêm chi tiết.", "error", 6000);
+          setCurrentUser(user);
+          setIsBanned(true);
           return;
         }
       } catch(e) {}
@@ -2651,18 +2645,16 @@ export default function App() {
 
   if (isBanned) {
     return (
-      <div className="min-h-screen bg-rose-50 flex items-center justify-center p-4">
-        <div className="bg-white p-10 rounded-3xl max-w-md text-center shadow-xl border border-rose-100">
-          <div className="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-6">
-             <span className="text-4xl">⛔</span>
-          </div>
-          <h2 className="text-2xl font-black text-rose-600 mb-3">Tài khoản đã bị khóa</h2>
-          <p className="text-slate-600">
-            Tài khoản của bạn đã bị khóa do vi phạm tiêu chuẩn cộng đồng của RoomieMatch. 
-            Bạn không thể tiếp tục sử dụng dịch vụ. Nếu có thắc mắc, vui lòng liên hệ admin@roomiematch.com.
-          </p>
-        </div>
-      </div>
+      <BannedScreen 
+        currentUser={currentUser} 
+        onLogout={async () => {
+          await supabase.auth.signOut();
+          setCurrentUser(null);
+          setCurrentUserProfile(null);
+          localStorage.removeItem("roomiematch_user_profile");
+          setIsBanned(false);
+        }} 
+      />
     );
   }
 

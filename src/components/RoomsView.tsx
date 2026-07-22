@@ -496,7 +496,7 @@ export default function RoomsView({
               onViewDetails={onViewRoom}
               onLikeChange={isAdmin ? undefined : onLikeRoom}
               isInitiallyLiked={likedRoomIds.includes(room.id)}
-              onReport={() => handleReportRoomClick(room)}
+              onReport={(currentUserId === room.user_id || currentUserId === room.postedBy) ? undefined : () => handleReportRoomClick(room)}
               onEdit={isAdmin || currentUserId === room.user_id || currentUserId === room.postedBy ? onEditRoom : undefined}
               onDelete={isAdmin || currentUserId === room.user_id || currentUserId === room.postedBy ? onDeleteRoom : undefined}
               currentUserId={currentUserId}

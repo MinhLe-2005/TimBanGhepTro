@@ -1683,21 +1683,24 @@ export default function ChatView({
                     {activeAgreementState.status === "signed" ? "Đã ký kết" : "Lập Thỏa Thuận"}
                   </span>
                 </button>
-                <button
-                  onClick={() => {
-                    const latestPartnerMessage = reportablePartnerMessages[0];
-                    if (!latestPartnerMessage) {
-                      toast("Chưa có tin nhắn nào từ người này để báo cáo.", "warning");
-                      return;
-                    }
-                    openMessageReport(latestPartnerMessage.id);
-                  }}
-                  className="px-3.5 py-2.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 transition-colors duration-200 cursor-pointer flex items-center gap-2 font-bold text-[13px] border border-rose-200 hover:border-rose-300"
-                  title="Báo cáo vi phạm"
-                >
-                  <AlertOctagon className="h-4 w-4" />
-                  <span className="hidden sm:inline">Báo cáo</span>
                 </button>
+                {activeChat?.user1_id !== activeChat?.user2_id && (
+                  <button
+                    onClick={() => {
+                      const latestPartnerMessage = reportablePartnerMessages[0];
+                      if (!latestPartnerMessage) {
+                        toast("Chưa có tin nhắn nào từ người này để báo cáo.", "warning");
+                        return;
+                      }
+                      openMessageReport(latestPartnerMessage.id);
+                    }}
+                    className="px-3.5 py-2.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 transition-colors duration-200 cursor-pointer flex items-center gap-2 font-bold text-[13px] border border-rose-200 hover:border-rose-300"
+                    title="Báo cáo vi phạm"
+                  >
+                    <AlertOctagon className="h-4 w-4" />
+                    <span className="hidden sm:inline">Báo cáo</span>
+                  </button>
+                )}
               </div>
             </div>
 

@@ -605,7 +605,7 @@ export default function RoommatesView({
               onEdit={isAdmin ? undefined : onEditRoommate}
               onDelete={isAdmin || currentUserId === roommate.user_id || currentUserId === roommate.postedBy ? onDeleteRoommate : undefined}
               onClearSelectedRoommate={onClearSelectedRoommate}
-              onReport={() => handleReportRoommateClick(roommate)}
+              onReport={(currentUserId === roommate.user_id || currentUserId === roommate.postedBy) ? undefined : () => handleReportRoommateClick(roommate)}
               currentUserId={currentUserId}
             />
           ))}
