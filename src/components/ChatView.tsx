@@ -733,21 +733,22 @@ export default function ChatView({
     });
 
     // 2. Sync read receipts to server for partner to see
-    const unreadFromPartner = activeMessages.filter(
-      msg => msg.senderId !== "me" && msg.senderId !== myChatId && !msg.reactions?.["read"]?.includes(myChatId)
-    );
-    if (unreadFromPartner.length > 0) {
-      const lastUnread = unreadFromPartner[unreadFromPartner.length - 1];
-      if (import.meta.env.VITE_SUPABASE_URL) {
-        const currentReactions = lastUnread.reactions || {};
-        const readUsers = currentReactions["read"] || [];
-        if (!readUsers.includes(myChatId)) {
-          const updatedReactions = { ...currentReactions, "read": [...readUsers, myChatId] };
-          supabase.from('messages').update({ reactions: updatedReactions }).eq('id', lastUnread.id).then(({ error }) => {
-            if (error) console.error("Error marking read receipt:", error);
-          });
-        }
-      }
+    const partnerMessages = activeMessages.filter(msg => msg.senderId !== "me" && msg.senderId !== myChatId && !msg.isSystem);
+    const mySeenMessages = activeMessages.filter(msg => (msg.senderId === "me" || msg.senderId === myChatId) && msg.text === "[SYSTEM_SEEN]");
+    const lastSeenTime = mySeenMessages.length > 0 ? new Date(mySeenMessages[mySeenMessages.length - 1].timestamp).getTime() : 0;
+    
+    const hasUnseenPartnerMessage = partnerMessages.some(msg => new Date(msg.timestamp).getTime() > lastSeenTime);
+    
+    if (hasUnseenPartnerMessage && import.meta.env.VITE_SUPABASE_URL) {
+      const chatId = activeMessages[0]?.chatId || [myChatId, partnerChatId || activeRoommateId].sort().join('_');
+      supabase.from('messages').insert({
+        chat_id: chatId,
+        sender_id: myChatId,
+        text: "[SYSTEM_SEEN]",
+        is_system: true
+      }).then(({ error }) => {
+        if (error) console.error("Error inserting read receipt:", error);
+      });
     }
   }, [activeMessages, activeRoommateId, partnerChatId, myChatId]);
   
@@ -1721,7 +1722,9 @@ export default function ChatView({
                   const isLast = index === activeMessages.length - 1;
                   const timeElapsed = Date.now() - new Date(msg.timestamp).getTime();
                   const hasPartnerRepliedAfter = activeMessages.slice(index + 1).some(m => m.senderId !== "me" && m.senderId !== myChatId && m.text !== "[SYSTEM_BLOCK]" && m.text !== "[SYSTEM_UNBLOCK]");
-                  const isRead = msg.reactions?.["read"]?.includes(partnerChatId || "") || hasPartnerRepliedAfter;
+                  const partnerSeenMessages = activeMessages.filter(m => m.senderId !== "me" && m.senderId !== myChatId && m.text === "[SYSTEM_SEEN]");
+                  const partnerLastSeenTime = partnerSeenMessages.length > 0 ? new Date(partnerSeenMessages[partnerSeenMessages.length - 1].timestamp).getTime() : 0;
+                  const isRead = hasPartnerRepliedAfter || new Date(msg.timestamp).getTime() <= partnerLastSeenTime;
                   const statusText = isRead ? "Đã xem" : "Đã gửi";
                   
                   let isAgreementDraft = false;
@@ -1928,19 +1931,7 @@ export default function ChatView({
                       {/* Message reactions sit below the bubble so they never cover the timestamp. */}
                       {!isSpecialMessage && (
                         <div className={`mt-1 flex w-full items-center gap-1 px-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                          <MessageReactions
-                            messageId={msg.id}
-                            reactions={msg.reactions}
-                            currentUserId={currentUser?.id || ''}
-                            currentUserName={currentUserProfile?.name || 'Bạn'}
-                            currentUserAvatar={currentUserProfile?.avatar}
-                            partnerName={activeRoommate?.name || 'Đối phương'}
-                            partnerId={activeRoommate?.user_id || activeRoommate?.id}
-                            partnerAvatar={activeRoommate?.avatar}
-                            onAddReaction={(emoji) => handleAddReaction(msg.id, emoji)}
-                            onRemoveReaction={(emoji) => handleRemoveReaction(msg.id, emoji)}
-                            isMyMessage={isMe}
-                          />
+                          {/* Reactions temporarily disabled due to schema limits */}
                           {!isMe && (
                             <button
                               type="button"
