@@ -162,11 +162,18 @@ export default function BannedScreen({ currentUser, onLogout }: BannedScreenProp
               ) : (
                 <div className="relative w-full h-40 border-2 border-emerald-400 rounded-xl overflow-hidden group">
                   <img src={URL.createObjectURL(appealImage)} alt="Preview" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => window.open(URL.createObjectURL(appealImage), '_blank')}
+                      className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/50 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors"
+                    >
+                      Xem ảnh
+                    </button>
                     <button
                       type="button"
                       onClick={() => setAppealImage(null)}
-                      className="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-4 rounded-lg text-sm"
+                      className="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-4 rounded-lg text-sm shadow-lg transition-colors"
                     >
                       Xóa ảnh
                     </button>
