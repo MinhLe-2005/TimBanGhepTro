@@ -329,36 +329,16 @@ export default function ChatView({
   // ✅ Message Reactions Handlers
   const handleAddReaction = async (messageId: string, emoji: string) => {
     if (!import.meta.env.VITE_SUPABASE_URL || !currentUser?.id) return;
-
     try {
-      // Get current message
-      const { data: message } = await supabase
-        .from('messages')
-        .select('reactions')
-        .eq('id', messageId)
-        .single();
-
-      const currentReactions = message?.reactions || {};
-      const updatedReactions = Object.entries(currentReactions).reduce<Record<string, string[]>>(
-        (result, [reactionEmoji, users]) => {
-          const remainingUsers = (users as string[]).filter((userId) => userId !== currentUser.id);
-          if (remainingUsers.length > 0) result[reactionEmoji] = remainingUsers;
-          return result;
-        },
-        {}
-      );
-
-      updatedReactions[emoji] = [
-        ...(updatedReactions[emoji] || []),
-        currentUser.id,
-      ];
-
-      const { error } = await supabase
-        .from('messages')
-        .update({ reactions: updatedReactions })
-        .eq('id', messageId);
-
-      if (error) throw error;
+      const message = rawActiveMessages.find(m => m.id === messageId);
+      const chatId = message?.chatId || (activeRoommateId ? [currentUser.id, activeRoommateId].sort().join('_') : "");
+      if (!chatId) return;
+      await supabase.from('messages').insert({
+        chat_id: chatId,
+        sender_id: currentUser.id,
+        text: `[SYSTEM_REACTION] ${messageId} ${emoji}`,
+        is_system: true
+      });
     } catch (error) {
       console.error('Error adding reaction:', error);
     }
@@ -366,34 +346,16 @@ export default function ChatView({
 
   const handleRemoveReaction = async (messageId: string, emoji: string) => {
     if (!import.meta.env.VITE_SUPABASE_URL || !currentUser?.id) return;
-
     try {
-      // Get current message
-      const { data: message } = await supabase
-        .from('messages')
-        .select('reactions')
-        .eq('id', messageId)
-        .single();
-
-      const currentReactions = message?.reactions || {};
-      const currentUsers = currentReactions[emoji] || [];
-      
-      // Remove user from reaction
-      const updatedUsers = currentUsers.filter((userId: string) => userId !== currentUser.id);
-      const updatedReactions = {
-        ...currentReactions,
-        [emoji]: updatedUsers
-      };
-
-      // Clean up empty reactions
-      if (updatedUsers.length === 0) {
-        delete updatedReactions[emoji];
-      }
-
-      await supabase
-        .from('messages')
-        .update({ reactions: updatedReactions })
-        .eq('id', messageId);
+      const message = rawActiveMessages.find(m => m.id === messageId);
+      const chatId = message?.chatId || (activeRoommateId ? [currentUser.id, activeRoommateId].sort().join('_') : "");
+      if (!chatId) return;
+      await supabase.from('messages').insert({
+        chat_id: chatId,
+        sender_id: currentUser.id,
+        text: `[SYSTEM_REMOVEREACTION] ${messageId} ${emoji}`,
+        is_system: true
+      });
     } catch (error) {
       console.error('Error removing reaction:', error);
     }
@@ -504,10 +466,9 @@ export default function ChatView({
   
   const rawActiveMessages = activeRoommate ? (chats[activeRoommateId!] || chats[activeRoommate.id] || []) : [];
   const activeMessages = useMemo(() => {
-    return rawActiveMessages.filter((msg, idx) => {
+    const visibleMessages = rawActiveMessages.filter((msg, idx) => {
       // 1. Kiểm tra visibleTo từ Database Trigger
       if (msg.visibleTo && msg.visibleTo !== myChatId && msg.visibleTo !== myAuthId && msg.visibleTo !== myProfileId && msg.visibleTo !== myRoommateId) {
-        console.log('[ChatFilter] Hiding message (visibleTo mismatch):', msg.text, 'visibleTo:', msg.visibleTo, 'myIds:', [myChatId, myAuthId, myProfileId, myRoommateId]);
         return false;
       }
       
@@ -522,20 +483,15 @@ export default function ChatView({
           }
         }
         
-        console.log('[ChatFilter] System msg:', msg.text, 'prevUserMsg:', prevUserMsg?.text, 'senderId:', prevUserMsg?.senderId);
-        
         // Nếu tin nhắn gần nhất phía trước được gửi bởi chính mình ("me" hoặc myChatId)
         if (prevUserMsg) {
           const isSenderMe = prevUserMsg.senderId === "me" || prevUserMsg.senderId === myChatId;
-          console.log('[ChatFilter] isSenderMe:', isSenderMe, 'myChatId:', myChatId);
           if (isSenderMe) {
             // Kiểm tra xem tin nhắn đó có chứa từ khóa nhạy cảm hay không
             const suspiciousKeywords = ["đặt cọc", "chuyển tiền", "chuyển khoản", "tiền cọc", "cọc giữ chỗ", "gửi cọc", "chuyển khoản trước", "gửi cọc giữ chỗ", "chuyển tiền gấp"];
             const textLower = (prevUserMsg.text || "").toLowerCase();
             const isSuspicious = suspiciousKeywords.some(kw => textLower.includes(kw));
-            console.log('[ChatFilter] isSuspicious:', isSuspicious, 'text:', textLower);
             if (isSuspicious) {
-              console.log('[ChatFilter] Hiding system warning for sender:', msg.text);
               return false; // Ẩn cảnh báo đối với người gửi
             }
           }
@@ -1931,7 +1887,19 @@ export default function ChatView({
                       {/* Message reactions sit below the bubble so they never cover the timestamp. */}
                       {!isSpecialMessage && (
                         <div className={`mt-1 flex w-full items-center gap-1 px-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                          {/* Reactions temporarily disabled due to schema limits */}
+                          <MessageReactions
+                            messageId={msg.id}
+                            reactions={msg.reactions}
+                            currentUserId={currentUser?.id || ''}
+                            currentUserName={currentUserProfile?.name || 'Bạn'}
+                            currentUserAvatar={currentUserProfile?.avatar}
+                            partnerName={activeRoommate?.name || 'Đối phương'}
+                            partnerId={activeRoommate?.user_id || activeRoommate?.id}
+                            partnerAvatar={activeRoommate?.avatar}
+                            onAddReaction={(emoji) => handleAddReaction(msg.id, emoji)}
+                            onRemoveReaction={(emoji) => handleRemoveReaction(msg.id, emoji)}
+                            isMyMessage={isMe}
+                          />
                           {!isMe && (
                             <button
                               type="button"
