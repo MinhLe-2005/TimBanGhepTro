@@ -16,6 +16,7 @@ export default function BannedScreen({ currentUser, onLogout }: BannedScreenProp
   const [appealSent, setAppealSent] = useState(false);
   const [isCheckingAppeal, setIsCheckingAppeal] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showImageModal, setShowImageModal] = useState(false);
 
   useEffect(() => {
     const checkAppeal = async () => {
@@ -166,7 +167,7 @@ export default function BannedScreen({ currentUser, onLogout }: BannedScreenProp
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                     <button
                       type="button"
-                      onClick={() => window.open(URL.createObjectURL(appealImage), '_blank')}
+                      onClick={() => setShowImageModal(true)}
                       className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/50 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors"
                     >
                       Xem ảnh
@@ -209,6 +210,30 @@ export default function BannedScreen({ currentUser, onLogout }: BannedScreenProp
           <LogOut className="w-4 h-4" /> Đăng xuất
         </button>
       </div>
+
+      {/* Image Modal */}
+      {showImageModal && appealImage && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transition-all"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col justify-center items-center">
+            <button
+              type="button"
+              onClick={() => setShowImageModal(false)}
+              className="absolute -top-12 right-0 p-2 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors z-10"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img 
+              src={URL.createObjectURL(appealImage)} 
+              alt="Full size preview" 
+              className="w-auto h-auto max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

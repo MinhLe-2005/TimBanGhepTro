@@ -30,6 +30,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   const [reviewReports, setReviewReports] = useState<any[]>([]);
   const [bannedUsers, setBannedUsers] = useState<string[]>([]);
   const [appeals, setAppeals] = useState<any[]>([]);
+
   const [agreements, setAgreements] = useState<any[]>([]);
   const [allSupabaseRoommates, setAllSupabaseRoommates] = useState<any[]>([]);
   const [allSupabaseRooms, setAllSupabaseRooms] = useState<any[]>(rooms || []);
@@ -708,6 +709,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
+
       </div>
     );
   };
@@ -1184,7 +1186,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                                 </p>
                                 {appeal.image_url && (
                                   <div className="mt-4 max-w-sm rounded-lg overflow-hidden border border-slate-200">
-                                    <img src={appeal.image_url} alt="Minh chứng" className="w-full h-auto object-cover hover:opacity-90 cursor-pointer transition-opacity" onClick={() => window.open(appeal.image_url, '_blank')} />
+                                    <img src={appeal.image_url} alt="Minh chứng" className="cursor-zoom-in w-full h-auto object-cover hover:opacity-90 transition-opacity" onClick={() => previewImage(appeal.image_url)} />
                                   </div>
                                 )}
                               </div>
