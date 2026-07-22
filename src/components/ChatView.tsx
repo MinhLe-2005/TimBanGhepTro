@@ -1683,7 +1683,6 @@ export default function ChatView({
                     {activeAgreementState.status === "signed" ? "Đã ký kết" : "Lập Thỏa Thuận"}
                   </span>
                 </button>
-                </button>
                 {activeChat?.user1_id !== activeChat?.user2_id && (
                   <button
                     onClick={() => {
