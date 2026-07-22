@@ -557,37 +557,30 @@ export default function PostListingModal({
             {/* Header Text */}
             <div className="flex items-start gap-3">
               <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">{editingData ? "Cập nhật bài viết" : "Đăng bài tin mới"}</h3>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                  {editingData 
+                    ? (activeTab === "roommate" ? "Cập nhật bài viết tìm bạn ở ghép" : "Cập nhật bài viết phòng cho thuê") 
+                    : (activeTab === "roommate" ? "Đăng tin tìm bạn ở ghép" : "Đăng tin phòng trọ cho thuê")}
+                </h3>
                 <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Cổng kết nối Đà Nẵng</p>
               </div>
             </div>
 
-            {/* Selecting Posting Modes */}
-            <div className="flex bg-slate-100 rounded-2xl p-1.5 border border-slate-200/50">
-              <button
-                type="button"
-                onClick={() => setActiveTab("roommate")}
-                className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer transition-all duration-150 ${
-                  activeTab === "roommate"
-                    ? "bg-white text-[#006590] shadow-sm font-black"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                <User className="h-4 w-4" />
-                Tìm Bạn Ở Ghép
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("room")}
-                className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer transition-all duration-150 ${
-                  activeTab === "room"
-                    ? "bg-white text-[#006590] shadow-sm font-black"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                <Home className="h-4 w-4" />
-                Có Phòng / Phòng Tìm Bạn
-              </button>
+            {/* Mode Indicator Badge (Single Mode) */}
+            <div className="bg-sky-50/80 border border-sky-200/80 rounded-2xl p-3.5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#006590] text-white flex items-center justify-center shrink-0 shadow-sm font-bold">
+                {activeTab === "roommate" ? <User className="h-5 w-5" /> : <Home className="h-5 w-5" />}
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-wider text-[#006590]">
+                  {activeTab === "roommate" ? "Tìm Bạn Ở Ghép" : "Có Phòng / Phòng Tìm Bạn"}
+                </p>
+                <p className="text-[12px] text-slate-500 font-semibold mt-0.5">
+                  {activeTab === "roommate" 
+                    ? "Đăng thông tin tìm người ở cùng phòng trọ / căn hộ" 
+                    : "Đăng thông tin phòng trọ đang có sẵn để tìm người đến ở ghép"}
+                </p>
+              </div>
             </div>
 
             {/* Rejection Notice Banner if present */}
