@@ -9,6 +9,7 @@ import {
   Smile,
   Star,
   MapPin,
+  ExternalLink,
   Ban,
   Eye,
   EyeOff,
@@ -454,10 +455,17 @@ export default function RoommateModal({
                     <Sparkles className="h-4 w-4 text-[#00729c]" />
                     {roommate.role}
                   </span>
-                  <span className="inline-flex max-w-full items-start gap-2 rounded-full border border-sky-100 bg-white/95 px-3.5 py-2 text-left font-medium shadow-[0_4px_12px_rgba(15,80,110,0.10)]">
-                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#00729c]" />
-                    <span>{roommate.location}</span>
-                  </span>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(roommate.location)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group inline-flex max-w-full items-center gap-2 rounded-full border border-sky-200 bg-sky-50/80 hover:bg-sky-100 px-4 py-2 text-left font-bold text-sky-950 shadow-[0_4px_12px_rgba(15,80,110,0.10)] transition-all cursor-pointer"
+                    title="Bấm để kiểm tra vị trí này trên Google Maps"
+                  >
+                    <MapPin className="h-4 w-4 shrink-0 text-[#00729c] group-hover:scale-110 transition-transform" />
+                    <span className="group-hover:underline underline-offset-2">{roommate.location}</span>
+                    <ExternalLink className="h-3.5 w-3.5 text-[#00729c] opacity-80 group-hover:opacity-100 transition-opacity shrink-0" />
+                  </a>
                 </div>
               </div>
             </div>

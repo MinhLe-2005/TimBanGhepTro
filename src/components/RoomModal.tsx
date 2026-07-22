@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Flame, ChevronLeft, ChevronRight, Shield, Zap, Droplet, Building, MapPin, Bed, Bath, User, MessageSquare, Handshake, Check, Info, Star, Upload, Trash2, Moon, Dog, ChefHat, Compass, Sparkles, Heart, Smile, FileText, Phone, Ban, Users, LayoutGrid, Image as ImageIcon, Cigarette, Utensils, Clock } from "lucide-react";
+import { X, Flame, ChevronLeft, ChevronRight, Shield, Zap, Droplet, Building, MapPin, Bed, Bath, User, MessageSquare, Handshake, Check, Info, Star, Upload, Trash2, Moon, Dog, ChefHat, Compass, Sparkles, Heart, Smile, FileText, Phone, Ban, Users, LayoutGrid, Image as ImageIcon, Cigarette, Utensils, Clock, ExternalLink } from "lucide-react";
 import { Room, Roommate } from "../types";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { calculateReputationScore, getReputationLabel } from "../utils/scoring";
@@ -368,10 +368,22 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
             </div>
           </div>
 
-          <p className="text-[15px] text-slate-700 font-bold flex items-center gap-2 mb-5 bg-slate-50 inline-flex px-4 py-2 rounded-xl border-2 border-slate-100">
-            <MapPin className="h-5 w-5 text-sky-600 shrink-0" />
-            {room.location}
-          </p>
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(room.location)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group text-[15px] text-slate-800 font-bold flex flex-wrap items-center gap-2.5 mb-5 bg-sky-50/80 hover:bg-sky-100/90 text-sky-950 px-4 py-2.5 rounded-2xl border-2 border-sky-200/90 hover:border-sky-400 transition-all shadow-xs cursor-pointer w-fit"
+            title="Bấm để kiểm tra vị trí này trên Google Maps"
+          >
+            <div className="w-7 h-7 rounded-lg bg-[#006590] text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-xs">
+              <MapPin className="h-4 w-4" />
+            </div>
+            <span className="group-hover:underline underline-offset-2">{room.location}</span>
+            <ExternalLink className="h-4 w-4 text-[#006590] opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0 ml-0.5" />
+            <span className="text-[11px] font-black uppercase tracking-wider text-sky-800 bg-sky-200/70 px-2 py-0.5 rounded-md ml-2 shrink-0">
+              Bấm để xem vị trí ↗
+            </span>
+          </a>
 
           {/* Badges for Gender & Pets */}
           <div className="flex flex-wrap gap-2.5">
@@ -492,6 +504,40 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
             <div className="bg-[#f6fafe] border-2 border-sky-100 p-5 rounded-3xl text-slate-800 text-[15px] font-medium leading-relaxed shadow-sm">
               {room.description}
             </div>
+          </div>
+
+          {/* Google Maps Interactive Card */}
+          <div className="pt-6 border-t-2 border-slate-100">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-[13px] font-black text-[#006590] uppercase tracking-wider flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-[#006590]" />
+                Vị trí &amp; Bản đồ Google Maps
+              </h4>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(room.location)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-bold text-sky-700 hover:text-sky-900 flex items-center gap-1 hover:underline"
+              >
+                <span>Mở trên Google Maps</span>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </div>
+            <div className="w-full h-72 rounded-3xl overflow-hidden border-2 border-sky-100 shadow-md bg-slate-100 relative group">
+              <iframe
+                title={`Bản đồ Google Maps cho ${room.location}`}
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                loading="lazy"
+                allowFullScreen
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(room.location)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+              ></iframe>
+            </div>
+            <p className="text-[12px] text-slate-500 font-medium mt-2 flex items-center gap-1.5">
+              <Info className="h-4 w-4 text-[#006590] shrink-0" />
+              Bấm vào bản đồ hoặc ô địa điểm phía trên để kiểm tra vị trí thực tế trên Google Maps.
+            </p>
           </div>
 
           {/* Host & Roommate Search Specifications: FULL PROFILE CARDS */}

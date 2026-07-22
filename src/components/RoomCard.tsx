@@ -1,4 +1,4 @@
-import { Heart, Flame, Bed, Bath, Shield, ChefHat, MapPin, Cpu, Car, Eye, Star, Trash2, Ban, Users, AlertCircle, Building, User } from "lucide-react";
+import { Heart, Flame, Bed, Bath, Shield, ChefHat, MapPin, Cpu, Car, Eye, Star, Trash2, Ban, Users, AlertCircle, Building, User, ExternalLink } from "lucide-react";
 import { Room } from "../types";
 import { useState } from "react";
 
@@ -230,10 +230,18 @@ export default function RoomCard({
 
         {/* Location & Proximity */}
         <div className="flex flex-col gap-1.5 mb-4">
-          <div className="flex items-center gap-1.5 text-[12px] font-semibold text-slate-500">
-            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-            <span className="truncate">{room.location}</span>
-          </div>
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(room.location)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="group/map flex items-center gap-1.5 text-[12px] font-semibold text-slate-500 hover:text-sky-700 transition-colors w-fit max-w-full"
+            title="Bấm để kiểm tra vị trí này trên Google Maps"
+          >
+            <MapPin className="h-3.5 w-3.5 text-slate-400 group-hover/map:text-sky-600 group-hover/map:scale-110 transition-all shrink-0" />
+            <span className="truncate group-hover/map:underline">{room.location}</span>
+            <ExternalLink className="h-3 w-3 text-sky-600 opacity-0 group-hover/map:opacity-100 transition-opacity shrink-0" />
+          </a>
           {room.proximity && (
             <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md w-fit">
               <span className="text-slate-400">📍</span>
