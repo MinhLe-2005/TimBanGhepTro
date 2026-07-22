@@ -16,12 +16,14 @@ interface AdminDashboardProps {
   rooms: Room[];
   onDeleteRoommate?: (id: string) => void;
   onDeleteRoom?: (id: string) => void;
+  onApproveListing?: (table: 'roommates' | 'rooms', id: string) => void;
+  onRejectListing?: (table: 'roommates' | 'rooms', id: string, reason: string) => void;
   onReviewDeleted?: (id: string) => void;
   onViewRoommate?: (roommate: Roommate) => void;
   onViewRoom?: (room: Room) => void;
 }
 
-export default function AdminDashboard({ currentUser, roommates, rooms, onDeleteRoommate, onDeleteRoom, onReviewDeleted, onViewRoommate, onViewRoom }: AdminDashboardProps) {
+export default function AdminDashboard({ currentUser, roommates, rooms, onDeleteRoommate, onDeleteRoom, onApproveListing, onRejectListing, onReviewDeleted, onViewRoommate, onViewRoom }: AdminDashboardProps) {
   const { confirm, toast, previewImage } = useDialog();
   const [activeTab, setActiveTab] = useState<"reports" | "reviewReports" | "pendingListings" | "users" | "listings" | "rooms" | "agreements">("reviewReports");
   const [reports, setReports] = useState<any[]>([]);
@@ -29,10 +31,17 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   const [bannedUsers, setBannedUsers] = useState<string[]>([]);
   const [agreements, setAgreements] = useState<any[]>([]);
   const [allSupabaseRoommates, setAllSupabaseRoommates] = useState<any[]>([]);
+  const [allSupabaseRooms, setAllSupabaseRooms] = useState<any[]>(rooms || []);
   const [isLoading, setIsLoading] = useState(true);
   const [adminUserIds, setAdminUserIds] = useState<string[]>([]);
   const [rejectingItem, setRejectingItem] = useState<{ table: 'roommates' | 'rooms'; item: any } | null>(null);
   const [rejectReasonInput, setRejectReasonInput] = useState('');
+
+  useEffect(() => {
+    if (rooms && rooms.length > 0) {
+      setAllSupabaseRooms(rooms);
+    }
+  }, [rooms]);
 
   const fetchAdminData = async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
@@ -43,6 +52,13 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
         .select('*')
         .order('createdAt', { ascending: false });
       if (allRoommatesData) setAllSupabaseRoommates(allRoommatesData);
+
+      // Fetch ALL rooms from Supabase
+      const { data: allRoomsData } = await supabase
+        .from('rooms')
+        .select('*')
+        .order('createdAt', { ascending: false });
+      if (allRoomsData) setAllSupabaseRooms(allRoomsData);
 
       // Fetch admin roles
       const { data: adminRoles } = await supabase.from('admin_roles').select('user_id');
@@ -215,10 +231,11 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   }, []);
 
   // Listings = is_listing is not false; Profiles = is_listing is false
-  const listings = allSupabaseRoommates.filter(r => r.is_listing !== false && r.is_listing !== 'false');
-  const profiles = allSupabaseRoommates.filter(r => r.is_listing === false || r.is_listing === 'false');
-  const pendingListings = listings.filter(r => r.isVerified === false && !r.rejectReason);
-  const pendingRooms = rooms.filter(r => r.isVerifiedRoom === false && !r.rejectReason);
+  const activeRooms = allSupabaseRooms.length > 0 ? allSupabaseRooms : rooms;
+  const listings = allSupabaseRoommates.filter(r => r.is_listing !== false && String(r.is_listing) !== 'false');
+  const profiles = allSupabaseRoommates.filter(r => r.is_listing === false || String(r.is_listing) === 'false');
+  const pendingListings = listings.filter(r => (r.isVerified === false || String(r.isVerified) === 'false' || r.isVerified === null || r.isVerified === undefined) && !r.rejectReason && r.isVerified !== true && String(r.isVerified) !== 'true');
+  const pendingRooms = activeRooms.filter(r => (r.isVerifiedRoom === false || String(r.isVerifiedRoom) === 'false' || r.isVerifiedRoom === null || r.isVerifiedRoom === undefined) && !r.rejectReason && r.isVerifiedRoom !== true && String(r.isVerifiedRoom) !== 'true');
 
   const handleBanUser = async (userId: string) => {
     const ok = await confirm({ title: 'Khóa tài khoản', message: 'Bạn có chắc muốn khóa vĩnh viễn tài khoản này?', confirmText: 'Khóa ngay', type: 'error' });
@@ -501,10 +518,23 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   };
 
   const handleApproveListing = async (table: 'roommates' | 'rooms', id: string) => {
+    // 1. Optimistic local state update in AdminDashboard
+    if (table === 'roommates') {
+      setAllSupabaseRoommates(prev => prev.map(item => item.id === id ? { ...item, isVerified: true, rejectReason: undefined } : item));
+    } else {
+      setAllSupabaseRooms(prev => prev.map(item => item.id === id ? { ...item, isVerifiedRoom: true, rejectReason: undefined } : item));
+    }
+
+    // 2. Notify parent App component to update its state
+    onApproveListing?.(table, id);
+
+    // 3. Update Supabase database
     const field = table === 'roommates' ? 'isVerified' : 'isVerifiedRoom';
-    const { error } = await supabase.from(table).update({ [field]: true }).eq('id', id);
+    const { error } = await supabase.from(table).update({ [field]: true, rejectReason: null }).eq('id', id).select();
     if (error) {
-      toast('Không thể duyệt bài viết.', 'error');
+      console.error("Lỗi duyệt bài trên Supabase:", error);
+      toast('Không thể duyệt bài viết trên CSĐL.', 'error');
+      fetchAdminData(false);
       return;
     }
     toast('✅ Đã duyệt bài viết thành công!', 'success');
@@ -525,13 +555,32 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
       return;
     }
 
-    const { error } = await supabase.from(table).update({ rejectReason: finalReason }).eq('id', item.id);
+    const id = item.id;
+
+    // 1. Optimistic local state update in AdminDashboard
+    if (table === 'roommates') {
+      setAllSupabaseRoommates(prev => prev.map(r => r.id === id ? { ...r, isVerified: false, rejectReason: finalReason } : r));
+    } else {
+      setAllSupabaseRooms(prev => prev.map(r => r.id === id ? { ...r, isVerifiedRoom: false, rejectReason: finalReason } : r));
+    }
+
+    // 2. Notify parent App component
+    onRejectListing?.(table, id, finalReason);
+
+    // 3. Close modal
+    setRejectingItem(null);
+    setRejectReasonInput('');
+
+    // 4. Update Supabase database
+    const { error } = await supabase.from(table).update({ rejectReason: finalReason }).eq('id', id).select();
     if (error) {
-      toast('Không thể từ chối bài viết.', 'error');
+      console.error("Lỗi từ chối bài viết trên Supabase:", error);
+      toast('Không thể từ chối bài viết trên CSĐL.', 'error');
+      fetchAdminData(false);
       return;
     }
 
-    // Send notification message to user chat channel if owner userId exists
+    // 5. Send notification message to user chat channel if owner userId exists
     const ownerUserId = item.user_id || item.postedBy || item.auth_id;
     const itemTitle = item.title || item.name || (table === 'roommates' ? 'Bài đăng tìm bạn ở ghép' : 'Tin đăng phòng trọ');
 
@@ -545,8 +594,6 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     }
 
     toast('✅ Đã từ chối bài viết và gửi thông báo phản hồi về cho người dùng!', 'success');
-    setRejectingItem(null);
-    setRejectReasonInput('');
     fetchAdminData(false);
   };
 

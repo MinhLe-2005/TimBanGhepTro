@@ -2829,6 +2829,20 @@ export default function App() {
               rooms={allRooms}
               onDeleteRoommate={handleDeleteRoommate}
               onDeleteRoom={handleDeleteRoom}
+              onApproveListing={(table, id) => {
+                if (table === 'roommates') {
+                  setAllRoommates(prev => prev.map(r => r.id === id ? { ...r, isVerified: true, rejectReason: undefined } : r));
+                } else {
+                  setAllRooms(prev => prev.map(r => r.id === id ? { ...r, isVerifiedRoom: true, rejectReason: undefined } : r));
+                }
+              }}
+              onRejectListing={(table, id, reason) => {
+                if (table === 'roommates') {
+                  setAllRoommates(prev => prev.map(r => r.id === id ? { ...r, isVerified: false, rejectReason: reason } : r));
+                } else {
+                  setAllRooms(prev => prev.map(r => r.id === id ? { ...r, isVerifiedRoom: false, rejectReason: reason } : r));
+                }
+              }}
               onReviewDeleted={handleAdminReviewDeleted}
               onViewRoommate={setSelectedRoommate}
               onViewRoom={setSelectedRoom}
