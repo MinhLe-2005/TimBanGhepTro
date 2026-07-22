@@ -499,7 +499,47 @@ export default function ChatView({
       }
       return true;
     });
-  }, [rawActiveMessages, myChatId]);
+
+    const reactionsMap: Record<string, Record<string, Set<string>>> = {};
+    visibleMessages.forEach(msg => {
+      if (msg.isSystem && msg.text) {
+        if (msg.text.startsWith('[SYSTEM_REACTION]')) {
+          const parts = msg.text.split(' ');
+          if (parts.length >= 3) {
+            const targetId = parts[1];
+            const emoji = parts[2];
+            if (!reactionsMap[targetId]) reactionsMap[targetId] = {};
+            if (!reactionsMap[targetId][emoji]) reactionsMap[targetId][emoji] = new Set();
+            reactionsMap[targetId][emoji].add(msg.senderId);
+          }
+        } else if (msg.text.startsWith('[SYSTEM_REMOVEREACTION]')) {
+          const parts = msg.text.split(' ');
+          if (parts.length >= 3) {
+            const targetId = parts[1];
+            const emoji = parts[2];
+            if (reactionsMap[targetId] && reactionsMap[targetId][emoji]) {
+              reactionsMap[targetId][emoji].delete(msg.senderId);
+            }
+          }
+        }
+      }
+    });
+
+    return visibleMessages
+      .filter(msg => !msg.isSystem || (!msg.text?.startsWith('[SYSTEM_REACTION]') && !msg.text?.startsWith('[SYSTEM_REMOVEREACTION]')))
+      .map(msg => {
+        if (reactionsMap[msg.id]) {
+          const finalReactions: Record<string, string[]> = {};
+          for (const [emoji, userSet] of Object.entries(reactionsMap[msg.id])) {
+            if (userSet.size > 0) {
+              finalReactions[emoji] = Array.from(userSet);
+            }
+          }
+          return { ...msg, reactions: { ...(msg.reactions || {}), ...finalReactions } };
+        }
+        return msg;
+      });
+  }, [rawActiveMessages, myChatId, myAuthId, myProfileId, myRoommateId]);
   const activeAgreementState = useMemo(() => {
     const latestAgreementMessage = [...activeMessages]
       .reverse()
