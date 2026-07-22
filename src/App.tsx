@@ -2832,15 +2832,19 @@ export default function App() {
               onApproveListing={(table, id) => {
                 if (table === 'roommates') {
                   setAllRoommates(prev => prev.map(r => r.id === id ? { ...r, isVerified: true, rejectReason: undefined } : r));
+                  setSupabaseRoommates(prev => prev.map(r => r.id === id ? { ...r, isVerified: true, rejectReason: undefined } : r));
                 } else {
                   setAllRooms(prev => prev.map(r => r.id === id ? { ...r, isVerifiedRoom: true, rejectReason: undefined } : r));
+                  setSupabaseRooms(prev => prev.map(r => r.id === id ? { ...r, isVerifiedRoom: true, rejectReason: undefined } : r));
                 }
               }}
               onRejectListing={(table, id, reason) => {
                 if (table === 'roommates') {
                   setAllRoommates(prev => prev.map(r => r.id === id ? { ...r, isVerified: false, rejectReason: reason } : r));
+                  setSupabaseRoommates(prev => prev.map(r => r.id === id ? { ...r, isVerified: false, rejectReason: reason } : r));
                 } else {
                   setAllRooms(prev => prev.map(r => r.id === id ? { ...r, isVerifiedRoom: false, rejectReason: reason } : r));
+                  setSupabaseRooms(prev => prev.map(r => r.id === id ? { ...r, isVerifiedRoom: false, rejectReason: reason } : r));
                 }
               }}
               onReviewDeleted={handleAdminReviewDeleted}

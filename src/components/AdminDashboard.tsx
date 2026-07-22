@@ -528,14 +528,24 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     // 2. Notify parent App component to update its state
     onApproveListing?.(table, id);
 
-    // 3. Update Supabase database
-    const field = table === 'roommates' ? 'isVerified' : 'isVerifiedRoom';
-    const { error } = await supabase.from(table).update({ [field]: true, rejectReason: null }).eq('id', id).select();
-    if (error) {
-      console.error("Lỗi duyệt bài trên Supabase:", error);
-      toast('Không thể duyệt bài viết trên CSĐL.', 'error');
-      fetchAdminData(false);
-      return;
+    // 3. Update Supabase database (try RPC first to bypass RLS, fallback to direct update)
+    let updateSuccess = false;
+    try {
+      const { error: rpcErr } = await supabase.rpc('admin_approve_listing', { p_table: table, p_id: id });
+      if (!rpcErr) updateSuccess = true;
+    } catch (e) {
+      console.warn("RPC admin_approve_listing fallback to direct table update");
+    }
+
+    if (!updateSuccess) {
+      const field = table === 'roommates' ? 'isVerified' : 'isVerifiedRoom';
+      const { error } = await supabase.from(table).update({ [field]: true, rejectReason: null }).eq('id', id).select();
+      if (error) {
+        console.error("Lỗi duyệt bài trên Supabase:", error);
+        toast('Không thể duyệt bài viết trên CSĐL.', 'error');
+        fetchAdminData(false);
+        return;
+      }
     }
     toast('✅ Đã duyệt bài viết thành công!', 'success');
     fetchAdminData(false);
@@ -571,13 +581,23 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
     setRejectingItem(null);
     setRejectReasonInput('');
 
-    // 4. Update Supabase database
-    const { error } = await supabase.from(table).update({ rejectReason: finalReason }).eq('id', id).select();
-    if (error) {
-      console.error("Lỗi từ chối bài viết trên Supabase:", error);
-      toast('Không thể từ chối bài viết trên CSĐL.', 'error');
-      fetchAdminData(false);
-      return;
+    // 4. Update Supabase database (try RPC first to bypass RLS)
+    let updateSuccess = false;
+    try {
+      const { error: rpcErr } = await supabase.rpc('admin_reject_listing', { p_table: table, p_id: id, p_reason: finalReason });
+      if (!rpcErr) updateSuccess = true;
+    } catch (e) {
+      console.warn("RPC admin_reject_listing fallback to direct table update");
+    }
+
+    if (!updateSuccess) {
+      const { error } = await supabase.from(table).update({ rejectReason: finalReason }).eq('id', id).select();
+      if (error) {
+        console.error("Lỗi từ chối bài viết trên Supabase:", error);
+        toast('Không thể từ chối bài viết trên CSĐL.', 'error');
+        fetchAdminData(false);
+        return;
+      }
     }
 
     // 5. Send notification message to user chat channel if owner userId exists
@@ -1067,7 +1087,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {activeRooms.map(room => {
-                      const isApproved = room.isVerifiedRoom === true || String(room.isVerifiedRoom) === 'true' || room.isVerifiedRoom === undefined || room.isVerifiedRoom === null;
+                      const isApproved = room.isVerifiedRoom === true || String(room.isVerifiedRoom) === 'true';
                       const isRejected = !!room.rejectReason;
                       return (
                         <div 
