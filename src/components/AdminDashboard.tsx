@@ -1181,9 +1181,43 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                                 <span className="text-xs text-slate-400 font-bold bg-slate-100 px-2 py-0.5 rounded-full">ID: {appeal.sender_id}</span>
                               </div>
                               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed font-medium overflow-hidden text-ellipsis">
-                                  {appeal.text?.replace(/Minh chứng: data:image\/[^;]+;base64,[^\n]+/, 'Minh chứng: Đã đính kèm ảnh')}
-                                </p>
+                                {(() => {
+                                  let text = appeal.text || "";
+                                  text = text.replace(/Minh chứng: data:image\/[^;]+;base64,[^\n]+/, 'Minh chứng: Đã đính kèm ảnh');
+                                  const reasonMatch = text.match(/Lý do:\s*(.*)/);
+                                  const proofMatch = text.match(/Minh chứng:\s*(.*)/);
+                                  const isAppeal = text.includes('[KHÁNG CÁO]');
+                                  
+                                  if (isAppeal) {
+                                    return (
+                                      <div className="flex flex-col gap-2.5 text-sm">
+                                        <div className="inline-block">
+                                          <span className="bg-rose-100 text-rose-700 font-bold px-2.5 py-1 rounded-lg text-xs tracking-wide shadow-sm">
+                                            ĐƠN KHÁNG CÁO
+                                          </span>
+                                        </div>
+                                        {reasonMatch && (
+                                          <div className="mt-1 flex items-start gap-2">
+                                            <span className="font-bold text-slate-800 whitespace-nowrap bg-slate-200/50 px-2 py-0.5 rounded-md">Lý do:</span>
+                                            <span className="text-slate-600 font-medium pt-0.5">{reasonMatch[1]}</span>
+                                          </div>
+                                        )}
+                                        {proofMatch && (
+                                          <div className="flex items-start gap-2">
+                                            <span className="font-bold text-slate-800 whitespace-nowrap bg-slate-200/50 px-2 py-0.5 rounded-md">Minh chứng:</span>
+                                            <span className="text-slate-600 font-medium pt-0.5">{proofMatch[1]}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  }
+                                  
+                                  return (
+                                    <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed font-medium overflow-hidden text-ellipsis">
+                                      {text}
+                                    </p>
+                                  );
+                                })()}
                                 {appeal.image_url && (
                                   <div className="mt-4 max-w-sm rounded-lg overflow-hidden border border-slate-200">
                                     <img src={appeal.image_url} alt="Minh chứng" className="cursor-zoom-in w-full h-auto object-cover hover:opacity-90 transition-opacity" onClick={() => previewImage(appeal.image_url)} />
