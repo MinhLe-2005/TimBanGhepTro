@@ -526,7 +526,7 @@ export default function ChatView({
     });
 
     return visibleMessages
-      .filter(msg => !msg.isSystem || (!msg.text?.startsWith('[SYSTEM_REACTION]') && !msg.text?.startsWith('[SYSTEM_REMOVEREACTION]')))
+      .filter(msg => !msg.isSystem || (!msg.text?.startsWith('[SYSTEM_REACTION]') && !msg.text?.startsWith('[SYSTEM_REMOVEREACTION]') && !msg.text?.startsWith('[SYSTEM_SEEN]')))
       .map(msg => {
         if (reactionsMap[msg.id]) {
           const finalReactions: Record<string, string[]> = {};
@@ -1009,6 +1009,11 @@ export default function ChatView({
         const agreementMap: Record<string, boolean> = {};
 
         inboxMessages.forEach(msg => {
+          if (msg.text?.startsWith('[SYSTEM_REACTION]') || 
+              msg.text?.startsWith('[SYSTEM_REMOVEREACTION]') || 
+              msg.text?.startsWith('[SYSTEM_SEEN]')) {
+            return;
+          }
           const ids = msg.chat_id.split('_');
           const partnerId = ids[0] === myAuthId ? ids[1] : ids[0];
           if (partnerId === myAuthId) return;
