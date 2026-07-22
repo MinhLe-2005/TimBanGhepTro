@@ -836,38 +836,6 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                   </button>
                 </div>
 
-                {/* DEBUG PANEL */}
-                <div className="mb-6 p-4 border border-rose-300 bg-rose-50 rounded-xl">
-                  <h4 className="font-bold text-rose-700 mb-2">Công cụ nội soi Database (Dành cho Developer)</h4>
-                  <button 
-                    onClick={async () => {
-                      try {
-                        const name = "Sơn Tùng MTP";
-                        const p = await supabase.from('profiles').select('*').ilike('name', `%${name}%`);
-                        const r = await supabase.from('roommates').select('*').ilike('name', `%${name}%`);
-                        const targetIds = [...(r.data||[]).map((x:any)=>x.id), ...(r.data||[]).map((x:any)=>x.user_id), ...(r.data||[]).map((x:any)=>x.postedBy)].filter(Boolean);
-                        let u = { data: [] };
-                        if (targetIds.length > 0) {
-                          u = await supabase.from('user_reports').select('*').in('reported_id', targetIds);
-                        }
-                        const m = await supabase.from('messages').select('*').eq('chat_id', 'SYSTEM_REPORTS');
-                        
-                        alert(JSON.stringify({ 
-                          profiles: p.data, 
-                          roommates: r.data, 
-                          user_reports: u.data,
-                          msg_reports: m.data?.filter(x => x.text.includes(name) || x.text.includes(targetIds[0]))
-                        }, null, 2));
-                      } catch (err: any) {
-                        alert("Lỗi nội soi: " + err.message);
-                      }
-                    }}
-                    className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded text-sm font-bold transition-colors"
-                  >
-                    Nội soi dữ liệu "Sơn Tùng MTP"
-                  </button>
-                  <p className="text-xs text-rose-600 mt-2">Bấm nút này, copy toàn bộ chữ hiện ra trong bảng thông báo (hoặc chụp ảnh) gửi cho AI để tìm nguyên nhân gốc rễ vì sao tài khoản này có thể lách luật.</p>
-                </div>
                 {reports.length === 0 ? (
                   <div className="text-center py-10 bg-slate-50 rounded-2xl">
                     <ShieldCheck className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
