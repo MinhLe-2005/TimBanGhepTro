@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ShieldAlert, LogOut, Upload, Send, CheckCircle2 } from "lucide-react";
+import { ShieldAlert, LogOut, Upload, Send, CheckCircle2, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { uploadInlineImage } from "../lib/storage";
 import { compressImageFile } from "../utils/cropImage";
