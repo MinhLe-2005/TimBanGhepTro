@@ -136,20 +136,35 @@ export default function BannedScreen({ currentUser, onLogout }: BannedScreenProp
 
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1.5">Ảnh minh chứng (tùy chọn)</label>
-              <label className={`flex items-center justify-center gap-2 w-full border-2 border-dashed ${appealImage ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-slate-300 bg-white text-slate-500 hover:bg-slate-50'} rounded-xl p-4 cursor-pointer transition-colors duration-200`}>
-                <Upload className="w-5 h-5" />
-                <span className="font-semibold text-sm truncate max-w-[200px]">
-                  {appealImage ? appealImage.name : "Tải ảnh lên"}
-                </span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={e => {
-                    if (e.target.files?.[0]) setAppealImage(e.target.files[0]);
-                  }}
-                />
-              </label>
+              {!appealImage ? (
+                <label className="flex items-center justify-center gap-2 w-full border-2 border-dashed border-slate-300 bg-white text-slate-500 hover:bg-slate-50 rounded-xl p-4 cursor-pointer transition-colors duration-200">
+                  <Upload className="w-5 h-5" />
+                  <span className="font-semibold text-sm truncate max-w-[200px]">
+                    Tải ảnh lên
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => {
+                      if (e.target.files?.[0]) setAppealImage(e.target.files[0]);
+                    }}
+                  />
+                </label>
+              ) : (
+                <div className="relative w-full h-40 border-2 border-emerald-400 rounded-xl overflow-hidden group">
+                  <img src={URL.createObjectURL(appealImage)} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setAppealImage(null)}
+                      className="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-4 rounded-lg text-sm"
+                    >
+                      Xóa ảnh
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {errorMsg && (
