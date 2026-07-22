@@ -1181,8 +1181,8 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                                 <span className="text-xs text-slate-400 font-bold bg-slate-100 px-2 py-0.5 rounded-full">ID: {appeal.sender_id}</span>
                               </div>
                               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed font-medium">
-                                  {appeal.text}
+                                <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed font-medium overflow-hidden text-ellipsis">
+                                  {appeal.text?.replace(/Minh chứng: data:image\/[^;]+;base64,[^\n]+/, 'Minh chứng: Đã đính kèm ảnh')}
                                 </p>
                                 {appeal.image_url && (
                                   <div className="mt-4 max-w-sm rounded-lg overflow-hidden border border-slate-200">
