@@ -234,8 +234,12 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
   const activeRooms = allSupabaseRooms.length > 0 ? allSupabaseRooms : rooms;
   const listings = allSupabaseRoommates.filter(r => r.is_listing !== false && String(r.is_listing) !== 'false');
   const profiles = allSupabaseRoommates.filter(r => r.is_listing === false || String(r.is_listing) === 'false');
-  const pendingListings = listings.filter(r => (r.isVerified === false || String(r.isVerified) === 'false' || r.isVerified === null || r.isVerified === undefined) && !r.rejectReason && r.isVerified !== true && String(r.isVerified) !== 'true');
-  const pendingRooms = activeRooms.filter(r => (r.isVerifiedRoom === false || String(r.isVerifiedRoom) === 'false' || r.isVerifiedRoom === null || r.isVerifiedRoom === undefined) && !r.rejectReason && r.isVerifiedRoom !== true && String(r.isVerifiedRoom) !== 'true');
+  
+  const pendingListings = listings.filter(r => (r.isVerified === false || String(r.isVerified) === 'false') && !r.rejectReason);
+  const pendingRooms = activeRooms.filter(r => (r.isVerifiedRoom === false || String(r.isVerifiedRoom) === 'false') && !r.rejectReason);
+
+  const approvedListings = listings.filter(r => r.isVerified === true || String(r.isVerified) === 'true' || (r.isVerified === undefined && !r.rejectReason));
+  const approvedRooms = activeRooms.filter(r => r.isVerifiedRoom === true || String(r.isVerifiedRoom) === 'true' || (r.isVerifiedRoom === undefined && !r.rejectReason));
 
   const handleBanUser = async (userId: string) => {
     const ok = await confirm({ title: 'Khóa tài khoản', message: 'Bạn có chắc muốn khóa vĩnh viễn tài khoản này?', confirmText: 'Khóa ngay', type: 'error' });
@@ -716,9 +720,9 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
         {tabBtn("reports", "Báo cáo", reports.length, <AlertTriangle className="w-5 h-5" />, "bg-rose-100 text-rose-700")}
         {tabBtn("reviewReports", "Feedback bị báo cáo", reviewReports.length, <Flag className="w-5 h-5" />, "bg-amber-100 text-amber-700")}
         {tabBtn("pendingListings", "Duyệt bài đăng", pendingListings.length + pendingRooms.length, <Check className="w-5 h-5" />, "bg-indigo-100 text-indigo-700")}
-        {tabBtn("listings", "Bài đăng tìm bạn", listings.length, <Users className="w-5 h-5" />, "bg-sky-100 text-[#006590]")}
+        {tabBtn("listings", "Bài đăng tìm bạn", approvedListings.length, <Users className="w-5 h-5" />, "bg-sky-100 text-[#006590]")}
         {tabBtn("users", "Hồ sơ người dùng", profiles.length, <UserCheck className="w-5 h-5" />, "bg-purple-100 text-purple-700")}
-        {tabBtn("rooms", "Tin đăng phòng", rooms.length, <FileText className="w-5 h-5" />, "bg-emerald-100 text-emerald-700")}
+        {tabBtn("rooms", "Tin đăng phòng", approvedRooms.length, <FileText className="w-5 h-5" />, "bg-emerald-100 text-emerald-700")}
         {tabBtn("agreements", "Hợp đồng", agreements.length, <FileText className="w-5 h-5" />, "bg-amber-100 text-amber-700")}
       </div>
 
@@ -970,12 +974,12 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
             {/* TAB: LISTINGS */}
             {activeTab === "listings" && (
               <div className="space-y-6">
-                <h3 className="text-lg font-black text-slate-800">Tất cả bài đăng tìm bạn ở ghép ({listings.length})</h3>
-                {listings.length === 0 ? (
-                  <div className="text-center py-10 bg-slate-50 rounded-2xl"><p className="text-slate-500 font-bold">Chưa có bài đăng nào.</p></div>
+                <h3 className="text-lg font-black text-slate-800">Tất cả bài đăng tìm bạn ở ghép ({approvedListings.length})</h3>
+                {approvedListings.length === 0 ? (
+                  <div className="text-center py-10 bg-slate-50 rounded-2xl"><p className="text-slate-500 font-bold">Chưa có bài đăng nào được duyệt.</p></div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {listings.map(rm => <UserCard key={rm.id} rm={rm} isBanned={rm.user_id ? bannedUsers.includes(rm.user_id) : bannedUsers.includes(rm.id)} itemType="bài đăng tìm bạn" />)}
+                    {approvedListings.map(rm => <UserCard key={rm.id} rm={rm} isBanned={rm.user_id ? bannedUsers.includes(rm.user_id) : bannedUsers.includes(rm.id)} itemType="bài đăng tìm bạn" />)}
                   </div>
                 )}
               </div>
@@ -1081,12 +1085,12 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
             {/* TAB: ROOMS */}
             {activeTab === "rooms" && (
               <div className="space-y-6">
-                <h3 className="text-lg font-black text-slate-800">Quản lý tin đăng phòng ({activeRooms.length})</h3>
-                {activeRooms.length === 0 ? (
-                  <div className="text-center py-10 bg-slate-50 rounded-2xl"><p className="text-slate-500 font-bold">Chưa có tin phòng nào.</p></div>
+                <h3 className="text-lg font-black text-slate-800">Quản lý tin đăng phòng ({approvedRooms.length})</h3>
+                {approvedRooms.length === 0 ? (
+                  <div className="text-center py-10 bg-slate-50 rounded-2xl"><p className="text-slate-500 font-bold">Chưa có tin phòng nào được duyệt.</p></div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {activeRooms.map(room => {
+                    {approvedRooms.map(room => {
                       const isApproved = room.isVerifiedRoom === true || String(room.isVerifiedRoom) === 'true';
                       const isRejected = !!room.rejectReason;
                       return (
