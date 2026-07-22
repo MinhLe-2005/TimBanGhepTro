@@ -1,6 +1,7 @@
 import { Heart, Flame, Bed, Bath, Shield, ChefHat, MapPin, Cpu, Car, Eye, Star, Trash2, Ban, Users, AlertCircle, Building, User, ExternalLink } from "lucide-react";
 import { Room } from "../types";
 import { useState } from "react";
+import { useDialog } from "./ui/DialogProvider";
 
 interface RoomCardProps {
   room: Room;
@@ -23,8 +24,23 @@ export default function RoomCard({
   onReport,
   currentUserId,
 }: RoomCardProps) {
+  const { confirm } = useDialog();
   const [isLiked, setIsLiked] = useState(isInitiallyLiked);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+
+  const handleShowRejectReason = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const editNow = await confirm({
+      title: "Bài viết không được duyệt",
+      message: `Lý do từ chối:\n"${room.rejectReason}"\n\nVui lòng điều chỉnh lại thông tin bài viết của bạn.`,
+      confirmText: onEdit ? "Chỉnh sửa bài viết ngay" : "Đóng",
+      cancelText: onEdit ? "Đóng" : undefined,
+      type: "error"
+    });
+    if (editNow && onEdit) {
+      onEdit(room);
+    }
+  };
 
   const formatPrice = (price: number) => {
     return price.toLocaleString("vi-VN") + "đ";
@@ -124,7 +140,7 @@ export default function RoomCard({
           {room.isVerifiedRoom === false && (
             room.rejectReason ? (
               <div 
-                onClick={(e) => { e.stopPropagation(); alert(`Lý do từ chối duyệt:\n${room.rejectReason}\n\nVui lòng sửa lại bài viết của bạn.`); }}
+                onClick={handleShowRejectReason}
                 className="bg-rose-500/95 text-white backdrop-blur-sm px-2.5 py-1 rounded-full text-[10px] font-black shadow-sm flex items-center gap-1.5 border border-rose-400 self-start cursor-pointer hover:bg-rose-600 transition-colors"
                 title="Bấm để xem lý do từ chối"
               >
