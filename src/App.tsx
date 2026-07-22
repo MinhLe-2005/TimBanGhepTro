@@ -937,7 +937,7 @@ export default function App() {
       const daysLeft = getDaysLeft(r);
       if ((r.status === "Hết hạn" || daysLeft <= 0) && !isAdmin && !isOwner) return false;
       
-      if (r.isVerified === true || r.isVerified === undefined) return true; // Approved or legacy dummy data
+      if (r.isVerified === true || String(r.isVerified) === 'true' || r.isVerified === undefined || r.isVerified === null) return true; // Approved or legacy dummy data
       if (isAdmin) return true; // Admins see everything
       if (isOwner) return true; // Owner sees their own pending post
       return false; // Hide pending posts from public
@@ -1065,7 +1065,7 @@ export default function App() {
       const daysLeft = getDaysLeft(r);
       if ((r.status === "Hết hạn" || daysLeft <= 0) && !isAdmin && !isOwner) return false;
 
-      if (r.isVerifiedRoom === true || r.isVerifiedRoom === undefined) return true; // Approved or legacy dummy data
+      if (r.isVerifiedRoom === true || String(r.isVerifiedRoom) === 'true' || r.isVerifiedRoom === undefined || r.isVerifiedRoom === null) return true; // Approved or legacy dummy data
       if (isAdmin) return true; // Admins see everything
       if (isOwner) return true; // Owner sees their own pending post
       return false; // Hide pending posts from public

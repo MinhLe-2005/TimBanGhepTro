@@ -1061,41 +1061,71 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
             {/* TAB: ROOMS */}
             {activeTab === "rooms" && (
               <div className="space-y-6">
-                <h3 className="text-lg font-black text-slate-800">Quản lý tin đăng phòng ({rooms.length})</h3>
-                {rooms.length === 0 ? (
+                <h3 className="text-lg font-black text-slate-800">Quản lý tin đăng phòng ({activeRooms.length})</h3>
+                {activeRooms.length === 0 ? (
                   <div className="text-center py-10 bg-slate-50 rounded-2xl"><p className="text-slate-500 font-bold">Chưa có tin phòng nào.</p></div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {rooms.map(room => (
-                      <div 
-                        key={room.id} 
-                        className="border border-slate-200 p-4 rounded-2xl flex gap-4 cursor-pointer hover:border-sky-300 hover:shadow-md transition-all group"
-                        onClick={() => onViewRoom?.(room)}
-                      >
-                        <img 
-                          src={room.images?.[0] || (room as any).hostAvatar} 
-                          className="w-16 h-16 rounded-xl object-cover shrink-0 cursor-zoom-in hover:opacity-80" 
-                          alt={room.title} 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            previewImage(room.images?.[0] || (room as any).hostAvatar);
-                          }}
-                        />
-                        <div className="flex-1 min-w-0 flex flex-col justify-between">
-                          <div>
-                            <p className="font-bold text-slate-800 text-sm line-clamp-2 group-hover:text-sky-700 transition-colors">{room.title}</p>
-                            <p className="text-xs text-slate-500 truncate">{room.district}</p>
-                            <p className="text-[10px] text-slate-400 mt-1 font-mono truncate">UID: {(room as any).user_id || (room as any).postedBy || 'Mẫu hệ thống'}</p>
+                    {activeRooms.map(room => {
+                      const isApproved = room.isVerifiedRoom === true || String(room.isVerifiedRoom) === 'true' || room.isVerifiedRoom === undefined || room.isVerifiedRoom === null;
+                      const isRejected = !!room.rejectReason;
+                      return (
+                        <div 
+                          key={room.id} 
+                          className="border border-slate-200 p-4 rounded-2xl flex flex-col justify-between cursor-pointer hover:border-sky-300 hover:shadow-md transition-all group bg-white"
+                          onClick={() => onViewRoom?.(room)}
+                        >
+                          <div className="flex gap-4">
+                            <img 
+                              src={room.images?.[0] || (room as any).hostAvatar || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=300&auto=format&fit=crop"} 
+                              className="w-16 h-16 rounded-xl object-cover shrink-0 cursor-zoom-in hover:opacity-80" 
+                              alt={room.title} 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                previewImage(room.images?.[0] || (room as any).hostAvatar);
+                              }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-slate-800 text-sm line-clamp-2 group-hover:text-sky-700 transition-colors">{room.title}</p>
+                              <p className="text-xs text-slate-500 truncate mt-0.5">{room.district || room.location}</p>
+                              
+                              <div className="flex items-center gap-1.5 mt-1.5">
+                                {isRejected ? (
+                                  <span className="px-2 py-0.5 text-[10px] uppercase font-black rounded-md bg-rose-100 text-rose-700">❌ Từ chối</span>
+                                ) : isApproved ? (
+                                  <span className="px-2 py-0.5 text-[10px] uppercase font-black rounded-md bg-emerald-100 text-emerald-700">✓ Đã duyệt</span>
+                                ) : (
+                                  <span className="px-2 py-0.5 text-[10px] uppercase font-black rounded-md bg-amber-100 text-amber-700">⏳ Chờ duyệt</span>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex justify-between items-center mt-2">
-                             <span className="text-xs font-bold text-emerald-600">{(room.price/1000000).toFixed(1)} tr/tháng</span>
-                             <div onClick={e => e.stopPropagation()}>
-                               <button onClick={() => handleDeleteListing('rooms', room.id, 'tin đăng phòng')} className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg transition-colors"><Trash2 className="w-3 h-3" /></button>
+
+                          <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-100">
+                             <span className="text-xs font-black text-emerald-600">{(room.price / 1000000).toFixed(1)} tr/tháng</span>
+                             <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                               {(!isApproved || isRejected) && (
+                                 <button 
+                                   onClick={() => handleApproveListing('rooms', room.id)} 
+                                   className="px-2.5 py-1 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1"
+                                   title="Duyệt bài ngay"
+                                 >
+                                   <Check className="w-3.5 h-3.5" />
+                                   Duyệt
+                                 </button>
+                               )}
+                               <button 
+                                 onClick={() => handleDeleteListing('rooms', room.id, 'tin đăng phòng')} 
+                                 className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg transition-colors"
+                                 title="Xóa tin đăng"
+                               >
+                                 <Trash2 className="w-3.5 h-3.5" />
+                               </button>
                              </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
