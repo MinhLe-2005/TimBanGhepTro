@@ -490,8 +490,12 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
          }
        }
     }
+    // 5. Clear appeal history if any
+    await supabase.from('messages').delete().eq('chat_id', 'SYSTEM_APPEALS').eq('sender_id', userId);
+
     setBannedUsers(previous => previous.filter(id => id !== userId));
     toast('✅ Đã mở khóa tài khoản.', 'success');
+    fetchAdminData(false);
   };
 
   const handleDeleteListing = async (table: 'roommates' | 'rooms', id: string, typeName: string = 'bài đăng') => {
