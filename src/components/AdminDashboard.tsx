@@ -1178,12 +1178,19 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
                                 <span className="font-black text-slate-800 text-base">{user.name}</span>
                                 <span className="text-xs text-slate-400 font-bold bg-slate-100 px-2 py-0.5 rounded-full">ID: {appeal.sender_id}</span>
                               </div>
-                              <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed bg-slate-50 p-4 rounded-xl font-medium border border-slate-100">
-                                {appeal.text}
-                              </p>
+                              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed font-medium">
+                                  {appeal.text}
+                                </p>
+                                {appeal.image_url && (
+                                  <div className="mt-4 max-w-sm rounded-lg overflow-hidden border border-slate-200">
+                                    <img src={appeal.image_url} alt="Minh chứng" className="w-full h-auto object-cover hover:opacity-90 cursor-pointer transition-opacity" onClick={() => window.open(appeal.image_url, '_blank')} />
+                                  </div>
+                                )}
+                              </div>
                               <div className="text-xs font-semibold text-slate-400 mt-3 flex items-center gap-1.5">
                                 <Clock className="w-3.5 h-3.5" />
-                                {new Date(appeal.created_at).toLocaleString('vi-VN')}
+                                {new Date(appeal.timestamp).toLocaleString('vi-VN')}
                               </div>
                             </div>
                             <div className="flex gap-2">

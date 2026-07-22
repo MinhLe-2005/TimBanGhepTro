@@ -82,6 +82,7 @@ export default function BannedScreen({ currentUser, onLogout }: BannedScreenProp
         chat_id: 'SYSTEM_APPEALS',
         sender_id: currentUser?.id || "unknown",
         text: appealText,
+        image_url: imageUrl || null,
       });
 
       if (error) throw error;
