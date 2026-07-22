@@ -1327,8 +1327,22 @@ export default function App() {
       }
     }
 
+    let finalAvatar = newRoommate.avatar;
+    if (finalAvatar && isInlineImage(finalAvatar)) {
+      try {
+        finalAvatar = await uploadInlineImage(
+          "room-images",
+          `roommate_avatar_${currentUser?.id || 'guest'}_${Date.now()}.png`,
+          finalAvatar
+        );
+      } catch (err) {
+        console.error("Lỗi upload avatar roommate:", err);
+      }
+    }
+
     const roommateWithOwner = { 
       ...newRoommate, 
+      avatar: finalAvatar,
       postedBy: currentUser?.id || "", 
       user_id: currentUser?.id || "",
       is_listing: true,  // Mark as roommate listing (can be deleted)
