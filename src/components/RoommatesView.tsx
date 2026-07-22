@@ -523,9 +523,7 @@ export default function RoommatesView({
               >
                 <option value="Tất cả">Tất cả</option>
                 <option value="Đang tìm">● Đang tìm</option>
-                <option value="Đang trao đổi">● Đang trao đổi</option>
                 <option value="Đã tìm được">● Đã tìm được</option>
-                <option value="Đã có phòng">● Đã có phòng</option>
               </select>
               <label className={`flex items-center justify-between gap-3 mt-3 cursor-pointer group p-3 rounded-xl transition-all border-2 shadow-sm ${hideFoundRoom ? 'bg-indigo-50 border-indigo-200 shadow-indigo-100' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
                 <div className="flex items-center gap-3">
@@ -533,7 +531,7 @@ export default function RoommatesView({
                     <div className={`absolute top-[2px] left-[2px] bg-white w-5 h-5 rounded-full shadow-sm transform transition-transform ${hideFoundRoom ? 'translate-x-5' : 'translate-x-0'}`}></div>
                   </div>
                   <span className={`text-[13px] sm:text-[14px] font-bold ${hideFoundRoom ? 'text-indigo-900' : 'text-slate-600'}`}>
-                    Ẩn người đã có/tìm được phòng
+                    Ẩn người đã tìm được phòng
                   </span>
                 </div>
                 {hideFoundRoom && <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-indigo-600 bg-indigo-100/80 px-2 py-1 rounded-md shrink-0">ĐANG ẨN</span>}

@@ -85,7 +85,7 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
     phoneNumber: room.phoneNumber || hostRoommate?.phoneNumber || "Chưa cập nhật SĐT",
     // PRIORITY: hostRoommate avatar (actual user) > room.hostAvatar (may be stale) > default
     avatar: hostRoommate?.avatar || room.hostAvatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop",
-    status: "Đã có phòng",
+    status: "Đã tìm được",
     location: room.location,
     matchScore: hostRoommate?.matchScore || 0,
     reputationScore: hostRoommate?.reputationScore || 0,
