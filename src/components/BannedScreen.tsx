@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ShieldAlert, LogOut, Upload, Send, CheckCircle2, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
-import { uploadInlineImage } from "../lib/storage";
 import { compressImageFile } from "../utils/cropImage";
 
 interface BannedScreenProps {
@@ -71,8 +70,8 @@ export default function BannedScreen({ currentUser, onLogout }: BannedScreenProp
         });
         const base64Data = await base64Promise;
         
-        const fileName = `appeal_${currentUser?.id || 'guest'}_${Date.now()}.png`;
-        imageUrl = await uploadInlineImage("room-images", fileName, base64Data);
+        // Use base64 directly to bypass storage RLS for banned users
+        imageUrl = base64Data;
       }
 
       // Format appeal message
