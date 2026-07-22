@@ -430,28 +430,32 @@ export default function App() {
           supabase.from('rooms').select('*').order('createdAt', { ascending: false }),
         ]);
 
+        let calculatedCount = 0;
         try {
           const { data: rpcCount, error: rpcError } = await supabase.rpc('get_total_users');
           if (!rpcError && typeof rpcCount === 'number') {
-            setTotalUserCount(rpcCount);
-          } else {
-            const uniqueUsers = new Set();
-            if (roommatesResult.data) {
-              roommatesResult.data.forEach((r: any) => {
-                if (r.user_id) uniqueUsers.add(r.user_id);
-                if (r.auth_id) uniqueUsers.add(r.auth_id);
-                if (r.postedBy) uniqueUsers.add(r.postedBy);
-              });
-            }
-            if (roomsResult.data) {
-              roomsResult.data.forEach((r: any) => {
-                if (r.user_id) uniqueUsers.add(r.user_id);
-                if (r.postedBy) uniqueUsers.add(r.postedBy);
-              });
-            }
-            setTotalUserCount(uniqueUsers.size > 0 ? uniqueUsers.size : roommatesResult.data?.length || 0);
+            calculatedCount = rpcCount;
           }
         } catch(e) {}
+        
+        if (calculatedCount === 0) {
+          const uniqueUsers = new Set();
+          if (roommatesResult.data) {
+            roommatesResult.data.forEach((r: any) => {
+              if (r.user_id) uniqueUsers.add(r.user_id);
+              if (r.auth_id) uniqueUsers.add(r.auth_id);
+              if (r.postedBy) uniqueUsers.add(r.postedBy);
+            });
+          }
+          if (roomsResult.data) {
+            roomsResult.data.forEach((r: any) => {
+              if (r.user_id) uniqueUsers.add(r.user_id);
+              if (r.postedBy) uniqueUsers.add(r.postedBy);
+            });
+          }
+          calculatedCount = uniqueUsers.size > 0 ? uniqueUsers.size : (roommatesResult.data?.length || 0);
+        }
+        setTotalUserCount(calculatedCount);
 
         const nowMs = Date.now();
         const currentUserId = currentUser?.id;
