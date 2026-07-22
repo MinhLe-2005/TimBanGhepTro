@@ -430,6 +430,11 @@ export default function App() {
           supabase.from('rooms').select('*').order('createdAt', { ascending: false }),
         ]);
 
+        try {
+          const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+          if (count !== null) setTotalUserCount(count);
+        } catch(e) {}
+
         const nowMs = Date.now();
         const currentUserId = currentUser?.id;
 
@@ -739,6 +744,8 @@ export default function App() {
     const saved = localStorage.getItem("roomiematch_user_profile");
     return saved ? JSON.parse(saved) : null;
   });
+
+  const [totalUserCount, setTotalUserCount] = useState<number>(0);
 
   // States to hold Supabase fetched lists
   const [supabaseRoommates, setSupabaseRoommates] = useState<any[]>(() => {
@@ -2717,6 +2724,7 @@ export default function App() {
       <main className={`max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 ${(!isExpiryBannerDismissed && hasExpiringPost) ? 'pt-6' : 'pt-28'} pb-12 flex-grow`}>
         {activeTab === "home" && (
           <HomeView
+            totalUserCount={totalUserCount}
             roommates={allRoommates}
             rooms={allRooms}
             likedRoommateIds={likedRoommateIds}

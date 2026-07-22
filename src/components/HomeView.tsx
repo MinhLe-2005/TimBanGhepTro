@@ -8,6 +8,7 @@ import LikedRoommatesModal from "./LikedRoommatesModal";
 import LikedRoomsModal from "./LikedRoomsModal";
 
 interface HomeViewProps {
+  totalUserCount?: number;
   roommates: Roommate[];
   rooms: Room[];
   likedRoommateIds: string[];
@@ -42,7 +43,8 @@ export default function HomeView({
   onRequireAuth,
   onOpenCreateProfile,
   isAdmin = false,
-  hideInactiveRoommates = true
+  hideInactiveRoommates = true,
+  totalUserCount = 0
 }: HomeViewProps) {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState("Tất cả Đà Nẵng");
@@ -217,7 +219,7 @@ export default function HomeView({
             </span>
             <div>
               <p className="text-[10px] text-sky-200/80 font-bold uppercase tracking-widest leading-none mb-0.5">Người dùng</p>
-              <p className="text-[15px] font-black leading-none text-white drop-shadow-md">{roommates.length} Thành viên</p>
+              <p className="text-[15px] font-black leading-none text-white drop-shadow-md">{totalUserCount > 0 ? totalUserCount : roommates.length} Thành viên</p>
             </div>
           </div>
 
