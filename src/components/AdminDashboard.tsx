@@ -172,7 +172,7 @@ export default function AdminDashboard({ currentUser, roommates, rooms, onDelete
       setBannedUsers(combinedBannedUsers);
 
       // Fetch Appeals
-      const { data: appealsData } = await supabase.from('messages').select('*').eq('chat_id', 'SYSTEM_APPEALS').order('created_at', { ascending: false });
+      const { data: appealsData } = await supabase.from('messages').select('*').eq('chat_id', 'SYSTEM_APPEALS').order('timestamp', { ascending: false });
       setAppeals(appealsData || []);
 
       // Fetch Agreements
