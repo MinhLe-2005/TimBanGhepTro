@@ -236,9 +236,39 @@ export default function RoomModal({ room, onClose, onInquire, onAddReview, roomm
     return price.toLocaleString("vi-VN") + "đ";
   };
 
-  const createdAt = new Date(room.created_at || room.createdAt || Date.now());
-  const expiresAt = new Date(createdAt.getTime() + 30 * 24 * 60 * 60 * 1000);
-  const daysLeft = Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const now = Date.now();
+  let createdAtTs = now;
+  let hasValidDate = false;
+
+  if (room.created_at) {
+    const d = new Date(room.created_at);
+    if (!isNaN(d.getTime())) {
+      createdAtTs = d.getTime();
+      hasValidDate = true;
+    }
+  } else if (room.createdAt) {
+    const d = new Date(room.createdAt);
+    if (!isNaN(d.getTime())) {
+      createdAtTs = d.getTime();
+      hasValidDate = true;
+    }
+  }
+  
+  if (!hasValidDate) {
+    const match = String(room.id).match(/room-(\d+)/);
+    if (match) {
+      createdAtTs = parseInt(match[1], 10);
+    }
+  }
+
+  const createdAt = new Date(createdAtTs);
+  const createdMidnight = new Date(createdAt);
+  createdMidnight.setHours(0, 0, 0, 0);
+  const todayMidnight = new Date();
+  todayMidnight.setHours(0, 0, 0, 0);
+  
+  const daysElapsed = Math.floor((todayMidnight.getTime() - createdMidnight.getTime()) / (1000 * 60 * 60 * 24));
+  const daysLeft = Math.max(0, 30 - daysElapsed);
   const isExpired = room.status === "Hết hạn" || daysLeft <= 0;
 
   return (

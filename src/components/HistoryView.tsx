@@ -517,12 +517,39 @@ function EmptyAccess({
 }
 
 function PostItem({ item, type, onExtend }: { item: any; type: 'room' | 'roommate'; onExtend: () => void }) {
-  const createdAt = new Date(item.created_at || Date.now());
   const now = new Date();
+  let createdAtTs = now.getTime();
+  let hasValidDate = false;
+
+  if (item.created_at) {
+    const d = new Date(item.created_at);
+    if (!isNaN(d.getTime())) {
+      createdAtTs = d.getTime();
+      hasValidDate = true;
+    }
+  } else if (item.createdAt) {
+    const d = new Date(item.createdAt);
+    if (!isNaN(d.getTime())) {
+      createdAtTs = d.getTime();
+      hasValidDate = true;
+    }
+  }
   
-  // Assume expiration is 30 days
-  const expiresAt = new Date(createdAt.getTime() + 30 * 24 * 60 * 60 * 1000);
-  const daysLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (!hasValidDate) {
+    const match = String(item.id).match(/(?:rm|room)-(\d+)/);
+    if (match) {
+      createdAtTs = parseInt(match[1], 10);
+    }
+  }
+
+  const createdAt = new Date(createdAtTs);
+  const createdMidnight = new Date(createdAt);
+  createdMidnight.setHours(0, 0, 0, 0);
+  const todayMidnight = new Date();
+  todayMidnight.setHours(0, 0, 0, 0);
+  
+  const daysElapsed = Math.floor((todayMidnight.getTime() - createdMidnight.getTime()) / (1000 * 60 * 60 * 24));
+  const daysLeft = Math.max(0, 30 - daysElapsed);
   const isExpired = daysLeft <= 0;
   const isExpiringSoon = daysLeft > 0 && daysLeft <= 3; // within 3 days
 

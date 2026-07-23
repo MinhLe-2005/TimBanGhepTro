@@ -312,9 +312,39 @@ export default function RoommateModal({
               style: { '--glow-color': 'rgba(244, 63, 94, 0.3)', '--glow-color-strong': 'rgba(244, 63, 94, 0.5)', '--star-glow': 'rgba(244, 63, 94, 0.6)', '--star-glow-strong': 'rgba(244, 63, 94, 1)' } as React.CSSProperties
             };
 
-  const createdAt = new Date(roommate.created_at || Date.now());
-  const expiresAt = new Date(createdAt.getTime() + 30 * 24 * 60 * 60 * 1000);
-  const daysLeft = Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const now = Date.now();
+  let createdAtTs = now;
+  let hasValidDate = false;
+
+  if (roommate.created_at) {
+    const d = new Date(roommate.created_at);
+    if (!isNaN(d.getTime())) {
+      createdAtTs = d.getTime();
+      hasValidDate = true;
+    }
+  } else if (roommate.createdAt) {
+    const d = new Date(roommate.createdAt);
+    if (!isNaN(d.getTime())) {
+      createdAtTs = d.getTime();
+      hasValidDate = true;
+    }
+  }
+  
+  if (!hasValidDate) {
+    const match = String(roommate.id).match(/rm-(\d+)/);
+    if (match) {
+      createdAtTs = parseInt(match[1], 10);
+    }
+  }
+
+  const createdAt = new Date(createdAtTs);
+  const createdMidnight = new Date(createdAt);
+  createdMidnight.setHours(0, 0, 0, 0);
+  const todayMidnight = new Date();
+  todayMidnight.setHours(0, 0, 0, 0);
+  
+  const daysElapsed = Math.floor((todayMidnight.getTime() - createdMidnight.getTime()) / (1000 * 60 * 60 * 24));
+  const daysLeft = Math.max(0, 30 - daysElapsed);
   const isExpired = roommate.status === "Hết hạn" || daysLeft <= 0;
   
   return (
