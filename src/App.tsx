@@ -2679,7 +2679,7 @@ export default function App() {
 
       {/* Expiry Notification Banner */}
       {!isExpiryBannerDismissed && hasExpiringPost && (
-        <div className="bg-amber-500 text-white px-4 py-3 relative shadow-md z-40 mt-16 sm:mt-20">
+        <div className="bg-amber-500 text-white px-4 py-3 relative shadow-md z-40 mt-[116px] lg:mt-[124px]">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-2 font-medium">
               <AlertTriangle className="h-5 w-5 shrink-0" />
