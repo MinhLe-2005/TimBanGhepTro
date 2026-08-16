@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle, X, Bell } from "lucide-react";
 import { INITIAL_ROOMMATES, INITIAL_ROOMS, SUGGGESTED_CHATS } from "./data";
 import { Roommate, Room } from "./types";
 import { supabase } from "./lib/supabase";
@@ -2819,6 +2819,38 @@ export default function App() {
 
         {activeTab === "info" && (
           <InfoView />
+        )}
+
+        {activeTab === "notifications" && (
+          <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 min-h-[50vh] flex flex-col items-center justify-center text-center animate-fade-in">
+            <div className="w-20 h-20 bg-sky-50 rounded-full flex items-center justify-center mb-6">
+              <Bell className="w-10 h-10 text-[#004e70]" />
+            </div>
+            <h2 className="text-2xl font-black text-slate-800 mb-2">Thông báo của bạn</h2>
+            
+            {!currentUser ? (
+              <p className="text-slate-500 mb-6 max-w-md">Vui lòng đăng nhập để xem các thông báo dành riêng cho bạn.</p>
+            ) : hasExpiringPost ? (
+              <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl max-w-md w-full mt-4">
+                <div className="flex items-center gap-3 mb-3 text-amber-600 font-bold justify-center text-lg">
+                  <AlertTriangle className="w-6 h-6" />
+                  Bài đăng sắp hết hạn
+                </div>
+                <p className="text-sm text-slate-600 mb-6 font-medium">Bài đăng của bạn sắp hết hạn hiển thị. Vui lòng gia hạn để tiếp tục hiển thị trên cộng đồng RoomieMatch.</p>
+                <button
+                  onClick={() => {
+                    setActiveTab("history");
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold py-3 rounded-xl transition-all shadow-sm"
+                >
+                  Gia hạn ngay
+                </button>
+              </div>
+            ) : (
+              <p className="text-slate-500 max-w-md">Bạn hiện không có thông báo nào mới. Hãy tiếp tục khám phá RoomieMatch nhé!</p>
+            )}
+          </div>
         )}
 
         {activeTab === "admin" && (
